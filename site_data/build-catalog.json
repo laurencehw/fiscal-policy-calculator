@@ -70,7 +70,7 @@
   },
   {
     "build_id": "corporate-28pct",
-    "label": "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+    "label": "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
     "score": -1347.0,
     "area": "Corporate",
     "source": "Treasury",
@@ -110,7 +110,7 @@
   },
   {
     "build_id": "ctc-expansion-2021",
-    "label": "👶 Biden CTC Expansion (CBO: $1.6T)",
+    "label": "👶 Biden CTC Expansion (JCT: $1.6T)",
     "score": 1600.0,
     "area": "Tax credits",
     "source": "JCT",

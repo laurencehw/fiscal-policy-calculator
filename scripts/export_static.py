@@ -234,6 +234,8 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
     """``(index, scored)`` for the tracker, read from the nightly database."""
     import sqlite3
 
+    from bill_tracker.ingestor import congress_gov_url
+
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     try:
@@ -277,7 +279,9 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
                 "latest_action": bill["latest_action"],
                 "latest_action_date": bill["latest_action_date"],
                 "status": bill["status"],
-                "url": bill["url"],
+                # Rebuilt from type and number: rows ingested before Nov 2026
+                # carry a chamber-bill path for every resolution.
+                "url": congress_gov_url(bill["congress"], bill["bill_type"], bill["number"]) or bill["url"],
                 "cbo_ten_year_billions": estimate["ten_year_cost_billions"] if estimate else None,
                 "auto_ten_year_billions": score["ten_year_cost_billions"] if score else None,
                 "auto_confidence": score["confidence"] if score else None,

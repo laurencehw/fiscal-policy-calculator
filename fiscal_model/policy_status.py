@@ -89,8 +89,8 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "— the pre-2025 policy question.",
     ),
     # ── Biden-administration FY2025 Green Book proposals ─────────────────
-    "🏢 Biden Corporate 28% (CBO: -$1.35T)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
-    "👶 Biden CTC Expansion (CBO: $1.6T)": PolicyStatus(
+    "🏢 Biden Corporate 28% (Treasury: -$1.35T)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
+    "👶 Biden CTC Expansion (JCT: $1.6T)": PolicyStatus(
         "proposed",
         "Proposal to make the temporary 2021 ARP expansion permanent; "
         "not enacted.",

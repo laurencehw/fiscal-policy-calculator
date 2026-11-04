@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 1.7018987682876653e-14,
       "own_row_official_billions": 167.0,
       "own_row_caption": "Calibrated to reproduce $167B (CBO) — agreement is by construction, not an independent test.",
+      "own_row_model_billions": 166.99999999999997,
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -269,6 +270,7 @@
       "own_row_abs_pct_error": 1.7018987682876653e-14,
       "own_row_official_billions": 167.0,
       "own_row_caption": "Calibrated to reproduce $167B (CBO) — agreement is by construction, not an independent test.",
+      "own_row_model_billions": 166.99999999999997,
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

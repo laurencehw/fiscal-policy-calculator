@@ -52,10 +52,10 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "🏛️ TCJA Extension (No SALT Cap)": "tcja-extension-no-salt-cap",
     "🏛️ TCJA Rates Only": "tcja-rates-only",
     # Corporate
-    "🏢 Biden Corporate 28% (CBO: -$1.35T)": "corporate-28pct",
+    "🏢 Biden Corporate 28% (Treasury: -$1.35T)": "corporate-28pct",
     "🏢 Trump Corporate 15%": "corporate-15pct",
     # Credits
-    "👶 Biden CTC Expansion (CBO: $1.6T)": "ctc-expansion-2021",
+    "👶 Biden CTC Expansion (JCT: $1.6T)": "ctc-expansion-2021",
     "👶 CTC Extension (CBO: $600B)": "ctc-extension",
     "💼 EITC Childless Expansion (Treasury: $163B)": "eitc-childless-expansion",
     # Estate

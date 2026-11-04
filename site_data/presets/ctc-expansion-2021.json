@@ -1,7 +1,7 @@
 {
   "id": "ctc-expansion-2021",
   "conventional": {
-    "policy_name": "👶 Biden CTC Expansion (CBO: $1.6T)",
+    "policy_name": "👶 Biden CTC Expansion (JCT: $1.6T)",
     "policy_description": "Expand CTC to \\$3,600/\\$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 0.0,
       "own_row_official_billions": 1600.0,
       "own_row_caption": "Calibrated to reproduce $1.60T (CBO/JCT 2021) — agreement is by construction, not an independent test.",
+      "own_row_model_billions": 1600.0,
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -148,7 +149,7 @@
     "error_message": null
   },
   "dynamic": {
-    "policy_name": "👶 Biden CTC Expansion (CBO: $1.6T)",
+    "policy_name": "👶 Biden CTC Expansion (JCT: $1.6T)",
     "policy_description": "Expand CTC to \\$3,600/\\$3,000 per child, fully refundable. Based on 2021 ARP expansion.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
@@ -276,6 +277,7 @@
       "own_row_abs_pct_error": 0.0,
       "own_row_official_billions": 1600.0,
       "own_row_caption": "Calibrated to reproduce $1.60T (CBO/JCT 2021) — agreement is by construction, not an independent test.",
+      "own_row_model_billions": 1600.0,
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

@@ -29,6 +29,8 @@ export type Credibility = {
   own_row_abs_pct_error: number | null;
   own_row_official_billions: number | null;
   own_row_caption: string;
+  /** The model's figure on the published estimate's own window; absent in exports before Nov 2026. */
+  own_row_model_billions?: number | null;
   limitations: string[];
   caption: string;
 };

@@ -28,13 +28,17 @@ function billName(row: TrackerRow): string {
   return `${BILL_TYPE[row.type] ?? row.type.toUpperCase()} ${row.number}`;
 }
 
-/** The calculator's reading beside a CBO figure: the number only when the model was reasonably sure. */
+/**
+ * The calculator's reading beside a CBO figure: the number only when the model was reasonably sure.
+ * "Confidence" here is the language model's confidence in its mapping of the text to provisions;
+ * it says nothing about how reliable the dollar figure is, so the label says "mapping".
+ */
 function reading(row: TrackerRow): string {
   if (row.auto_ten_year_billions === null) return "";
   if (row.auto_confidence === "high" || row.auto_confidence === "medium") {
-    return `${billMoney(row.auto_ten_year_billions, money)} (${row.auto_confidence} confidence)`;
+    return `${billMoney(row.auto_ten_year_billions, money)} (${row.auto_confidence} mapping confidence)`;
   }
-  return "low confidence";
+  return "low mapping confidence";
 }
 
 function BillTable({ rows, figure }: { rows: TrackerRow[]; figure: "cbo" | "auto" }) {
@@ -49,7 +53,7 @@ function BillTable({ rows, figure }: { rows: TrackerRow[]; figure: "cbo" | "auto
               <th scope="col">Bill</th>
               <th scope="col">Status</th>
               <th scope="col">{figure === "cbo" ? "CBO, 10 years" : "Calculator, 10 years"}</th>
-              {figure === "cbo" ? <th scope="col">Calculator</th> : <th scope="col">Confidence</th>}
+              {figure === "cbo" ? <th scope="col">Calculator</th> : <th scope="col">Mapping confidence</th>}
             </tr>
           </thead>
           <tbody>
@@ -138,11 +142,14 @@ export function TrackerLists({ cbo, auto, autoLow }: { cbo: TrackerRow[]; auto: 
         <p className="note">
           No CBO estimate yet. A language model maps the bill&apos;s text to provisions the calculator can score,
           and the engine then scores them. I would treat this as a demonstration rather than an estimate to cite,
-          since it misses provisions it cannot map and can misread the ones it does. Only medium- and high-confidence readings are listed here.
+          since it misses provisions it cannot map and can misread the ones it does. The confidence column is the
+          language model&apos;s confidence that it read the bill&apos;s provisions correctly. It is not a measure of how
+          close the dollar figure is to what CBO would find, and a high-confidence reading can still be far off. Only
+          medium- and high-confidence readings are listed here.
         </p>
         <BillTable key={`auto-${query}-${status}`} rows={shown.auto} figure="auto" />
         <details open={filtering && shown.autoLow.length > 0 ? true : undefined}>
-          <summary>{shown.autoLow.length} low-confidence readings</summary>
+          <summary>{shown.autoLow.length} low mapping-confidence readings</summary>
           <p className="note">
             The model was unsure what these bills do. Some figures are far from any plausible cost. I list them only
             so that the list is complete; they are not informative.

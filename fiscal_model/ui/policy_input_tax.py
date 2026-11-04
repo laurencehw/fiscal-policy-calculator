@@ -229,7 +229,7 @@ def render_tax_policy_inputs(
 
         import re as _re
 
-        score_match = _re.search(r"\((?:CBO|JCT):\s*(-?\$[\d.]+[TB])\)", preset_choice)
+        score_match = _re.search(r"\((?:CBO|JCT|Treasury):\s*(-?\$[\d.]+[TB])\)", preset_choice)
         if score_match and score_match.group(1).startswith("-"):
             direction_icon = "✅"
         elif score_match:

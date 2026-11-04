@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 23.500000000000014,
       "own_row_official_billions": -80.0,
       "own_row_caption": "Unfitted reconstruction, 23.5% from -$80B (Joint Committee on Taxation) — no constant is fitted to this figure. Published range [-$103B, $56B]: the model's -$61B is inside it, so the % is a distance from an anchor, not a measure of accuracy.",
+      "own_row_model_billions": -61.19999999999999,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -354,6 +355,7 @@
       "own_row_abs_pct_error": 23.500000000000014,
       "own_row_official_billions": -80.0,
       "own_row_caption": "Unfitted reconstruction, 23.5% from -$80B (Joint Committee on Taxation) — no constant is fitted to this figure. Published range [-$103B, $56B]: the model's -$61B is inside it, so the % is a distance from an anchor, not a measure of accuracy.",
+      "own_row_model_billions": -61.19999999999999,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

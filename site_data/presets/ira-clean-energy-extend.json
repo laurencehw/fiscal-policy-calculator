@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": null,
       "own_row_official_billions": null,
       "own_row_caption": "",
+      "own_row_model_billions": null,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -354,6 +355,7 @@
       "own_row_abs_pct_error": null,
       "own_row_official_billions": null,
       "own_row_caption": "",
+      "own_row_model_billions": null,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
