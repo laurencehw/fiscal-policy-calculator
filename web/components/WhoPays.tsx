@@ -14,7 +14,7 @@ const GROUPINGS = [
 const REASONS: Record<string, string> = {
   not_a_tax_policy: "This is a spending or sector policy, so there is no tax table by income group.",
   not_representable:
-    "The distribution engine cannot yet represent this kind of policy household by household (for example estate tax, tariffs, international or enforcement provisions). An all-zero table would look flat and be wrong, so none is shown.",
+    "The distribution engine cannot yet represent this kind of policy household by household (for example estate tax, tariffs, international or enforcement provisions). An all-zero table would look flat and be wrong, so I do not show one.",
 };
 
 /** Who pays, by income group, in the first year. Tax change is in tax terms: positive means people pay more. */
