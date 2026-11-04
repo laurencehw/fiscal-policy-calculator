@@ -1,0 +1,67 @@
+{
+  "vintage": "cbo_feb_2026",
+  "vintage_label": "February 2026",
+  "window": "FY2026-2035",
+  "years": [
+    {
+      "fiscal_year": 2026,
+      "deficit_billions": -1852.703,
+      "debt_held_by_public_billions": 32095.165,
+      "nominal_gdp_billions": 31902.0
+    },
+    {
+      "fiscal_year": 2027,
+      "deficit_billions": -1887.203,
+      "debt_held_by_public_billions": 34004.52,
+      "nominal_gdp_billions": 33315.2
+    },
+    {
+      "fiscal_year": 2028,
+      "deficit_billions": -2079.658,
+      "debt_held_by_public_billions": 36092.745,
+      "nominal_gdp_billions": 34665.8
+    },
+    {
+      "fiscal_year": 2029,
+      "deficit_billions": -2019.715,
+      "debt_held_by_public_billions": 38102.757,
+      "nominal_gdp_billions": 36010.0
+    },
+    {
+      "fiscal_year": 2030,
+      "deficit_billions": -2200.642,
+      "debt_held_by_public_billions": 40279.639,
+      "nominal_gdp_billions": 37390.7
+    },
+    {
+      "fiscal_year": 2031,
+      "deficit_billions": -2285.695,
+      "debt_held_by_public_billions": 42528.336,
+      "nominal_gdp_billions": 38812.8
+    },
+    {
+      "fiscal_year": 2032,
+      "deficit_billions": -2439.418,
+      "debt_held_by_public_billions": 44922.49,
+      "nominal_gdp_billions": 40276.5
+    },
+    {
+      "fiscal_year": 2033,
+      "deficit_billions": -2780.735,
+      "debt_held_by_public_billions": 47644.187,
+      "nominal_gdp_billions": 41795.9
+    },
+    {
+      "fiscal_year": 2034,
+      "deficit_billions": -2818.5,
+      "debt_held_by_public_billions": 50393.853,
+      "nominal_gdp_billions": 43373.3
+    },
+    {
+      "fiscal_year": 2035,
+      "deficit_billions": -2779.034,
+      "debt_held_by_public_billions": 53103.223,
+      "nominal_gdp_billions": 45011.5
+    }
+  ]
+}

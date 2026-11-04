@@ -5,6 +5,7 @@ import path from "node:path";
 import type { ClassroomAssignment, ClassroomIndexRow } from "./classroom";
 import type { HouseStripData } from "./houses";
 import type { SSData } from "./socialSecurity";
+import type { BaselineFile } from "./baseline";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
@@ -62,6 +63,10 @@ export function houseStrip(id: string): HouseStripData | null {
   if (!/^[a-z0-9-]+$/.test(id)) return null;
   const all = read<Record<string, HouseStripData>>("ranges.json");
   return all[id] ?? null;
+}
+
+export function baseline(): BaselineFile {
+  return read<BaselineFile>("baseline.json");
 }
 
 export function scorecardEntries(): ScorecardEntry[] {

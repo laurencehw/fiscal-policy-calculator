@@ -1,19 +1,36 @@
 import { stripMarks, type HouseStripData } from "@/lib/houses";
 import { money } from "@/lib/format";
 
+function lead(subject: string, basis: string): string {
+  const rest = basis ? basis.charAt(0).toUpperCase() + basis.slice(1) : "";
+  if (subject && rest) return `${subject}. ${rest}.`;
+  if (subject) return `${subject}.`;
+  return rest ? `${rest}.` : "";
+}
+
 /** Where this score sits among the houses that published one. */
 export function HouseStrip({ strip }: { strip: HouseStripData }) {
   const { marks, range } = stripMarks(strip);
   const houses = marks.filter((mark) => mark.kind === "house");
   const model = marks.find((mark) => mark.kind === "model");
+  const sentence = lead(strip.subject, strip.basis);
   return (
     <section className="chart">
       <div className="head">
         <h2>Among other estimates</h2>
         {strip.window ? <span className="tag">{strip.window}</span> : null}
       </div>
-      {strip.subject ? <p className="units">{strip.subject}. {strip.basis}.</p> : null}
-      <div className="track" role="img" aria-label="This calculator among the other published estimates">
+      {sentence ? <p className="units">{sentence}</p> : null}
+      <div
+        className="track"
+        role="img"
+        aria-label={
+          strip.range
+            ? `${strip.range.label}. This calculator among the other published estimates`
+            : "This calculator among the other published estimates"
+        }
+      >
+        {range && strip.range ? <span className="rangelabel">{strip.range.label}</span> : null}
         {range ? <span className="span" style={{ left: `${range.left}%`, width: `${range.width}%` }} /> : null}
         {marks.map((mark) => (
           <span
@@ -38,9 +55,9 @@ export function HouseStrip({ strip }: { strip: HouseStripData }) {
             This calculator: {money(model.value)}
           </li>
         ) : null}
-        {strip.range ? (
+        {strip.range && houses.length === 0 ? (
           <li>
-            Published range, {strip.range.source_name}: {money(strip.range.low_billions)} to {money(strip.range.high_billions)}
+            {strip.range.label}: {money(strip.range.low_billions)} to {money(strip.range.high_billions)}
           </li>
         ) : null}
       </ul>

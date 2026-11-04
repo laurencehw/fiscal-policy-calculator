@@ -15,6 +15,8 @@ export const PAGES = [
   "/",
   "/explore",
   "/explore/tcja-full-extension",
+  "/explore/corporate-28pct",
+  "/explore/corporate-15pct",
   "/build",
   "/tailor",
   "/social-security",

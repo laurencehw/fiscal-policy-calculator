@@ -12,6 +12,7 @@ export type HouseRange = {
   high_billions: number;
   source_name: string;
   source_document: string;
+  label: string;
 };
 
 export type HouseStripData = {

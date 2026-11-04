@@ -517,6 +517,50 @@ def _rate_change_pp(policy: Any) -> float:
         return float(getattr(policy, "rate_change", 0.0) or 0.0) * 100.0
 
 
+def _brief_house(name: str) -> str:
+    """A track label has to fit a phone. The long house name stays in the list."""
+    if "Penn Wharton" in name:
+        return "PWBM"
+    return name
+
+
+def _direct_range(published: PublishedRange) -> tuple[list[dict[str, Any]], str]:
+    """The bounds of a range that is itself the published score of this reform.
+
+    A semicolon in ``source_name`` is the ledger's way of naming two houses
+    (``Tax Foundation (anchor); Penn Wharton Budget Model``). The clause marked
+    anchor is the high bound. One publisher's scenario span has no second house.
+    """
+    raw = [part.strip() for part in published.source_name.split(";") if part.strip()]
+
+    def clean(part: str) -> str:
+        return " ".join(part.replace("(anchor)", "").split())
+
+    if len(raw) == 2:
+        if any("anchor" in part.lower() for part in raw):
+            high_name = clean(next(part for part in raw if "anchor" in part.lower()))
+            low_name = clean(next(part for part in raw if "anchor" not in part.lower()))
+        else:
+            low_name, high_name = clean(raw[0]), clean(raw[1])
+        houses = [
+            {
+                "estimator": low_name,
+                "document": published.source_document,
+                "value_billions": published.low_billions,
+                "fitted": False,
+            },
+            {
+                "estimator": high_name,
+                "document": published.source_document,
+                "value_billions": published.high_billions,
+                "fitted": False,
+            },
+        ]
+        label = f"{_brief_house(high_name)}–{_brief_house(low_name)} range"
+        return houses, label
+    return [], f"{published.source_name} range"
+
+
 def house_strip(
     *,
     policy_id: str,
@@ -526,52 +570,63 @@ def house_strip(
 ) -> dict[str, Any] | None:
     """One proposal's place among the houses that scored it, as JSON.
 
-    A corporate statutory-rate change gets each house's published score scaled
-    to this step. A policy whose target is a range gets that range as well.
-    ``None`` when neither exists, so the page draws nothing.
+    A published range is a direct score of this reform, so it is drawn as that
+    range and — when the ledger names two houses — those two bounds. The
+    per-point conversion of a different rate step is not drawn beside it: that
+    put Tax Foundation's scaled 28% yield and Tax Foundation's own 15% score
+    on one strip. A statutory-rate change with no such range still gets the
+    converted record. ``None`` when neither exists, so the page draws nothing.
     """
     estimates: list[dict[str, Any]] = []
     subject = ""
     window = ""
     basis = ""
     caveat = ""
-    rate = _rate_change_pp(policy)
-    if rate:
-        bundled = tuple(
-            label for attribute, label in _BUNDLED_FIELDS if getattr(policy, attribute, None)
-        )
-        converted = corporate_estimator_range(
-            rate_change_pp=rate, model_billions=model_billions, bundled=bundled
-        )
-        if converted is not None:
-            subject = converted.subject
-            window = converted.window
-            basis = converted.basis
-            caveat = converted.caveat
-            for estimate in converted.estimates:
-                # The scorecard rounds a published total (Treasury's -$1,349.9B
-                # is carried as -$1,347B). A few billion still names that house.
-                fitted = (
-                    fitted_target_billions is not None
-                    and abs(estimate.value_billions - fitted_target_billions) < 5.0
-                )
-                estimates.append(
-                    {
-                        "estimator": estimate.estimator,
-                        "document": estimate.document,
-                        "value_billions": estimate.value_billions,
-                        "fitted": fitted,
-                    }
-                )
     published = published_range_for(policy_id)
     span = None
     if published is not None:
+        houses, label = _direct_range(published)
+        estimates = houses
+        subject = "Published scores of this reform"
         span = {
             "low_billions": published.low_billions,
             "high_billions": published.high_billions,
             "source_name": published.source_name,
             "source_document": published.source_document,
+            "label": label,
         }
+    else:
+        rate = _rate_change_pp(policy)
+        if rate:
+            bundled = tuple(
+                label
+                for attribute, label in _BUNDLED_FIELDS
+                if getattr(policy, attribute, None)
+            )
+            converted = corporate_estimator_range(
+                rate_change_pp=rate, model_billions=model_billions, bundled=bundled
+            )
+            if converted is not None:
+                subject = converted.subject
+                window = converted.window
+                basis = converted.basis
+                caveat = converted.caveat
+                for estimate in converted.estimates:
+                    # The scorecard rounds a published total (Treasury's
+                    # -$1,349.9B is carried as -$1,347B). A few billion still
+                    # names that house.
+                    fitted = (
+                        fitted_target_billions is not None
+                        and abs(estimate.value_billions - fitted_target_billions) < 5.0
+                    )
+                    estimates.append(
+                        {
+                            "estimator": estimate.estimator,
+                            "document": estimate.document,
+                            "value_billions": estimate.value_billions,
+                            "fitted": fitted,
+                        }
+                    )
     if not estimates and span is None:
         return None
     return {

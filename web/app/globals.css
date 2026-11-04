@@ -66,6 +66,7 @@ a.stage:hover .v { color: var(--accent); }
 .family { display: grid; gap: 16px; padding-left: 16px; border-left: 2px solid var(--ink); }
 /* Charts are separated by a rule, not boxed: the data, not a card, carries the page. */
 section.chart { border-top: 1px solid var(--ink); padding: 14px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; scroll-margin-top: 16px; }
+tr[id^="bench-"] { scroll-margin-top: 16px; }
 .head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
 .tag { font-family: var(--label); font-size: 15px; letter-spacing: 0.06em; font-variant-caps: all-small-caps; color: var(--muted); }
 .units { margin: -8px 0 0; font-size: 15px; color: var(--muted); }
@@ -75,11 +76,12 @@ section.chart { border-top: 1px solid var(--ink); padding: 14px 0 0; display: gr
 section.chart:has(.plot[data-direct]) .legend { display: none; }
 .legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c); }
 .plot { position: relative; width: 100%; min-width: 0; }
-.track { position: relative; height: 28px; margin: 8px 0 4px; border-bottom: 1px solid var(--rule); }
-.track .span { position: absolute; top: 12px; height: 4px; background: var(--grid); border-radius: 2px; }
-.track .dot, .track .model { position: absolute; top: 8px; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); transform: translateX(-50%); }
+.track { position: relative; height: 46px; margin: 8px 0 4px; border-bottom: 1px solid var(--rule); }
+.track .rangelabel { position: absolute; top: 0; left: 0; font-family: var(--label); font-size: 12px; color: var(--muted); }
+.track .span { position: absolute; top: 28px; height: 4px; background: var(--grid); border-radius: 2px; }
+.track .dot, .track .model { position: absolute; top: 25px; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); transform: translateX(-50%); }
 .track .dot.fitted { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
-.track .model { top: 6px; width: 14px; height: 14px; border-radius: 2px; background: var(--accent); }
+.track .model { top: 23px; width: 14px; height: 14px; border-radius: 2px; background: var(--accent); }
 .houselist { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-family: var(--label); font-size: 14px; }
 .houselist .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); margin-right: 8px; }
 .houselist .swatch.model { border-radius: 2px; background: var(--accent); }

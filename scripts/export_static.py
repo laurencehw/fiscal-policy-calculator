@@ -30,6 +30,9 @@ once a night, and written as JSON under ``site_data/``:
   an answer is checked against; the engine's ``/classroom/check`` holds those.
 - ``ranges.json``: where a corporate-rate or published-range preset sits among
   the houses that scored it (``estimator_ranges.house_strip``).
+- ``baseline.json``: CBO's February 2026 deficit, debt held by the public and
+  nominal GDP by fiscal year, so a proposal page can draw the policy on the
+  baseline. Deficit keeps CBO's sign.
 - ``social-security.json``: the Social Security page's inputs (Trustees
   baseline rates, OCACT options and their annual paths, the CRFB comparison)
   plus the ledger's own answers for current law and each option alone, which
@@ -48,6 +51,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import shutil
 import sys
@@ -93,9 +97,9 @@ def _write(path: Path, payload: Any, *, compact: bool = False) -> None:
     path.write_text(text + "\n", encoding="utf-8")
 
 
-#: Presets the house strip can draw. Corporate rate changes use the converted
-#: per-point record; the other two (and the 15% rate, which is also a range)
-#: use the published range on the scorecard id.
+#: Presets the house strip can draw. A statutory-rate change with no direct
+#: multi-house score uses the converted per-point record. A policy whose own
+#: target is a published range uses that range, not a scaled rate.
 STRIP_POLICY_IDS: dict[str, str] = {
     "corporate-28pct": "biden_corporate_28",
     "corporate-15pct": "trump_corporate_15",
@@ -128,6 +132,49 @@ def estimator_strips_payload(model_billions_by_preset: dict[str, float]) -> dict
         if strip is not None:
             strips[preset_id] = strip
     return strips
+
+
+def _commented_csv(path: Path) -> list[dict[str, str]]:
+    with path.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return list(csv.DictReader(body))
+
+
+def baseline_payload() -> dict[str, Any]:
+    """February 2026 deficit, debt and nominal GDP, FY2026-2035.
+
+    Read from the transcribed CBO tables. ``deficit_billions`` keeps CBO's
+    sign: negative is a deficit. The site flips it for display.
+    """
+    data = ROOT / "fiscal_model" / "data_files" / "cbo_baseline"
+    vintage = "cbo_feb_2026"
+    budget: dict[tuple[str, int], float] = {}
+    for row in _commented_csv(data / "cbo_budget_baseline.csv"):
+        if row["vintage"] != vintage:
+            continue
+        if row["variable"] not in {"deficit_total", "debt_held_by_public"}:
+            continue
+        budget[(row["variable"], int(row["fiscal_year"]))] = float(row["value"])
+    gdp: dict[int, float] = {}
+    for row in _commented_csv(data / "cbo_economic_baseline.csv"):
+        if row["vintage"] == vintage and row["variable"] == "nominal_gdp":
+            gdp[int(row["fiscal_year"])] = float(row["value"])
+    years = []
+    for year in range(2026, 2036):
+        years.append(
+            {
+                "fiscal_year": year,
+                "deficit_billions": budget[("deficit_total", year)],
+                "debt_held_by_public_billions": budget[("debt_held_by_public", year)],
+                "nominal_gdp_billions": gdp[year],
+            }
+        )
+    return {
+        "vintage": vintage,
+        "vintage_label": "February 2026",
+        "window": "FY2026-2035",
+        "years": years,
+    }
 
 
 def score_preset_payload(preset_id: str, *, dynamic: bool) -> dict[str, Any]:
@@ -458,6 +505,7 @@ def export(out: Path) -> dict[str, Any]:
     states = states_view()
     _write(out / "states.json", states)
     _write(out / "ranges.json", estimator_strips_payload(headlines))
+    _write(out / "baseline.json", baseline_payload())
     social_security = social_security_payload()
     _write(out / "social-security.json", social_security, compact=True)
     classroom = classroom_payloads()

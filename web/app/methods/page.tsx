@@ -34,7 +34,7 @@ const TIER_NOTE: Record<Tier, string> = {
 function Benchmarks({ tier, rows }: { tier: Tier; rows: ScorecardEntry[] }) {
   const sorted = [...rows].sort((a, b) => a.abs_percent_difference - b.abs_percent_difference);
   return (
-    <details>
+    <details open={tier === "out_of_sample" || undefined}>
       <summary>
         {TIER_NAME[tier]} ({rows.length})
       </summary>
@@ -51,7 +51,7 @@ function Benchmarks({ tier, rows }: { tier: Tier; rows: ScorecardEntry[] }) {
           </thead>
           <tbody>
             {sorted.map((e) => (
-              <tr key={e.policy_id}>
+              <tr key={e.policy_id} id={`bench-${e.policy_id}`}>
                 <td>
                   {e.policy_name}
                   <span className="cite">

@@ -1,9 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { homeRowLine, homeSectionText, homeStats, WORKED_PRESET_IDS, workedRows } from "./home";
+import { homeRowLine, homeSectionText, homeStats, tierPhrase, WORKED_POLICY_IDS, workedRows } from "./home";
 import { money } from "./format";
-import { evidence, manifest, preset, presets, trackerIndex } from "./data";
+import { evidence, manifest, presets, scorecardEntries, tierOf, trackerIndex } from "./data";
 import { contactText, privacyText } from "./legal";
 
 test("the homepage section names both figures and reads them from the export", () => {
@@ -11,15 +11,31 @@ test("the homepage section names both figures and reads them from the export", (
   assert.ok(text.length >= 500, `section is ${text.length} characters`);
   assert.match(text, /conventional ten-year estimate/);
   assert.match(text, /published list price/);
-  for (const id of WORKED_PRESET_IDS) {
-    const info = presets().find((row) => row.id === id);
-    const file = preset(id);
-    assert.ok(info && file && info.cbo_score !== null, id);
-    const line = homeRowLine(workedRows().find((row) => row.id === id)!);
-    assert.ok(text.includes(line), id);
-    assert.ok(line.includes(money(file.conventional.ten_year_deficit_impact)), id);
-    assert.ok(line.includes(money(info.cbo_score)), id);
+  const rows = workedRows();
+  assert.deepEqual(rows.map((row) => row.id), [...WORKED_POLICY_IDS]);
+  for (const row of rows) {
+    const entry = scorecardEntries().find((item) => item.policy_id === row.id);
+    assert.ok(entry, row.id);
+    assert.equal(tierOf(entry), "out_of_sample", row.id);
+    assert.equal(row.tier, "out_of_sample", row.id);
+    const line = homeRowLine(row);
+    assert.ok(text.includes(line), row.id);
+    assert.ok(line.includes(money(entry.model_10yr_billions)), row.id);
+    assert.ok(line.includes(money(entry.official_10yr_billions)), row.id);
+    assert.match(line, /Out-of-sample prediction/);
+    assert.doesNotMatch(line, /Fitted/);
   }
+});
+
+test("a fitted row is never presented without the word fitted", () => {
+  assert.match(tierPhrase("fitted", 0.4), /Fitted/);
+  assert.doesNotMatch(tierPhrase("out_of_sample", 1.3), /Fitted/);
+  const ordinary = evidence().out_of_sample_classes.ordinary_rate_change;
+  const rows = workedRows();
+  assert.ok(rows[0].gapPct < 5, `close example is ${rows[0].gapPct}`);
+  assert.ok(Math.abs(rows[1].gapPct - ordinary.mean_abs_error) < 2, `class-mean example is ${rows[1].gapPct}`);
+  assert.ok(rows[2].gapPct > 40, `miss example is ${rows[2].gapPct}`);
+  assert.equal(rows[2].id, "cbo_opt64_corporate_rate_1pp");
 });
 
 test("the homepage does not hardcode a dollar figure", () => {

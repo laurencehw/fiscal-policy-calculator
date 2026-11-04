@@ -46,6 +46,29 @@ def test_the_corporate_strip_equals_the_converted_range():
     assert any(row["fitted"] for row in strip["estimates"])
 
 
+def test_the_15pct_strip_is_the_published_range_not_a_scaled_28pct():
+    """A scaled 28% yield and Tax Foundation's own 15% score must not share a strip."""
+    from fiscal_model.ui.estimator_ranges import published_range_for
+
+    policy = _policy("corporate-15pct")
+    strip = house_strip(
+        policy_id="trump_corporate_15",
+        policy=policy,
+        model_billions=_headline("corporate-15pct"),
+    )
+    published = published_range_for("trump_corporate_15")
+    assert strip is not None and published is not None
+    names = {row["estimator"] for row in strip["estimates"]}
+    assert names == {"Tax Foundation", "Penn Wharton Budget Model"}
+    assert "JCT" not in names and "Treasury OTA" not in names
+    assert {row["value_billions"] for row in strip["estimates"]} == {
+        published.low_billions,
+        published.high_billions,
+    }
+    assert strip["range"]["label"] == "Tax Foundation–PWBM range"
+    assert strip["basis"] == ""
+
+
 def test_a_published_range_is_exported_for_the_three_range_rows():
     for preset_id, policy_id in (
         ("corporate-15pct", "trump_corporate_15"),
