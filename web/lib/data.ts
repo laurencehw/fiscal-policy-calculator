@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { ClassroomAssignment, ClassroomIndexRow } from "./classroom";
+import type { HouseStripData } from "./houses";
 import type { SSData } from "./socialSecurity";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
@@ -55,6 +56,12 @@ export function buildCatalog(): BuildRow[] {
 
 export function evidence(): Evidence {
   return read<Evidence>("validation", "evidence.json");
+}
+
+export function houseStrip(id: string): HouseStripData | null {
+  if (!/^[a-z0-9-]+$/.test(id)) return null;
+  const all = read<Record<string, HouseStripData>>("ranges.json");
+  return all[id] ?? null;
 }
 
 export function scorecardEntries(): ScorecardEntry[] {

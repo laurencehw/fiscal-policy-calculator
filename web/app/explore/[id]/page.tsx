@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { HouseStrip } from "@/components/HouseStrip";
 import { YearChart } from "@/components/YearChart";
-import { preset, presets, views } from "@/lib/data";
+import { houseStrip, preset, presets, views } from "@/lib/data";
 import { ResultSections } from "@/components/ResultSections";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
@@ -35,6 +36,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const headline = c.ten_year_deficit_impact;
   const dyn = d.dynamic_adjusted_impact;
   const v = views(id);
+  const strip = houseStrip(id);
   return (
     <>
       <header>
@@ -59,6 +61,8 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
       </div>
 
       <Checked cred={c.credibility} />
+
+      {strip ? <HouseStrip strip={strip} /> : null}
 
       <section className="chart">
         <div className="head">

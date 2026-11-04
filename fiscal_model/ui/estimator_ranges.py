@@ -64,6 +64,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from fiscal_model.ui.formatting import format_money
 
@@ -77,6 +78,7 @@ __all__ = [
     "PublishedRange",
     "corporate_estimator_range",
     "corporate_per_point_record",
+    "house_strip",
     "published_range_for",
     "scope_verdict_for",
 ]
@@ -493,3 +495,92 @@ def scope_verdict_for(policy_id: str) -> str:
     except Exception:  # pragma: no cover — defensive
         return ""
     return str(getattr(source, "scope_differs", "") or "") if source else ""
+
+
+# The same non-rate channels results_summary treats as bundled. Copied so this
+# module does not import the Plotly results surface.
+_BUNDLED_FIELDS: tuple[tuple[str, str], ...] = (
+    ("extend_bonus_depreciation", "100% bonus depreciation"),
+    ("gilti_rate_change", "a GILTI rate change"),
+    ("eliminate_fdii", "FDII repeal"),
+    ("fdii_rate_change", "an FDII rate change"),
+    ("restore_rd_expensing", "R&D expensing"),
+    ("adjust_book_minimum", "the book minimum tax"),
+    ("book_minimum_rate_change", "a book-minimum rate change"),
+)
+
+
+def _rate_change_pp(policy: Any) -> float:
+    try:
+        return (float(policy._get_reform_rate()) - float(policy.baseline_rate)) * 100.0
+    except Exception:
+        return float(getattr(policy, "rate_change", 0.0) or 0.0) * 100.0
+
+
+def house_strip(
+    *,
+    policy_id: str,
+    policy: Any,
+    model_billions: float,
+    fitted_target_billions: float | None = None,
+) -> dict[str, Any] | None:
+    """One proposal's place among the houses that scored it, as JSON.
+
+    A corporate statutory-rate change gets each house's published score scaled
+    to this step. A policy whose target is a range gets that range as well.
+    ``None`` when neither exists, so the page draws nothing.
+    """
+    estimates: list[dict[str, Any]] = []
+    subject = ""
+    window = ""
+    basis = ""
+    caveat = ""
+    rate = _rate_change_pp(policy)
+    if rate:
+        bundled = tuple(
+            label for attribute, label in _BUNDLED_FIELDS if getattr(policy, attribute, None)
+        )
+        converted = corporate_estimator_range(
+            rate_change_pp=rate, model_billions=model_billions, bundled=bundled
+        )
+        if converted is not None:
+            subject = converted.subject
+            window = converted.window
+            basis = converted.basis
+            caveat = converted.caveat
+            for estimate in converted.estimates:
+                # The scorecard rounds a published total (Treasury's -$1,349.9B
+                # is carried as -$1,347B). A few billion still names that house.
+                fitted = (
+                    fitted_target_billions is not None
+                    and abs(estimate.value_billions - fitted_target_billions) < 5.0
+                )
+                estimates.append(
+                    {
+                        "estimator": estimate.estimator,
+                        "document": estimate.document,
+                        "value_billions": estimate.value_billions,
+                        "fitted": fitted,
+                    }
+                )
+    published = published_range_for(policy_id)
+    span = None
+    if published is not None:
+        span = {
+            "low_billions": published.low_billions,
+            "high_billions": published.high_billions,
+            "source_name": published.source_name,
+            "source_document": published.source_document,
+        }
+    if not estimates and span is None:
+        return None
+    return {
+        "policy_id": policy_id,
+        "model_billions": model_billions,
+        "subject": subject,
+        "window": window,
+        "basis": basis,
+        "caveat": caveat,
+        "estimates": estimates,
+        "range": span,
+    }

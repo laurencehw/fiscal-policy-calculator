@@ -28,6 +28,8 @@ once a night, and written as JSON under ``site_data/``:
 - ``classroom/index.json`` and ``classroom/<id>.json``: the Classroom
   assignments as a student sees them, without instructor notes or the numbers
   an answer is checked against; the engine's ``/classroom/check`` holds those.
+- ``ranges.json``: where a corporate-rate or published-range preset sits among
+  the houses that scored it (``estimator_ranges.house_strip``).
 - ``social-security.json``: the Social Security page's inputs (Trustees
   baseline rates, OCACT options and their annual paths, the CRFB comparison)
   plus the ledger's own answers for current law and each option alone, which
@@ -89,6 +91,43 @@ def _write(path: Path, payload: Any, *, compact: bool = False) -> None:
                     items.append(f"{line(key)}:{line(value)}")
             text = "{\n" + ",\n".join(items) + "\n}"
     path.write_text(text + "\n", encoding="utf-8")
+
+
+#: Presets the house strip can draw. Corporate rate changes use the converted
+#: per-point record; the other two (and the 15% rate, which is also a range)
+#: use the published range on the scorecard id.
+STRIP_POLICY_IDS: dict[str, str] = {
+    "corporate-28pct": "biden_corporate_28",
+    "corporate-15pct": "trump_corporate_15",
+    "pillar-two-adoption": "pillar_two_adoption",
+    "tariff-reciprocal": "reciprocal_tariffs",
+}
+
+
+def estimator_strips_payload(model_billions_by_preset: dict[str, float]) -> dict[str, Any]:
+    """House strips for the presets that have one. Keyed by preset id."""
+    import api
+    from fiscal_model.preset_ids import resolve_preset
+    from fiscal_model.ui.estimator_ranges import house_strip
+    from fiscal_model.ui.preset_validation import TIER_FITTED, get_validation_badge
+
+    strips: dict[str, Any] = {}
+    for preset_id, policy_id in STRIP_POLICY_IDS.items():
+        label = resolve_preset(preset_id) or preset_id
+        policy, _use_real_data = api._build_preset_policy(label)
+        badge = get_validation_badge(preset_id)
+        fitted = None
+        if badge is not None and badge.get("tier") == TIER_FITTED:
+            fitted = float(badge["official"])
+        strip = house_strip(
+            policy_id=policy_id,
+            policy=policy,
+            model_billions=model_billions_by_preset[preset_id],
+            fitted_target_billions=fitted,
+        )
+        if strip is not None:
+            strips[preset_id] = strip
+    return strips
 
 
 def score_preset_payload(preset_id: str, *, dynamic: bool) -> dict[str, Any]:
@@ -389,9 +428,12 @@ def export(out: Path) -> dict[str, Any]:
     vintages: set[str] = set()
     comparison_models: dict[bool, Any] = {}
     windows: set[str] = set()
+    headlines: dict[str, float] = {}
     for preset in index["presets"]:
         conventional = score_preset_payload(preset["id"], dynamic=False)
         dynamic = score_preset_payload(preset["id"], dynamic=True)
+        if preset["id"] in STRIP_POLICY_IDS:
+            headlines[preset["id"]] = float(conventional["ten_year_deficit_impact"])
         vintages.add(conventional["baseline_vintage"])
         windows.add(conventional["budget_window"])
         _write(
@@ -415,6 +457,7 @@ def export(out: Path) -> dict[str, Any]:
 
     states = states_view()
     _write(out / "states.json", states)
+    _write(out / "ranges.json", estimator_strips_payload(headlines))
     social_security = social_security_payload()
     _write(out / "social-security.json", social_security, compact=True)
     classroom = classroom_payloads()
