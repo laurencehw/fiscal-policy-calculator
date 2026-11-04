@@ -1,8 +1,17 @@
-import { evidence, manifest, preset, presets, trackerIndex } from "./data";
-import { money, shortLabel } from "./format";
+import { evidence, manifest, presets, scorecardEntries, tierOf, trackerIndex, type Tier } from "./data";
+import { money } from "./format";
 
-/** The three rows the homepage shows. Dollars are read from the nightly export. */
-export const WORKED_PRESET_IDS = ["tcja-full-extension", "corporate-28pct", "ss-donut-250k"] as const;
+/**
+ * Three out-of-sample scorecard rows, not fitted reproductions.
+ * One within 5% of its published score, one beside the ordinary-rate class
+ * mean, and one corporate miss. Dollars are read from the nightly scorecard.
+ * None of the three has a preset page, so each links to its row on Methods.
+ */
+export const WORKED_POLICY_IDS = [
+  "cbo_opt45_all_rates_1pp",
+  "cbo2021_opt1_all_rates_1pp",
+  "cbo_opt64_corporate_rate_1pp",
+] as const;
 
 export type WorkedRow = {
   id: string;
@@ -11,23 +20,35 @@ export type WorkedRow = {
   conventional: number;
   published: number;
   source: string;
+  tier: Tier;
+  gapPct: number;
 };
 
+export function tierPhrase(tier: Tier, gapPct: number): string {
+  const gap = `${gapPct.toFixed(1)}% from the published score`;
+  if (tier === "fitted") return `Fitted to the published score.`;
+  if (tier === "out_of_sample") return `Out-of-sample prediction, ${gap}.`;
+  if (tier === "reconstruction") return `Unfitted reconstruction, ${gap}.`;
+  return "Withdrawn target, kept on the record.";
+}
+
 export function workedRows(): WorkedRow[] {
-  const byId = new Map(presets().map((info) => [info.id, info]));
-  return WORKED_PRESET_IDS.map((id) => {
-    const info = byId.get(id);
-    const file = preset(id);
-    if (!info || !file || info.cbo_score === null || !info.cbo_published) {
-      throw new Error(`worked preset ${id} is missing a conventional score or a published score`);
-    }
+  const byPolicy = new Map(scorecardEntries().map((entry) => [entry.policy_id, entry]));
+  return WORKED_POLICY_IDS.map((id) => {
+    const entry = byPolicy.get(id);
+    if (!entry) throw new Error(`worked policy ${id} is not in the scorecard`);
+    const tier = tierOf(entry);
+    const published = entry.official_10yr_billions;
+    const gapPct = published === 0 ? 0 : (Math.abs(entry.model_10yr_billions - published) / Math.abs(published)) * 100;
     return {
       id,
-      name: shortLabel(info.name),
-      href: `/explore/${id}`,
-      conventional: file.conventional.ten_year_deficit_impact,
-      published: info.cbo_score,
-      source: info.cbo_source ?? "published score",
+      name: entry.policy_name,
+      href: `/methods#bench-${id}`,
+      conventional: entry.model_10yr_billions,
+      published,
+      source: entry.official_source,
+      tier,
+      gapPct,
     };
   });
 }
@@ -39,11 +60,12 @@ export function homeSectionParagraphs(): string[] {
     m.sign_convention,
     `The baseline is CBO's ${m.baseline_vintages.join(" and ")} vintage, and the window is ${m.budget_windows.join(", ")}.`,
     "The first figure is this calculator's conventional ten-year estimate. The second is the published score the same policy is checked against. They are different quantities. Explore lists the calculator's score. Build lists the published list price. The calculator is not retuned to make them match, and a gap is a finding rather than a rounding error.",
+    "The three examples are out-of-sample predictions. Nothing in the model was fitted to them. A fitted row, when one is shown, says so.",
   ];
 }
 
 export function homeRowLine(row: WorkedRow): string {
-  return `${row.name}: calculator ${money(row.conventional)}; published ${money(row.published)} (${row.source}).`;
+  return `${row.name}: calculator ${money(row.conventional)}; published ${money(row.published)} (${row.source}). ${tierPhrase(row.tier, row.gapPct)}`;
 }
 
 export function homeSectionText(): string {
