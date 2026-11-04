@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { BaselineChart } from "@/components/BaselineChart";
 import { YearChart } from "@/components/YearChart";
-import { preset, presets, views } from "@/lib/data";
+import { baseline, preset, presets, views } from "@/lib/data";
 import { ResultSections } from "@/components/ResultSections";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
@@ -59,6 +60,12 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
       </div>
 
       <Checked cred={c.credibility} />
+
+      <BaselineChart
+        years={baseline().years}
+        effects={c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect }))}
+        headline={headline}
+      />
 
       <section className="chart">
         <div className="head">
