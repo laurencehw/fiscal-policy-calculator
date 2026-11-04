@@ -18,7 +18,8 @@ export default function TailorPage() {
           scores it over ten years. A positive figure adds to the deficit; a negative one reduces it.
         </p>
         <p className="note">
-          The app also scores capital gains rates, spending changes and phase-ins; those come to this page later.
+          The engine can also score capital gains rates, spending changes and phase-ins, and I plan to add those to this
+          page.
         </p>
       </header>
       <Suspense>
