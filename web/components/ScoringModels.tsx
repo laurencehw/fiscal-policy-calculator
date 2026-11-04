@@ -41,8 +41,8 @@ export function ScoringModels({ view }: { view: ModelsView }) {
         </p>
       ))}
       <p className="note">
-        CBO-Style is the model behind the headline above. The TPC-style microsimulation is a pilot: where the two disagree, the gap
-        tells you how much the answer depends on method. It is not an official range.
+        CBO-Style is the model behind the headline above. The TPC-style microsimulation is a pilot. Where the two disagree, the gap
+        gives a sense of how much the answer depends on method, although it is not an official range.
       </p>
     </>
   );
