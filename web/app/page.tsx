@@ -11,8 +11,8 @@ export default function Home() {
       <header>
         <h1>What a proposal does to the deficit</h1>
         <p className="lede">
-          A ten-year estimate on CBO&apos;s {m.baseline_vintages.join(" and ")} baseline.{" "}
-          <Link href="/explore">Explore {presets().length} proposals</Link>, each with this calculator&apos;s
+          Ten-year estimates of U.S. tax and spending proposals, on CBO&apos;s {m.baseline_vintages.join(" and ")} baseline.
+          You can <Link href="/explore">explore {presets().length} proposals</Link>; each shows this calculator&apos;s
           conventional score and, where one exists, the published score beside it.
         </p>
       </header>
