@@ -137,15 +137,15 @@ export function TrackerLists({ cbo, auto, autoLow }: { cbo: TrackerRow[]; auto: 
         <h2>Read by the calculator</h2>
         <p className="note">
           No CBO estimate yet. A language model maps the bill&apos;s text to provisions the calculator can score,
-          then the engine scores them. This is a demonstration, not an estimate to cite: it misses provisions it
-          cannot map and can misread the ones it does. Only medium- and high-confidence readings are listed here.
+          and the engine then scores them. I would treat this as a demonstration rather than an estimate to cite,
+          since it misses provisions it cannot map and can misread the ones it does. Only medium- and high-confidence readings are listed here.
         </p>
         <BillTable key={`auto-${query}-${status}`} rows={shown.auto} figure="auto" />
         <details open={filtering && shown.autoLow.length > 0 ? true : undefined}>
           <summary>{shown.autoLow.length} low-confidence readings</summary>
           <p className="note">
-            The model was unsure what these bills do. Some figures are far from any plausible cost; they are shown
-            so the list is complete, not because they are informative.
+            The model was unsure what these bills do. Some figures are far from any plausible cost. I list them only
+            so that the list is complete; they are not informative.
           </p>
           <BillTable key={`low-${query}-${status}`} rows={shown.autoLow} figure="auto" />
         </details>
