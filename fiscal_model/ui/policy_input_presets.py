@@ -90,12 +90,12 @@ def _short_display_name(name: str) -> str:
     from fiscal_model.ui.helpers import unescape_markdown_dollars
 
     stripped = _strip_emoji_prefix(unescape_markdown_dollars(name))
-    return _re.sub(r"\s*\((?:CBO|JCT):[^)]+\)\s*$", "", stripped).strip()
+    return _re.sub(r"\s*\((?:CBO|JCT|Treasury):[^)]+\)\s*$", "", stripped).strip()
 
 
 def _extract_cbo_score(name: str) -> str | None:
     """Return the CBO/JCT score string from a preset name."""
     import re as _re
 
-    match = _re.search(r"\(((?:CBO|JCT):[^)]+)\)", name)
+    match = _re.search(r"\(((?:CBO|JCT|Treasury):[^)]+)\)", name)
     return match.group(1) if match else None
