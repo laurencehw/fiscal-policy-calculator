@@ -6,10 +6,10 @@ import { money } from "@/lib/format";
 
 type Row = { year: number; value: number };
 
-export function YearChart({ rows, label }: { rows: Row[]; label: string }) {
+export function YearChart({ rows, label, plotId }: { rows: Row[]; label: string; plotId?: string }) {
   const axis = zeroAxis(rows.map((r) => r.value));
   return (
-    <div className="plot" role="img" aria-label={label}>
+    <div className="plot" id={plotId} role="img" aria-label={label}>
       <ResponsiveContainer width="100%" height={260}>
         <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }} barCategoryGap="24%">
           <CartesianGrid stroke="var(--grid)" vertical={false} />

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ChartActions } from "@/components/ChartActions";
 import { BaselineChart } from "@/components/BaselineChart";
 import { HouseStrip } from "@/components/HouseStrip";
 import { YearChart } from "@/components/YearChart";
@@ -77,6 +78,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           <span className="tag">billions, conventional</span>
         </div>
         <YearChart
+          plotId="year-chart"
           rows={c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect }))}
           label={`Annual deficit effect of ${name}, ${c.budget_window}`}
         />
@@ -85,6 +87,12 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           <a href={`/explore/${id}/csv`} download>
             Download CSV
           </a>
+          <ChartActions
+            chartId="year-chart"
+            title={name}
+            source="Fiscal Policy Calculator, conventional score"
+            vintage={`CBO ${c.baseline_vintage} baseline, ${c.budget_window}`}
+          />
         </p>
       </section>
 
