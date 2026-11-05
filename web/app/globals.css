@@ -443,7 +443,8 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .difference { max-width: 70ch; border-left: 2px solid var(--accent); padding-left: 12px; }
 
 /* Shared "US economic policy" strip (same links as monetary.lwilsesamson.com). */
-.policystrip { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; padding: 0.45rem 0; border-bottom: 1px solid var(--rule); font-family: var(--data); font-size: 0.8rem; }
+.policystrip { display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; padding: 0.15rem 0; border-bottom: 1px solid var(--rule); font-family: var(--data); font-size: 0.75rem; line-height: 1.4; margin-bottom: -28px; }
+.wrap:has(.work) > .policystrip { margin-bottom: -10px; }
 .policystrip a { text-decoration: none; }
 .policystrip a[aria-current="page"] { color: var(--ink); font-weight: 600; }
 .policystrip-label { color: var(--muted); }
