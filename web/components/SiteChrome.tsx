@@ -5,7 +5,8 @@ import { NAV_GROUPS } from "@/lib/nav";
 import { MobileMenu } from "./MobileMenu";
 import { NavLink } from "./NavLink";
 
-const [SCORE, TOPICS, LEARN] = NAV_GROUPS;
+const [POLICIES, TOPICS, LEARN] = NAV_GROUPS;
+const UTILITY = new Set(["/methods", "/about"]);
 
 export function SiteChrome({ children }: { children: React.ReactNode }) {
   return (
@@ -18,16 +19,29 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
           <Link href="/" className="wordmark">
             Fiscal Policy Calculator
           </Link>
-          <span className="navlinks">
-            {LEARN.items.map((item) => (
-              <NavLink key={item.href} href={item.href}>
-                {item.label}
-              </NavLink>
-            ))}
+          <span className="topmeta">
+            <span className="navlinks">
+              {LEARN.items
+                .filter((item) => !UTILITY.has(item.href))
+                .map((item) => (
+                  <NavLink key={item.href} href={item.href}>
+                    {item.label}
+                  </NavLink>
+                ))}
+            </span>
+            <span className="utility">
+              {LEARN.items
+                .filter((item) => UTILITY.has(item.href))
+                .map((item) => (
+                  <NavLink key={item.href} href={item.href}>
+                    {item.label}
+                  </NavLink>
+                ))}
+            </span>
           </span>
         </div>
         <span className="sectionlinks">
-          {[SCORE, TOPICS].map((group) => (
+          {[POLICIES, TOPICS].map((group) => (
             <span key={group.name} className="navgroup" aria-label={group.name}>
               {group.items.map((item) => (
                 <NavLink key={item.href} href={item.href}>

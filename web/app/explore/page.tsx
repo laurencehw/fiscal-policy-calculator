@@ -23,14 +23,13 @@ export default function Explore() {
     })),
   );
   return (
-    <>
+    <div className="work">
       <header>
         <span className="eyebrow">Explore</span>
         <h1>Proposals</h1>
         <p className="sentence">
-          Ten-year conventional deficit effects, {m.budget_windows.join(", ")}. The first column is this
-          calculator&apos;s score; the second is the published score it is checked against, where one exists. A
-          positive figure adds to the deficit; a negative one reduces it. Bars share one scale.
+          Ten-year conventional deficit effects, {m.budget_windows.join(", ")}, with this calculator&apos;s score
+          beside the published score where one exists.
         </p>
       </header>
       <ExploreList
@@ -38,6 +37,6 @@ export default function Explore() {
         calculator={estimateIdentity(frame, "model")}
         published={estimateIdentity({ cbo_source: "Published", credibility: null }, "published")}
       />
-    </>
+    </div>
   );
 }
