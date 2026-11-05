@@ -43,7 +43,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const published =
     info?.cbo_published && info.cbo_source ? estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published") : null;
   return (
-    <>
+    <div className="work">
       <header>
         <span className="eyebrow">
           {c.budget_window} · CBO {c.baseline_vintage} baseline
@@ -121,6 +121,6 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           {c.budget_window}. {siteUrl()}/explore/{id}
         </span>
       </p>
-    </>
+    </div>
   );
 }

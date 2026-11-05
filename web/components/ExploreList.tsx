@@ -52,62 +52,62 @@ export function ExploreList({
             Largest first
           </button>
         </div>
+        <p className="note" aria-live="polite">
+          {shown.length === rows.length ? `${rows.length} proposals.` : `${shown.length} of ${rows.length} proposals.`}
+          {shown.length === 0 ? " Nothing matches; try a shorter word." : null}
+        </p>
       </div>
-      <p className="note" aria-live="polite">
-        {shown.length === rows.length ? `${rows.length} proposals.` : `${shown.length} of ${rows.length} proposals.`}
-        {shown.length === 0 ? " Nothing matches; try a shorter word." : null}
-      </p>
       <p className="note identitynote">
         <EstimateTag identity={calculator} />
         <EstimateTag identity={published} />
       </p>
-      <div className="presetgroups">
-        {groups.map((group) => (
-          <section key={group.area ?? "all"} className="presetgroup">
-            {group.area ? <h2>{group.area}</h2> : null}
-            <ul className="presetlist explorelist">
-              <li className="explorehead" aria-hidden="true">
-                <span />
-                <span className="figlabel">
-                  <EstimateTag identity={calculator} short />
-                </span>
-                <span className="figlabel">
-                  <EstimateTag identity={published} short />
-                </span>
-              </li>
-              {group.rows.map((row) => (
-                <li key={row.id}>
-                  <Link href={`/explore/${row.id}`}>{row.name}</Link>
-                  <span className="figcell">
-                    {row.conventional === null ? null : (
-                      <>
-                        <span className={`fig ${row.conventional > 0 ? "adds" : "reduces"}`}>
-                          <span className="sr-only">Calculator: </span>
-                          {money(row.conventional)}
-                        </span>
-                        <Bar value={row.conventional} scale={scale} />
-                      </>
-                    )}
-                  </span>
-                  <span className="figcell">
-                    {row.published === null ? (
-                      <span className="fig published none">none</span>
-                    ) : (
-                      <>
-                        <span className="fig published">
-                          <span className="sr-only">Published: </span>
-                          {money(row.published)}
-                        </span>
-                        <Bar value={row.published} scale={scale} published />
-                      </>
-                    )}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))}
-      </div>
+      <ul className="presetlist explorelist">
+        <li className="explorehead" aria-hidden="true">
+          <span />
+          <span className="figlabel">
+            <EstimateTag identity={calculator} short />
+          </span>
+          <span className="figlabel">
+            <EstimateTag identity={published} short />
+          </span>
+        </li>
+        {groups.flatMap((group) => [
+          group.area ? (
+            <li key={group.area} className="exploresection">
+              {group.area}
+            </li>
+          ) : null,
+          ...group.rows.map((row) => (
+            <li key={row.id}>
+              <Link href={`/explore/${row.id}`}>{row.name}</Link>
+              <span className="figcell">
+                {row.conventional === null ? null : (
+                  <>
+                    <span className={`fig ${row.conventional > 0 ? "adds" : "reduces"}`}>
+                      <span className="sr-only">Calculator: </span>
+                      {money(row.conventional)}
+                    </span>
+                    <Bar value={row.conventional} scale={scale} />
+                  </>
+                )}
+              </span>
+              <span className="figcell">
+                {row.published === null ? (
+                  <span className="fig published none">none</span>
+                ) : (
+                  <>
+                    <span className="fig published">
+                      <span className="sr-only">Published: </span>
+                      {money(row.published)}
+                    </span>
+                    <Bar value={row.published} scale={scale} published />
+                  </>
+                )}
+              </span>
+            </li>
+          )),
+        ])}
+      </ul>
     </div>
   );
 }

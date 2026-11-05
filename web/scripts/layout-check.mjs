@@ -94,6 +94,39 @@ async function checkPage(browser, route, viewport) {
     if (named.length === 0) problems.push("published tag does not name Treasury");
     if (named.some((tag) => /\bCBO\b/.test(tag.text))) problems.push("published tag names CBO");
   }
+  if (viewport.name === "desktop" && route.startsWith("/explore/")) {
+    const above = await page.evaluate(() => {
+      const figure = document.querySelector(".headline .v");
+      if (!figure) return false;
+      const box = figure.getBoundingClientRect();
+      return box.top < window.innerHeight && box.bottom > 0;
+    });
+    if (!above) problems.push("headline figure is below the fold");
+  }
+  if (viewport.name === "desktop" && route === "/explore") {
+    const visible = await page.evaluate(() =>
+      [...document.querySelectorAll(".explorelist a")].filter((el) => {
+        const box = el.getBoundingClientRect();
+        return box.top < window.innerHeight && box.bottom > 80;
+      }).length,
+    );
+    if (visible < 12) problems.push(`only ${visible} proposals visible on first load`);
+  }
+  const wideProse = await page.evaluate(() => {
+    const nodes = [...document.querySelectorAll(".work .sentence, .work .lede, .work .note, .work header p, .work .checked p")];
+    const over = [];
+    for (const el of nodes) {
+      const probe = document.createElement("span");
+      probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font:${getComputedStyle(el).font}`;
+      probe.textContent = "0".repeat(75);
+      document.body.appendChild(probe);
+      const limit = probe.getBoundingClientRect().width;
+      probe.remove();
+      if (el.getBoundingClientRect().width > limit + 1) over.push(el.className || el.tagName.toLowerCase());
+    }
+    return over.slice(0, 4);
+  });
+  if (wideProse.length) problems.push(`prose wider than 75 characters (${wideProse.join(", ")})`);
   if (!layout.h1 || !layout.h1Visible) problems.push("no visible page title (h1)");
   if (layout.overflow > 1) {
     problems.push(`page is ${layout.overflow}px wider than the screen (${layout.wide.join(", ") || "element not found"})`);

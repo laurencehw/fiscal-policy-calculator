@@ -71,7 +71,8 @@ tr[id^="bench-"] { scroll-margin-top: 16px; }
 .tag { font-family: var(--label); font-size: 15px; letter-spacing: 0.06em; font-variant-caps: all-small-caps; color: var(--muted); }
 .estimatetag { display: block; max-width: 100%; line-height: 1.35; }
 .estimatetag.short { display: inline; font-size: 12px; }
-.identitynote { display: grid; gap: 4px; }
+.identitynote { display: flex; flex-wrap: wrap; gap: 2px 16px; }
+.identitynote .estimatetag { display: inline; font-size: 13px; }
 .units { margin: -8px 0 0; font-size: 15px; color: var(--muted); }
 .big { font-family: var(--data); font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .big b { font-size: 28px; color: var(--ink); font-weight: 500; }
@@ -96,6 +97,7 @@ a:hover { text-decoration-color: var(--accent); }
 /* Header: wordmark and reference pages on one row, the three sections under a rule. */
 .site { display: grid; gap: 10px; font-family: var(--label); }
 .siterow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; }
+.topmeta { display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: baseline; justify-content: flex-end; }
 .wordmark { text-decoration: none; font-family: var(--display); font-weight: 600; font-size: 21px; }
 .navlinks { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; }
 .navlinks a { font-size: 14px; text-decoration: none; color: var(--muted); }
@@ -120,10 +122,19 @@ a:hover { text-decoration-color: var(--accent); }
 .menugroup { display: grid; gap: 2px; }
 .menugroup a { font-family: var(--display); font-size: 19px; text-decoration: none; padding: 4px 0; }
 .menugroup a[aria-current="page"] { text-decoration: underline; text-underline-offset: 5px; }
+.utility { display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: flex-end; }
+.utility a { font-size: 13px; text-decoration: none; color: var(--muted); }
+.utility a:hover, .utility a[aria-current="page"] { color: var(--ink); }
 @media (max-width: 720px) {
-  .sectionlinks, .navlinks { display: none; }
+  .sectionlinks, .topmeta { display: none; }
   .mobilemenu { display: block; }
 }
+/* Working pages: a smaller title, prose at the reading measure, charts up to 1,200px. */
+.wrap:has(.work) { max-width: 1200px; padding-top: 12px; gap: 16px; }
+.work { display: grid; gap: 8px; min-width: 0; }
+.work .sentence { margin: 0; }
+.work h1 { font-size: clamp(30px, 4.5vw, 40px); }
+.work :is(.chart, .tablewrap, .headline, .explore, .builder, .values) { max-width: 1200px; }
 /* Home: one door per section, grouped as in the header. */
 .doors { display: grid; gap: 28px; }
 .doorgroup { display: grid; gap: 10px; }
@@ -159,8 +170,24 @@ code { font-family: var(--code); font-size: 0.85em; }
 @media (max-width: 720px) { .headline { grid-template-columns: 1fr; } }
 .adds { color: var(--adds); }
 .reduces { color: var(--reduces); }
-.presetgroups { display: grid; gap: 28px; }
-.presetgroup { display: grid; gap: 4px; }
+.presetgroups { display: grid; gap: 0; }
+.presetgroup { display: grid; gap: 0; }
+.explorelist li { padding: 2px 0; }
+.explorelist .exploresection {
+  grid-column: 1 / -1;
+  position: sticky;
+  top: 22px;
+  z-index: 2;
+  background: var(--paper);
+  padding: 4px 0 2px;
+  font-family: var(--label);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  font-variant-caps: all-small-caps;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule);
+}
+.explorelist .explorehead { position: sticky; top: 0; z-index: 3; background: var(--paper); padding-bottom: 2px; }
 .presetlist { list-style: none; margin: 0; padding: 0; }
 .presetlist li { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; padding: 8px 0; border-top: 1px solid var(--rule); }
 .presetlist a { text-decoration: none; }
@@ -323,7 +350,8 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .exploretools .search { flex: 1 1 280px; max-width: 30rem; }
 .exploretools input[type="search"], .exploretools select { font: inherit; font-family: var(--data); font-size: 15px; padding: 7px 10px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
 .exploretools select { width: auto; }
-.explorelist li { display: grid; grid-template-columns: minmax(0, 1fr) 150px 150px; gap: 4px 20px; align-items: baseline; }
+.explorelist li { display: grid; grid-template-columns: minmax(0, 1fr) 150px 150px; gap: 2px 20px; align-items: baseline; padding: 0; }
+.explorelist .exploresection { display: block; }
 .explorelist .explorehead { border-top: 0; padding: 0 0 2px; }
 .explorelist .explorehead .figlabel { text-align: right; display: block; font-family: var(--label); font-size: 12px; letter-spacing: 0.05em; font-variant-caps: all-small-caps; color: var(--muted); }
 .figcell { display: grid; gap: 3px; justify-items: end; }
