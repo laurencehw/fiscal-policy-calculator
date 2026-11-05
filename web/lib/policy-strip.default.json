@@ -1,0 +1,8 @@
+{
+  "label": "US economic policy",
+  "home": { "label": "lwilsesamson.com", "href": "https://lwilsesamson.com/" },
+  "items": [
+    { "key": "fiscal", "label": "Fiscal", "href": "https://fiscal.lwilsesamson.com/" },
+    { "key": "monetary", "label": "Monetary", "href": "https://monetary.lwilsesamson.com/" }
+  ]
+}
