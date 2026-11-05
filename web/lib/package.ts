@@ -9,7 +9,52 @@ export function addToPackage(
   id: string,
 ): { selected: string[]; replaced: string[] } {
   const next = choose(rows, selected, id);
-  return { selected: next, replaced: selected.filter((other) => !next.includes(other)) };
+  return { selected: next, replaced: replacedBy(rows, selected, next).dropped };
+}
+
+/** One tick that swapped policies out, kept so it can be undone. */
+export type Replacement = { added: string; dropped: string[] };
+
+/**
+ * What a change from ``before`` to ``after`` replaced: the policy it added and
+ * the ones the package rules dropped to make room. A plain untick, or a tick
+ * that drops nothing, replaced nothing and returns an empty ``dropped``.
+ */
+export function replacedBy(rows: BuildRow[], before: string[], after: string[]): Replacement & { added: string | null } {
+  const known = new Set(rows.map((r) => r.build_id));
+  const added = after.filter((id) => !before.includes(id) && known.has(id));
+  if (added.length !== 1) return { added: added[0] ?? null, dropped: [] };
+  return { added: added[0], dropped: before.filter((id) => !after.includes(id) && known.has(id)) };
+}
+
+/**
+ * Undo a replacement: take the added policy out and put back what it dropped.
+ * Edits made since are kept, and the package rules are applied again, so an
+ * undo never leaves two alternatives ticked together.
+ */
+export function undoReplacement(rows: BuildRow[], selected: string[], change: Replacement): string[] {
+  let next = selected.filter((id) => id !== change.added);
+  for (const id of change.dropped) {
+    if (!covered(rows, next).has(id)) next = choose(rows, next, id);
+  }
+  return next;
+}
+
+/** The policies in the package with their published figures, in catalog order, and the scale their bars share. */
+export function contributions(rows: BuildRow[], selected: string[]): { rows: BuildRow[]; scale: number } {
+  const chosen = new Set(selected);
+  const list = rows.filter((r) => chosen.has(r.build_id));
+  return { rows: list, scale: Math.max(1, ...list.map((r) => Math.abs(r.score))) };
+}
+
+/**
+ * How far a package goes toward a philosophy's target. ``gap`` is the deficit
+ * reduction the target needs (positive); ``sum`` is the package in the deficit
+ * convention, so a package that reduces the deficit is negative.
+ */
+export function towardTarget(sum: number, gap: number): { share: number; remaining: number } {
+  if (gap <= 0) return { share: 0, remaining: 0 };
+  return { share: -sum / gap, remaining: gap + sum };
 }
 
 /** Add ``id`` to the package, dropping anything it conflicts with or contains. */

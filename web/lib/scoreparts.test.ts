@@ -21,7 +21,7 @@ test("the gap sentence names which figure the scorecard error belongs to", () =>
   assert.ok(Math.abs(displayedGapPct(point, -1347) - 2.68) < 0.05);
   const text = checkedSentence(cred, point, corp.conventional.budget_window);
   assert.doesNotMatch(text, /this estimate is 4\.0% away/);
-  assert.match(text, /own window and terms/);
+  assert.match(text, /own window \(FY2025-2034\) and terms/);
   assert.match(text, /4\.0% away/);
   assert.match(text, /2\.7% from the published number/);
 });

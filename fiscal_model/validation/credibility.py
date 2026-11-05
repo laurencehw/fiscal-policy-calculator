@@ -446,6 +446,22 @@ class OwnRow:
     #: figure a page shows (e.g. FY2025-2034 vs the page's FY2026-2035), and
     #: ``abs_pct_error`` is measured against this one, not the page's.
     model_billions: float | None = None
+    #: The budget window the published figure covers, as transcribed in
+    #: ``benchmark_sources``; ``None`` where no transcription records one.
+    window: str | None = None
+
+
+def _published_window(policy_id: str) -> str | None:
+    """The window of the published figure this row is scored against, if transcribed."""
+    try:
+        from fiscal_model.validation.benchmark_sources import source_for
+
+        source = source_for(policy_id)
+    except Exception:  # pragma: no cover — defensive
+        return None
+    if source is None or not source.window:
+        return None
+    return source.window.strip() or None
 
 
 def own_row_for(policy_name: str | None) -> OwnRow | None:
@@ -468,6 +484,7 @@ def own_row_for(policy_name: str | None) -> OwnRow | None:
         official_billions=float(badge.get("official", 0.0) or 0.0),
         caption=str(badge.get("caption", "")),
         model_billions=None if badge.get("model") is None else float(badge["model"]),
+        window=_published_window(str(badge.get("policy_id", ""))),
     )
 
 
@@ -503,6 +520,9 @@ class ResultCredibility:
     own_row_official_billions: float | None
     own_row_caption: str
     own_row_model_billions: float | None
+    #: The window of the published figure in ``own_row_official_billions``,
+    #: which can differ from the window the page's own figure is on.
+    own_row_window: str | None
     holdout_status: str
     limitations: list[str]
     caption: str
@@ -570,6 +590,7 @@ def get_credibility_for_result(
         own_row_official_billions=None if own is None else own.official_billions,
         own_row_caption="" if own is None else own.caption,
         own_row_model_billions=None if own is None else own.model_billions,
+        own_row_window=None if own is None else own.window,
         holdout_status=_category_holdout_status(category),
         limitations=limitations,
         caption=format_band_caption(band, point_estimate=point_estimate, reason=reason),

@@ -1,11 +1,12 @@
 "use client";
 // Build: tick policies, see the package's ten-year list-price total. State lives
 // in ?policies=, the same parameter the Streamlit app's share links use.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { PackageSummary, type SecondTotal } from "@/components/PackageSummary";
 import { EstimateTag } from "@/components/EstimateTag";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
-import { addToPackage, calculatorGap, choose, covered, fromQuery, total } from "@/lib/package";
+import { addToPackage, calculatorGap, covered, fromQuery, total, towardTarget, undoReplacement, type Replacement } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
 
 export function PackageBuilder({
@@ -14,6 +15,7 @@ export function PackageBuilder({
   identities,
   packageIdentity,
   archetypes = [],
+  secondTotal = null,
 }: {
   rows: BuildRow[];
   /** The calculator's ten-year conventional score by build id, where it scores the policy. */
@@ -21,20 +23,45 @@ export function PackageBuilder({
   identities: Record<string, { published: EstimateIdentity; model: EstimateIdentity | null }>;
   packageIdentity: EstimateIdentity;
   archetypes?: ValuesArchetype[];
+  /** C6's jointly scored total; the summary shows it only when present. */
+  secondTotal?: SecondTotal | null;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [philosophy, setPhilosophy] = useState<ValuesArchetype | null>(null);
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [change, setChange] = useState<Replacement | null>(null);
+  const noticeRef = useRef<HTMLParagraphElement>(null);
+  const nameOf = (policyId: string) => shortLabel(rows.find((r) => r.build_id === policyId)?.label ?? policyId);
+
+  /** The sentence for a tick that pushed policies out: alternatives swap, a broader policy contains. */
+  function replacementNotice(r: Replacement): string {
+    const row = rows.find((x) => x.build_id === r.added);
+    const names = r.dropped.map(nameOf).join(" and ");
+    if (row && r.dropped.every((id) => row.subsumes.includes(id))) {
+      return `${nameOf(r.added)} includes ${names}, so ${r.dropped.length === 1 ? "it was" : "they were"} taken out.`;
+    }
+    return `Replaced ${names} with ${nameOf(r.added)}; these are alternatives.`;
+  }
+
+  function announce(r: Replacement | null) {
+    setChange(r);
+    setNotice(r ? replacementNotice(r) : null);
+  }
+
+  // Focus follows a replacement notice, so a keyboard or screen-reader user hears it and can reach Undo.
+  useEffect(() => {
+    if (change) noticeRef.current?.focus();
+  }, [change]);
 
   function usePhilosophy(a: ValuesArchetype) {
     setPhilosophy(a);
     setSelected(fromQuery(rows, a.picks.map((p) => p.policy_id).join(",")));
+    announce(null);
   }
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const nameOf = (policyId: string) => cleanLabel(rows.find((r) => r.build_id === policyId)?.label ?? policyId);
     // ?values=<id> is the app's share link for a philosophy; it resolves to its package.
     const a = archetypes.find((x) => x.id === params.get("values"));
     const add = params.get("add");
@@ -46,9 +73,7 @@ export function PackageBuilder({
       let base = fromQuery(rows, params.get("policies") ?? stored);
       if (add) {
         const result = addToPackage(rows, base, add);
-        if (result.replaced.length) {
-          setNotice(`Replaced ${nameOf(result.replaced[0])} with ${nameOf(add)}. These are alternatives.`);
-        }
+        if (result.replaced.length) announce({ added: add, dropped: result.replaced });
         base = result.selected;
       }
       setSelected(base);
@@ -75,7 +100,26 @@ export function PackageBuilder({
   const label = (id: string) => cleanLabel(rows.find((r) => r.build_id === id)?.label ?? id);
 
   function toggle(id: string) {
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : choose(rows, s, id)));
+    if (selected.includes(id)) {
+      setSelected(selected.filter((x) => x !== id));
+      announce(null);
+      return;
+    }
+    const result = addToPackage(rows, selected, id);
+    setSelected(result.selected);
+    announce(result.replaced.length ? { added: id, dropped: result.replaced } : null);
+  }
+
+  function undo() {
+    if (!change) return;
+    setSelected(undoReplacement(rows, selected, change));
+    setChange(null);
+    setNotice(`Put back ${change.dropped.map(nameOf).join(" and ")}.`);
+  }
+
+  function clear() {
+    setSelected([]);
+    announce(null);
   }
 
   const edited =
@@ -110,30 +154,37 @@ export function PackageBuilder({
         </div>
         {philosophy ? (
           <div className="whys" aria-live="polite">
-            <p>
-              <b>{philosophy.name}:</b> {philosophy.summary}. The package scores {money(philosophy.total_billions)}{" "}
-              against a gap of {money(philosophy.gap_billions).replace("+", "")} to a deficit of{" "}
-              {philosophy.target_pct_gdp.toFixed(1)}% of GDP.
-              {philosophy.protected.length ? ` Protected: ${philosophy.protected.join(", ").toLowerCase()}.` : ""}
+            <p className="shortresult">
+              <b>{philosophy.name}:</b> {philosophy.picks.length} {philosophy.picks.length === 1 ? "policy" : "policies"},{" "}
+              {Math.round(towardTarget(philosophy.total_billions, philosophy.gap_billions).share * 100)}% of the target.
               {edited ? " You have since edited the list below." : ""}
             </p>
-            <ol>
-              {philosophy.picks.map((p) => (
-                <li key={p.policy_id}>
-                  <span className="whyname">
-                    {cleanLabel(p.label)}{" "}
-                    <span className={`fig ${p.score > 0 ? "adds" : "reduces"}`}>{money(p.score)}</span>
-                    {identities[p.policy_id] ? (
-                      <>
-                        {" "}
-                        <EstimateTag identity={identities[p.policy_id].published} short />
-                      </>
-                    ) : null}
-                  </span>
-                  <small>{p.why}</small>
-                </li>
-              ))}
-            </ol>
+            <details>
+              <summary>Why these choices?</summary>
+              <p>
+                {philosophy.summary}. The package scores {money(philosophy.total_billions)} against a gap of{" "}
+                {money(philosophy.gap_billions).replace("+", "")} to a deficit of {philosophy.target_pct_gdp.toFixed(1)}%
+                of GDP.
+                {philosophy.protected.length ? ` Protected: ${philosophy.protected.join(", ").toLowerCase()}.` : ""}
+              </p>
+              <ol>
+                {philosophy.picks.map((p) => (
+                  <li key={p.policy_id}>
+                    <span className="whyname">
+                      {cleanLabel(p.label)}{" "}
+                      <span className={`fig ${p.score > 0 ? "adds" : "reduces"}`}>{money(p.score)}</span>
+                      {identities[p.policy_id] ? (
+                        <>
+                          {" "}
+                          <EstimateTag identity={identities[p.policy_id].published} short />
+                        </>
+                      ) : null}
+                    </span>
+                    <small>{p.why}</small>
+                  </li>
+                ))}
+              </ol>
+            </details>
           </div>
         ) : null}
       </section>
@@ -180,30 +231,23 @@ export function PackageBuilder({
           </fieldset>
         ))}
       </div>
-      <aside className="buildtotal" aria-live="polite">
-        {notice ? <p className="note">{notice}</p> : null}
-        <span className="eyebrow">Your package</span>
-        <p className={`fig big ${sum > 0 ? "adds" : sum < 0 ? "reduces" : ""}`}>{money(sum)}</p>
-        <EstimateTag identity={packageIdentity} />
-        <p className="note">
-          {selected.length === 0
-            ? "Tick policies to add their ten-year figures."
-            : `${selected.length} ${selected.length === 1 ? "policy" : "policies"}; ${
-                sum > 0 ? "adds to" : sum < 0 ? "reduces" : "leaves unchanged"
-              } the deficit over ten years.`}
-        </p>
-        {selected.length > 1 ? (
-          <p className="note">
-            This is the sum of each policy&apos;s published score on its own. Policies that touch the same tax base
-            interact, so the package as a whole can differ from the sum. This page does not measure those interactions.
-          </p>
-        ) : null}
-        {selected.length ? (
-          <button type="button" onClick={() => setSelected([])}>
-            Clear
-          </button>
-        ) : null}
-      </aside>
+      <PackageSummary
+        ref={noticeRef}
+        rows={rows}
+        selected={selected}
+        sum={sum}
+        packageIdentity={packageIdentity}
+        target={
+          philosophy
+            ? { name: philosophy.name, gapBillions: philosophy.gap_billions, pctGdp: philosophy.target_pct_gdp }
+            : null
+        }
+        notice={notice}
+        canUndo={change !== null}
+        onUndo={undo}
+        onClear={clear}
+        secondTotal={secondTotal}
+      />
     </div>
     </>
   );

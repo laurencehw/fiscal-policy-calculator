@@ -130,6 +130,7 @@
       "own_row_official_billions": 335.0,
       "own_row_caption": "Unfitted reconstruction, 9.3% from $335B (CBO/JCT pub. 60437 (June 2024)) — no constant is fitted to this figure.",
       "own_row_model_billions": 366.18626725023734,
+      "own_row_window": "FY2025-2034",
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -275,6 +276,7 @@
       "own_row_official_billions": 335.0,
       "own_row_caption": "Unfitted reconstruction, 9.3% from $335B (CBO/JCT pub. 60437 (June 2024)) — no constant is fitted to this figure.",
       "own_row_model_billions": 366.18626725023734,
+      "own_row_window": "FY2025-2034",
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

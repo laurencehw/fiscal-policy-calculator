@@ -130,6 +130,7 @@
       "own_row_official_billions": -1700.0,
       "own_row_caption": "Calibrated to reproduce -$1.70T (CBO-style estimate (no published score)) — agreement is by construction, not an independent test. The target itself is this model's own estimate, not a published score.",
       "own_row_model_billions": -1714.7797054459088,
+      "own_row_window": null,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -356,6 +357,7 @@
       "own_row_official_billions": -1700.0,
       "own_row_caption": "Calibrated to reproduce -$1.70T (CBO-style estimate (no published score)) — agreement is by construction, not an independent test. The target itself is this model's own estimate, not a published score.",
       "own_row_model_billions": -1714.7797054459088,
+      "own_row_window": null,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
