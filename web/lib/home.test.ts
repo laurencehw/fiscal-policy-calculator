@@ -1,9 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { homeRowLine, homeSectionText, homeStats, tierPhrase, WORKED_POLICY_IDS, workedRows } from "./home";
+import { homeCandidates, homePair, homeRowLine, homeSectionText, STARTING_POINTS, tierPhrase, trustStrip, WORKED_POLICY_IDS, workedRows } from "./home";
+import { DEFAULT_PAIR } from "./compare";
 import { money } from "./format";
-import { evidence, manifest, presets, scorecardEntries, tierOf, trackerIndex } from "./data";
+import { evidence, preset, presets, scorecardEntries, tierOf } from "./data";
 import { contactText, privacyText } from "./legal";
 
 test("the homepage section names both figures and reads them from the export", () => {
@@ -71,15 +72,38 @@ test("Explore labels a figure published only when the export says it is", () => 
   assert.match(source, /cbo_published/);
 });
 
-test("the headline strip reads its figures from the export and names the tier", () => {
-  const stats = homeStats();
-  const oos = evidence().out_of_sample;
-  assert.equal(stats.length, 4);
-  assert.equal(stats[0].figure, String(presets().length));
-  assert.equal(stats[1].figure, `${oos.within_25pct} of ${oos.n}`);
-  assert.match(stats[1].label, /blind predictions/);
-  assert.ok(stats[1].label.includes(oos.median_abs_error.toFixed(1)));
-  assert.equal(stats[2].figure, trackerIndex().bills.toLocaleString("en-US"));
-  assert.equal(stats[3].figure, String(manifest().social_security_options));
-  for (const stat of stats) assert.match(stat.href, /^\/[a-z-]+$/);
+test("the home compare never shows a fitted row or an unfitted reconstruction", () => {
+  const candidates = homeCandidates();
+  assert.ok(candidates.length >= 2);
+  for (const c of candidates) {
+    const cred = preset(c.id)!.conventional.credibility!;
+    assert.notEqual(cred.own_row_tier, "fitted", c.id);
+    assert.notEqual(cred.own_row_tier, "reconstruction", c.id);
+    assert.ok(cred.own_row_tier === "out_of_sample" || cred.n_tier1_rows > 0, c.id);
+    assert.match(c.basis, /^out-of-sample/);
+  }
+  assert.ok(!candidates.some((c) => c.id.startsWith("corporate-")));
+  const ids = candidates.map((c) => c.id);
+  assert.deepEqual(homePair(undefined), [...DEFAULT_PAIR]);
+  for (const id of homePair(undefined)) assert.ok(ids.includes(id), id);
+  // A fitted or unknown proposal in ?vs= falls back to the default; a candidate is taken.
+  assert.deepEqual(homePair("corporate-28pct"), [...DEFAULT_PAIR]);
+  assert.deepEqual(homePair("nope"), [...DEFAULT_PAIR]);
+  assert.deepEqual(homePair("medicare-surcharge-2pp"), [DEFAULT_PAIR[0], "medicare-surcharge-2pp"]);
+});
+
+test("the trust strip's count is the export's held-out count", () => {
+  const strip = trustStrip();
+  assert.equal(strip.count, evidence().out_of_sample.n);
+  assert.ok(strip.text.startsWith(`${evidence().out_of_sample.n} held-out benchmark cases`));
+  assert.match(strip.text, /accuracy varies by policy type/);
+});
+
+test("each starting point opens a page that exists", () => {
+  assert.equal(STARTING_POINTS.length, 3);
+  for (const start of STARTING_POINTS) {
+    const path = start.href.split("?")[0];
+    assert.ok(fs.existsSync(new URL(`../app${path}/page.tsx`, import.meta.url)), start.href);
+    assert.match(start.question, /\?$/);
+  }
 });

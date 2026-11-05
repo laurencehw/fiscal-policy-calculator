@@ -10,6 +10,24 @@ export type ExploreRow = {
 
 export type ExploreSort = "topic" | "size";
 
+/** Which way a row moves the deficit, for the "which policies reduce the deficit?" view. */
+export type ExploreShow = "all" | "reduces" | "adds";
+
+/** Rows the calculator scores as moving the deficit in the chosen direction. */
+export function byDirection(rows: ExploreRow[], show: ExploreShow): ExploreRow[] {
+  if (show === "all") return rows;
+  return rows.filter((row) => row.conventional !== null && (show === "reduces" ? row.conventional < 0 : row.conventional > 0));
+}
+
+/** The starting view from the URL: ?q=, ?sort=size, ?show=reduces|adds. Unknown values fall back. */
+export function viewFromQuery(search: string): { query: string; sort: ExploreSort; show: ExploreShow } {
+  const params = new URLSearchParams(search);
+  const sort = params.get("sort") === "size" ? "size" : "topic";
+  const raw = params.get("show");
+  const show: ExploreShow = raw === "reduces" || raw === "adds" ? raw : "all";
+  return { query: params.get("q") ?? "", sort, show };
+}
+
 /** Rows whose name or topic contains every word of the query, case-insensitively. */
 export function filterRows(rows: ExploreRow[], query: string): ExploreRow[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);

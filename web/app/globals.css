@@ -471,3 +471,28 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .whys details > summary { margin-top: 0; }
 @media (min-width: 861px) { .summary { max-height: calc(100vh - 32px); overflow-y: auto; } }
 @media (max-width: 860px) { .summary .sheettoggle { display: inline-block; } .summary .summarytarget { margin: 0; } }
+
+/* Home (U6): a live compare first, then three questions. */
+.homeexample { display: grid; gap: 16px; margin-top: 8px; }
+.homeexamplehead { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; justify-content: space-between; }
+.homeswap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-family: var(--label); font-size: 14px; color: var(--muted); }
+.homeswap label { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.homeswap select { font: inherit; font-family: var(--data); font-size: 14px; padding: 5px 8px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); max-width: 100%; }
+.homeswap button { font: inherit; background: none; border: 1px solid var(--rule); padding: 4px 10px; cursor: pointer; color: inherit; }
+.trust { margin: 0; font-family: var(--label); font-size: 14px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 8px; }
+.homeactions .primary { font-weight: 600; color: var(--accent); }
+.starts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 24px; border-top: 2px solid var(--ink); }
+@media (max-width: 720px) { .starts { grid-template-columns: 1fr; } }
+button.linkish { font: inherit; background: none; border: 0; padding: 0; color: inherit; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; cursor: pointer; }
+.homeexamplehead > * { min-width: 0; max-width: 100%; }
+.homeswap, .homeswap label { min-width: 0; max-width: 100%; }
+.homeswap select { min-width: 0; width: 100%; }
+@media (min-width: 721px) { .homeswap select { width: auto; max-width: 36rem; } }
+/* Shared "US economic policy" strip (same links as monetary.lwilsesamson.com). */
+.policystrip { display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; padding: 0.15rem 0; border-bottom: 1px solid var(--rule); font-family: var(--data); font-size: 0.75rem; line-height: 1.4; margin-bottom: -28px; }
+.wrap:has(.work) > .policystrip { margin-bottom: -10px; }
+.policystrip a { text-decoration: none; }
+.policystrip a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+.policystrip-label { color: var(--muted); }
+.policystrip-home { margin-left: auto; }
+@media (max-width: 560px) { .policystrip-home { margin-left: 0; } }
