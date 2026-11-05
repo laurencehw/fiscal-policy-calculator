@@ -70,7 +70,7 @@ CBO_SCORE_MAP = {
         "notes": "Extend only individual rate bracket cuts, FY2025-2034",
     },
     # Corporate
-    "🏢 Biden Corporate 28% (CBO: -$1.35T)": {
+    "🏢 Biden Corporate 28% (Treasury: -$1.35T)": {
         "official_score": -1347.0,
         "source": "Treasury",
         "source_date": "March 2024",
@@ -93,7 +93,7 @@ CBO_SCORE_MAP = {
         ),
     },
     # Tax Credits
-    "👶 Biden CTC Expansion (CBO: $1.6T)": {
+    "👶 Biden CTC Expansion (JCT: $1.6T)": {
         "official_score": 1600.0,
         "source": "JCT",
         "source_date": "2021",
@@ -707,10 +707,10 @@ PRESET_POLICIES = {
         "is_tcja": True,
         "tcja_type": "rates_only",
     },
-    "🏢 Biden Corporate 28% (CBO: -$1.35T)": {
+    "🏢 Biden Corporate 28% (Treasury: -$1.35T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~\\$1.35T over 10 years.",
+        "description": "Raise corporate rate from 21% to 28%. Treasury estimate (FY2025 Green Book): raises ~\\$1.35T over 10 years.",
         "is_tcja": False,
         "is_corporate": True,
         "corporate_type": "biden_28",
@@ -732,7 +732,7 @@ PRESET_POLICIES = {
         "is_corporate": True,
         "corporate_type": "trump_15",
     },
-    "👶 Biden CTC Expansion (CBO: $1.6T)": {
+    "👶 Biden CTC Expansion (JCT: $1.6T)": {
         "rate_change": 0.0,
         "threshold": 0,
         "description": "Expand CTC to \\$3,600/\\$3,000 per child, fully refundable. Based on 2021 ARP expansion.",

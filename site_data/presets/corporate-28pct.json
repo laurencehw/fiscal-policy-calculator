@@ -1,8 +1,8 @@
 {
   "id": "corporate-28pct",
   "conventional": {
-    "policy_name": "🏢 Biden Corporate 28% (CBO: -$1.35T)",
-    "policy_description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~\\$1.35T over 10 years.",
+    "policy_name": "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
+    "policy_description": "Raise corporate rate from 21% to 28%. Treasury estimate (FY2025 Green Book): raises ~\\$1.35T over 10 years.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1310.9199937081369,
@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 4.03729806993253,
       "own_row_official_billions": -1347.0,
       "own_row_caption": "Calibrated to reproduce -$1.35T (U.S. Treasury) — agreement is by construction, not an independent test.",
+      "own_row_model_billions": -1292.6175949980088,
       "holdout_status": "calibration_reference_only",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -151,8 +152,8 @@
     "error_message": null
   },
   "dynamic": {
-    "policy_name": "🏢 Biden Corporate 28% (CBO: -$1.35T)",
-    "policy_description": "Raise corporate rate from 21% to 28%. CBO estimate: raises ~\\$1.35T over 10 years.",
+    "policy_name": "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
+    "policy_description": "Raise corporate rate from 21% to 28%. Treasury estimate (FY2025 Green Book): raises ~\\$1.35T over 10 years.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1310.9199937081369,
@@ -279,6 +280,7 @@
       "own_row_abs_pct_error": 4.03729806993253,
       "own_row_official_billions": -1347.0,
       "own_row_caption": "Calibrated to reproduce -$1.35T (U.S. Treasury) — agreement is by construction, not an independent test.",
+      "own_row_model_billions": -1292.6175949980088,
       "holdout_status": "calibration_reference_only",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 9.471094710947131,
       "own_row_official_billions": 162.6,
       "own_row_caption": "Unfitted reconstruction, 9.5% from $163B (Treasury FY2025 Green Book (report p. 242)) — no constant is fitted to this figure.",
+      "own_row_model_billions": 178.00000000000003,
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -276,6 +277,7 @@
       "own_row_abs_pct_error": 9.471094710947131,
       "own_row_official_billions": 162.6,
       "own_row_caption": "Unfitted reconstruction, 9.5% from $163B (Treasury FY2025 Green Book (report p. 242)) — no constant is fitted to this figure.",
+      "own_row_model_billions": 178.00000000000003,
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

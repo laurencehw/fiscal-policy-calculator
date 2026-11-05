@@ -33,7 +33,7 @@ PRESET_POLICY_PACKAGES = {
     "Biden FY2025 Tax Plan": {
         "description": "President Biden's proposed tax changes for high earners and corporations",
         "policies": [
-            "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+            "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
             "💰 Expand NIIT (JCT: -$250B)",
             "📋 Eliminate Step-Up Basis (-$500B)",
         ],
@@ -43,7 +43,7 @@ PRESET_POLICY_PACKAGES = {
     "Progressive Revenue Package": {
         "description": "Raise revenue from high earners and corporations",
         "policies": [
-            "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+            "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
             "💰 SS Donut Hole $250K (-$1.43T)",
             "📋 Eliminate Step-Up Basis (-$500B)",
             "📋 Cap Charitable Deduction (-$200B)",

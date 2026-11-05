@@ -374,6 +374,9 @@ class ResultCredibilityModel(BaseModel):
     own_row_abs_pct_error: float | None = None
     own_row_official_billions: float | None = None
     own_row_caption: str = ""
+    #: The model's figure on the published estimate's own window and terms,
+    #: which ``own_row_abs_pct_error`` is measured against.
+    own_row_model_billions: float | None = None
     holdout_status: str
     limitations: list[str] = Field(default_factory=list)
     caption: str

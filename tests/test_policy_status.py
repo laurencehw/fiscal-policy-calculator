@@ -34,7 +34,7 @@ def test_tcja_extension_is_superseded():
 
 def test_green_book_proposals_marked_proposed():
     for name in (
-        "🏢 Biden Corporate 28% (CBO: -$1.35T)",
+        "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
         "🏠 Biden Estate Reform (-$450B)",
         "🌍 Biden International Package (-$632B)",
     ):

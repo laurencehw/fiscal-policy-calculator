@@ -2,22 +2,30 @@
 // Build: tick policies, see the package's ten-year list-price total. State lives
 // in ?policies=, the same parameter the Streamlit app's share links use.
 import { useEffect, useState } from "react";
+import { EstimateTag } from "@/components/EstimateTag";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
-import { calculatorGap, choose, covered, fromQuery, total } from "@/lib/package";
+import type { EstimateIdentity } from "@/lib/identity";
+import { addToPackage, calculatorGap, choose, covered, fromQuery, total } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
 
 export function PackageBuilder({
   rows,
   calculator,
+  identities,
+  packageIdentity,
   archetypes = [],
 }: {
   rows: BuildRow[];
   /** The calculator's ten-year conventional score by build id, where it scores the policy. */
   calculator: Record<string, number>;
+  identities: Record<string, { published: EstimateIdentity; model: EstimateIdentity | null }>;
+  packageIdentity: EstimateIdentity;
   archetypes?: ValuesArchetype[];
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [philosophy, setPhilosophy] = useState<ValuesArchetype | null>(null);
+  const [ready, setReady] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   function usePhilosophy(a: ValuesArchetype) {
     setPhilosophy(a);
@@ -26,25 +34,40 @@ export function PackageBuilder({
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const nameOf = (policyId: string) => cleanLabel(rows.find((r) => r.build_id === policyId)?.label ?? policyId);
     // ?values=<id> is the app's share link for a philosophy; it resolves to its package.
     const a = archetypes.find((x) => x.id === params.get("values"));
-    if (a && !params.get("policies")) {
+    const add = params.get("add");
+    if (a && !params.get("policies") && !add) {
       setPhilosophy(a);
       setSelected(fromQuery(rows, a.picks.map((p) => p.policy_id).join(",")));
     } else {
-      setSelected(fromQuery(rows, params.get("policies")));
+      const stored = readStored();
+      let base = fromQuery(rows, params.get("policies") ?? stored);
+      if (add) {
+        const result = addToPackage(rows, base, add);
+        if (result.replaced.length) {
+          setNotice(`Replaced ${nameOf(result.replaced[0])} with ${nameOf(add)}. These are alternatives.`);
+        }
+        base = result.selected;
+      }
+      setSelected(base);
     }
+    setReady(true);
   }, [rows, archetypes]);
 
   useEffect(() => {
+    if (!ready) return;
+    writeStored(selected.join(","));
     const url = new URL(window.location.href);
     url.searchParams.delete("policies");
     url.searchParams.delete("values");
+    url.searchParams.delete("add");
     const rest = url.searchParams.toString();
     // Ids are [a-z0-9-], so the list needs no encoding; keep the commas readable.
     const query = [rest, selected.length ? `policies=${selected.join(",")}` : ""].filter(Boolean).join("&");
     window.history.replaceState(null, "", `${url.pathname}${query ? `?${query}` : ""}${url.hash}`);
-  }, [selected]);
+  }, [selected, ready]);
 
   const inside = covered(rows, selected);
   const sum = total(rows, selected);
@@ -98,7 +121,14 @@ export function PackageBuilder({
               {philosophy.picks.map((p) => (
                 <li key={p.policy_id}>
                   <span className="whyname">
-                    {cleanLabel(p.label)} <span className={`fig ${p.score > 0 ? "adds" : "reduces"}`}>{money(p.score)}</span>
+                    {cleanLabel(p.label)}{" "}
+                    <span className={`fig ${p.score > 0 ? "adds" : "reduces"}`}>{money(p.score)}</span>
+                    {identities[p.policy_id] ? (
+                      <>
+                        {" "}
+                        <EstimateTag identity={identities[p.policy_id].published} short />
+                      </>
+                    ) : null}
                   </span>
                   <small>{p.why}</small>
                 </li>
@@ -130,10 +160,20 @@ export function PackageBuilder({
                       <small>
                         {r.source}, {r.source_date}
                         {by ? ` · included in ${label(by)}` : ""}
-                        {r.build_id in calculator ? <CalculatorNote id={r.build_id} published={r.score} calc={calculator[r.build_id]} /> : null}
+                        {r.build_id in calculator ? (
+                          <CalculatorNote
+                            id={r.build_id}
+                            published={r.score}
+                            calc={calculator[r.build_id]}
+                            model={identities[r.build_id]?.model ?? null}
+                          />
+                        ) : null}
                       </small>
                     </span>
-                    <span className={`fig ${r.score > 0 ? "adds" : "reduces"}`}>{money(r.score)}</span>
+                    <span className="buildfig">
+                      <span className={`fig ${r.score > 0 ? "adds" : "reduces"}`}>{money(r.score)}</span>
+                      {identities[r.build_id] ? <EstimateTag identity={identities[r.build_id].published} short /> : null}
+                    </span>
                   </label>
                 );
               })}
@@ -141,8 +181,10 @@ export function PackageBuilder({
         ))}
       </div>
       <aside className="buildtotal" aria-live="polite">
+        {notice ? <p className="note">{notice}</p> : null}
         <span className="eyebrow">Your package</span>
         <p className={`fig big ${sum > 0 ? "adds" : sum < 0 ? "reduces" : ""}`}>{money(sum)}</p>
+        <EstimateTag identity={packageIdentity} />
         <p className="note">
           {selected.length === 0
             ? "Tick policies to add their ten-year figures."
@@ -167,7 +209,37 @@ export function PackageBuilder({
   );
 }
 
-function CalculatorNote({ id, published, calc }: { id: string; published: number; calc: number }) {
+// localStorage can be missing or throw (private windows, blocked site data);
+// the package then lives only in the URL, as it did before.
+const STORE_KEY = "fpc-package";
+
+function readStored(): string | null {
+  try {
+    return window.localStorage.getItem(STORE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(value: string): void {
+  try {
+    window.localStorage.setItem(STORE_KEY, value);
+  } catch {
+    // Nothing to do: the URL still carries the package.
+  }
+}
+
+function CalculatorNote({
+  id,
+  published,
+  calc,
+  model,
+}: {
+  id: string;
+  published: number;
+  calc: number;
+  model: EstimateIdentity | null;
+}) {
   const { share, differs } = calculatorGap(published, calc);
   return (
     <>
@@ -175,6 +247,12 @@ function CalculatorNote({ id, published, calc }: { id: string; published: number
       <a href={`/explore/${id}`} className={differs ? "differs" : undefined}>
         calculator {money(calc)}
       </a>
+      {model ? (
+        <>
+          {" "}
+          <EstimateTag identity={model} short />
+        </>
+      ) : null}
       {differs ? (
         <span className="differs">
           {Number.isFinite(share) && Math.sign(calc) === Math.sign(published)

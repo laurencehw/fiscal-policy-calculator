@@ -140,6 +140,19 @@ def build_payload(
         for slug, block in sorted(oos["classes"].items())
     }
 
+    from fiscal_model.validation.policy_classes import classify_policy
+
+    out_of_sample_rows = [
+        {
+            "policy_id": entry["policy_id"],
+            "class": classify_policy(entry["policy_id"]),
+            "model": entry["model_10yr_billions"],
+            "published": entry["official_10yr_billions"],
+            "error": entry["abs_percent_error"],
+        }
+        for entry in sorted(oos_entries, key=lambda row: row["policy_id"])
+    ]
+
     rows_by_id: dict[str, tuple[str, Mapping[str, Any]]] = {}
     for tier_key, tier_name in (
         ("out_of_sample", "out_of_sample"),
@@ -178,6 +191,7 @@ def build_payload(
         "generated_by": GENERATOR,
         "out_of_sample": out_of_sample,
         "out_of_sample_classes": classes,
+        "out_of_sample_rows": out_of_sample_rows,
         "calibrated": {
             "fitted": _summary(calibrated_tiers["fitted"]),
             "fitted_held_in_place": _summary(calibrated_tiers["fitted_held_in_place"]),

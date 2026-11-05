@@ -1,5 +1,7 @@
-import { stripMarks, type HouseStripData } from "@/lib/houses";
+import { EstimateTag } from "@/components/EstimateTag";
 import { money } from "@/lib/format";
+import { estimateIdentity } from "@/lib/identity";
+import { stripMarks, type HouseStripData } from "@/lib/houses";
 
 function lead(subject: string, basis: string): string {
   const rest = basis ? basis.charAt(0).toUpperCase() + basis.slice(1) : "";
@@ -45,7 +47,10 @@ export function HouseStrip({ strip }: { strip: HouseStripData }) {
         {houses.map((mark) => (
           <li key={mark.key}>
             <span className={mark.fitted ? "swatch fitted" : "swatch"} />
-            {mark.label}
+            <EstimateTag
+              short
+              identity={estimateIdentity({ cbo_source: mark.label, budget_window: strip.window, credibility: null }, "published")}
+            />
             {mark.fitted ? " (fitted target)" : ""}: {money(mark.value)}
           </li>
         ))}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PackageBuilder } from "@/components/PackageBuilder";
-import { buildCatalog, preset, presets, valuesArchetypes } from "@/lib/data";
+import { buildCatalog, manifest, preset, valuesArchetypes } from "@/lib/data";
+import { estimateIdentity, type EstimateIdentity } from "@/lib/identity";
 
 export const metadata: Metadata = {
   title: "Build",
@@ -13,24 +14,41 @@ export default function Build() {
   const ordered = [...rows.filter((r) => !r.illustrative), ...rows.filter((r) => r.illustrative)];
   // The calculator's own ten-year conventional score, for rows that are also Explore presets.
   const calculator: Record<string, number> = {};
-  for (const p of presets()) {
-    const score = preset(p.id)?.conventional.ten_year_deficit_impact;
-    if (typeof score === "number") calculator[p.id] = score;
+  const identities: Record<string, { published: EstimateIdentity; model: EstimateIdentity | null }> = {};
+  const frame = manifest();
+  const site = {
+    budget_window: frame.budget_windows[0] ?? "",
+    baseline_vintage: frame.baseline_vintages[0] ?? "",
+  };
+  for (const row of ordered) {
+    const scored = preset(row.build_id)?.conventional ?? null;
+    if (scored && typeof scored.ten_year_deficit_impact === "number") calculator[row.build_id] = scored.ten_year_deficit_impact;
+    identities[row.build_id] = {
+      published: estimateIdentity(scored ? { ...scored, cbo_source: row.source } : { ...site, credibility: null, cbo_source: row.source }, "published"),
+      model: scored ? estimateIdentity(scored, "model") : null,
+    };
   }
   return (
-    <>
+    <div className="work">
       <header>
         <span className="eyebrow">Build</span>
         <h1>Build a package</h1>
         <p className="sentence">
-          Each policy carries a ten-year score, most of them published by CBO, JCT, Treasury or a research group, and
-          the source is named under each. The figure on each row is that published list price. Where this calculator
-          also scores the policy, I show its conventional estimate under the row and flag cases where the two are a
-          quarter or more apart; the link opens the calculator&apos;s full result. Ticking a policy that conflicts
-          with one already ticked swaps them. A positive figure adds to the deficit and a negative one reduces it.
+          Each row is a published ten-year list price, and where I also score the policy I show that conventional
+          estimate under the name.
+        </p>
+        <p className="note">
+          A tick that conflicts with one already ticked swaps them. A positive figure adds to the deficit and a
+          negative one reduces it.
         </p>
       </header>
-      <PackageBuilder rows={ordered} calculator={calculator} archetypes={valuesArchetypes()} />
-    </>
+      <PackageBuilder
+        rows={ordered}
+        calculator={calculator}
+        identities={identities}
+        packageIdentity={estimateIdentity(site, "package-sum")}
+        archetypes={valuesArchetypes()}
+      />
+    </div>
   );
 }

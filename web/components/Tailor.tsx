@@ -1,10 +1,12 @@
 "use client";
 // Tailor: describe a rate change, score it on the engine, share the link.
 import { useEffect, useRef, useState } from "react";
+import { EstimateTag } from "@/components/EstimateTag";
 import { ResultSections } from "@/components/ResultSections";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { YearChart } from "@/components/YearChart";
 import { direction, money } from "@/lib/format";
+import { estimateIdentity } from "@/lib/identity";
 import { frozenFrom, frozenQuery, frozenRefusal, type Frozen } from "@/lib/frozen";
 import { DEFAULT_INPUT, RATE_MAX, RATE_MIN, WHO_CHOICES, describe, fromQuery, toQuery, type TailorInput } from "@/lib/tailor";
 import type { ScoreResult, Views } from "@/lib/types";
@@ -238,7 +240,13 @@ export function Tailor() {
         <div aria-live="polite">
           {views.status === "loading" ? <p className="note">Loading who pays, economic effects and other models…</p> : null}
           {views.status === "error" ? <p className="note warn">{views.message}</p> : null}
-          {views.status === "done" ? <ResultSections views={views.views} /> : null}
+          {views.status === "done" ? (
+            <ResultSections
+              views={views.views}
+              conventional={estimateIdentity(state.result, "model")}
+              dynamic={estimateIdentity(state.result, "model-dynamic")}
+            />
+          ) : null}
         </div>
       ) : null}
     </>
@@ -260,6 +268,7 @@ function Result({ result, input }: { result: ScoreResult; input: TailorInput }) 
         <div className="stage">
           <span className="q">Ten-year deficit effect, conventional</span>
           <span className={`v ${headline > 0 ? "adds" : "reduces"}`}>{money(headline)}</span>
+          <EstimateTag identity={estimateIdentity(result, "model")} />
           <span className="q">
             {direction(headline)}
             {years > 1 ? `, about ${perYear(headline, years)} a year` : ""}
@@ -268,14 +277,15 @@ function Result({ result, input }: { result: ScoreResult; input: TailorInput }) 
         <div className="stage">
           <span className="q">With macroeconomic feedback and debt service</span>
           <span className="v">{dyn === null ? "Not available" : money(dyn)}</span>
+          <EstimateTag identity={estimateIdentity(result, "model-dynamic")} />
           <span className="q">{result.dynamic_model ?? result.error_message ?? ""}</span>
         </div>
       </div>
-      <Checked cred={result.credibility} />
+      <Checked cred={result.credibility} point={headline} window={result.budget_window} />
       <section className="chart">
         <div className="head">
           <h2>Year by year</h2>
-          <span className="tag">billions, conventional</span>
+          <EstimateTag identity={estimateIdentity(result, "model")} />
         </div>
         <YearChart
           rows={result.year_by_year.map((row) => ({ year: row.year, value: row.final_effect }))}

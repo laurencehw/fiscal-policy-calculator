@@ -25,10 +25,13 @@ export type Credibility = {
   outer_low: number | null;
   outer_high: number | null;
   no_band_reason: string;
+  own_row_tier: string | null;
   own_row_tier_label: string | null;
   own_row_abs_pct_error: number | null;
   own_row_official_billions: number | null;
   own_row_caption: string;
+  /** The model's figure on the published estimate's own window; absent in exports before Nov 2026. */
+  own_row_model_billions?: number | null;
   limitations: string[];
   caption: string;
 };

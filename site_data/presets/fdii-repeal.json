@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 29.93955696202534,
       "own_row_official_billions": -158.0,
       "own_row_caption": "Unfitted reconstruction, 29.9% from -$158B (U.S. Treasury) — no constant is fitted to this figure.",
+      "own_row_model_billions": -110.69549999999997,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -354,6 +355,7 @@
       "own_row_abs_pct_error": 29.93955696202534,
       "own_row_official_billions": -158.0,
       "own_row_caption": "Unfitted reconstruction, 29.9% from -$158B (U.S. Treasury) — no constant is fitted to this figure.",
+      "own_row_model_billions": -110.69549999999997,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

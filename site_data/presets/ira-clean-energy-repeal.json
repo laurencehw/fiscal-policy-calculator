@@ -129,6 +129,7 @@
       "own_row_abs_pct_error": 7.990599294947135,
       "own_row_official_billions": -851.0,
       "own_row_caption": "Unfitted reconstruction, 8.0% from -$851B (CBO) — no constant is fitted to this figure.",
+      "own_row_model_billions": -782.9999999999999,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -354,6 +355,7 @@
       "own_row_abs_pct_error": 7.990599294947135,
       "own_row_official_billions": -851.0,
       "own_row_caption": "Unfitted reconstruction, 8.0% from -$851B (CBO) — no constant is fitted to this figure.",
+      "own_row_model_billions": -782.9999999999999,
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
