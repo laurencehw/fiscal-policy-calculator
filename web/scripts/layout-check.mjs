@@ -97,6 +97,25 @@ async function checkPage(browser, route, viewport) {
       })),
     };
   });
+  if (viewport.name === "phone") {
+    // Every primary control is a 44px target on a phone (WCAG 2.5.5); text links in sentences are exempt.
+    const small = await page.evaluate(() =>
+      [...document.querySelectorAll('main button, main select, main input[type="search"], main input[type="text"], main input[type="number"], main summary, main .actions a')]
+        .filter((el) => {
+          const box = el.getBoundingClientRect();
+          return box.width > 0 && box.height > 0 && box.height < 43.5 && !el.classList.contains("skip");
+        })
+        .map((el) => `${el.tagName.toLowerCase()} "${(el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 30)}"`),
+    );
+    if (small.length) problems.push(`controls under 44px on a phone: ${small.slice(0, 4).join(", ")}`);
+  }
+  // A chart drawn by a library must not be a keyboard stop of its own: its wrapper carries the label.
+  const chartStops = await page.evaluate(() => document.querySelectorAll('main .plot svg[tabindex="0"]').length);
+  if (chartStops) problems.push(`${chartStops} charts are keyboard stops with nothing to say`);
+  if (route === "/explore") {
+    const headings = await page.evaluate(() => document.querySelectorAll(".explorelist .exploresection h2").length);
+    if (headings === 0) problems.push("Explore's category rows are not headings");
+  }
   if (layout.untaggedStages) problems.push(`${layout.untaggedStages} headline figures have no estimate tag`);
   if (route === "/explore/corporate-28pct") {
     const named = layout.publishedTags.filter((tag) => tag.producer.includes("Treasury"));

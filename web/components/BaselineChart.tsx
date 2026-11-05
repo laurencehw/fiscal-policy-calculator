@@ -7,12 +7,17 @@ import { money } from "@/lib/format";
 
 type Point = { year: number; law: number; plan: number };
 
+/** Whole billions with separators, for the table under the charts. */
+function billions(value: number): string {
+  return `${value < 0 ? "-" : ""}$${Math.round(Math.abs(value)).toLocaleString("en-US")}B`;
+}
+
 function Chart({ rows, dollars, label }: { rows: Point[]; dollars: boolean; label: string }) {
   const format = (value: number) => (dollars ? axisMoney(value) : `${value.toFixed(0)}%`);
   return (
     <div className="plot" role="img" aria-label={label}>
       <ResponsiveContainer width="100%" height={240}>
-        <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 4 }}>
+        <LineChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 4 }}>
           <CartesianGrid stroke="var(--grid)" vertical={false} />
           <XAxis dataKey="year" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} interval="preserveStartEnd" minTickGap={8} />
           <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={52} tickFormatter={format} domain={[0, "auto"]} />
@@ -85,6 +90,36 @@ export function BaselineChart({
       <Chart rows={deficit} dollars={!share} label="Deficit under current law and under this proposal" />
       <p className="units">{share ? "Debt held by the public, percent of GDP" : "Debt held by the public, billions"}</p>
       <Chart rows={debt} dollars={!share} label="Debt held by the public under current law and under this proposal" />
+      <details className="numbers">
+        <summary>The numbers in these charts</summary>
+        <div className="tablewrap">
+          <table className="sheet">
+            <caption className="sr-only">
+              Deficit and debt held by the public, current law and this proposal, {share ? "percent of GDP" : "billions of dollars"}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Year</th>
+                <th scope="col">Deficit, current law</th>
+                <th scope="col">Deficit, proposal</th>
+                <th scope="col">Debt, current law</th>
+                <th scope="col">Debt, proposal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deficit.map((row, i) => (
+                <tr key={row.year}>
+                  <th scope="row">FY{row.year}</th>
+                  <td>{share ? `${row.law.toFixed(1)}%` : billions(row.law)}</td>
+                  <td>{share ? `${row.plan.toFixed(1)}%` : billions(row.plan)}</td>
+                  <td>{share ? `${debt[i].law.toFixed(1)}%` : billions(debt[i].law)}</td>
+                  <td>{share ? `${debt[i].plan.toFixed(1)}%` : billions(debt[i].plan)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
     </section>
   );
 }

@@ -52,7 +52,7 @@ export function WhoPays({ dist }: { dist: Distribution }) {
       </div>
       <div className="plot" role="img" aria-label={`Average tax change per return by income group, ${g.year}`}>
         <ResponsiveContainer width="100%" height={240}>
-          <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+          <BarChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
             <CartesianGrid stroke="var(--grid)" vertical={false} />
             <XAxis dataKey="name" tick={{ fill: "var(--muted)", fontSize: 11 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} interval={0} />
             <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={64} tickFormatter={(v: number) => dollars(v)} />
