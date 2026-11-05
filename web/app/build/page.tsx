@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { PackageBuilder } from "@/components/PackageBuilder";
 import { buildCatalog, manifest, preset, valuesArchetypes } from "@/lib/data";
 import { estimateIdentity, type EstimateIdentity } from "@/lib/identity";
+import { siteUrl } from "@/lib/site";
+import { StaleLink } from "@/components/StaleLink";
 
 export const metadata: Metadata = {
   title: "Build",
@@ -41,6 +43,7 @@ export default function Build() {
           A tick that conflicts with one already ticked swaps them. A positive figure adds to the deficit and a
           negative one reduces it.
         </p>
+        <StaleLink scoresDate={frame.scores_date ?? ""} />
       </header>
       <PackageBuilder
         rows={ordered}
@@ -48,6 +51,8 @@ export default function Build() {
         identities={identities}
         packageIdentity={estimateIdentity(site, "package-sum")}
         archetypes={valuesArchetypes()}
+        scoresDate={frame.scores_date ?? ""}
+        site={siteUrl()}
       />
     </div>
   );

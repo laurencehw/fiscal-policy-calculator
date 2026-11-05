@@ -8,6 +8,13 @@ import { cleanLabel, money, shortLabel } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
 import { addToPackage, calculatorGap, covered, fromQuery, total, towardTarget, undoReplacement, type Replacement } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
+import { CiteBlock } from "@/components/CiteBlock";
+import { useFlash } from "@/components/ChartActions";
+import { pngText } from "@/lib/chartpng";
+import { identityLine } from "@/lib/identity";
+import { PACKAGE_EXCLUSION, packageCsv, packageSvg } from "@/lib/packageExport";
+import { copyText, renderPng, saveBlob } from "@/lib/pngdraw";
+import { citation, longDate, withVersion } from "@/lib/share";
 
 export function PackageBuilder({
   rows,
@@ -16,6 +23,8 @@ export function PackageBuilder({
   packageIdentity,
   archetypes = [],
   secondTotal = null,
+  scoresDate = "",
+  site = "",
 }: {
   rows: BuildRow[];
   /** The calculator's ten-year conventional score by build id, where it scores the policy. */
@@ -25,6 +34,10 @@ export function PackageBuilder({
   archetypes?: ValuesArchetype[];
   /** C6's jointly scored total; the summary shows it only when present. */
   secondTotal?: SecondTotal | null;
+  /** manifest.json's scores_date, stamped on every link this page hands out as v=. */
+  scoresDate?: string;
+  /** The site origin, for the citation and the exports. */
+  site?: string;
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [philosophy, setPhilosophy] = useState<ValuesArchetype | null>(null);
@@ -90,9 +103,10 @@ export function PackageBuilder({
     url.searchParams.delete("add");
     const rest = url.searchParams.toString();
     // Ids are [a-z0-9-], so the list needs no encoding; keep the commas readable.
-    const query = [rest, selected.length ? `policies=${selected.join(",")}` : ""].filter(Boolean).join("&");
+    let query = [rest, selected.length ? `policies=${selected.join(",")}` : ""].filter(Boolean).join("&");
+    if (scoresDate) query = withVersion(`?${query}`, scoresDate).slice(1);
     window.history.replaceState(null, "", `${url.pathname}${query ? `?${query}` : ""}${url.hash}`);
-  }, [selected, ready]);
+  }, [selected, ready, scoresDate]);
 
   const inside = covered(rows, selected);
   const sum = total(rows, selected);
@@ -252,7 +266,90 @@ export function PackageBuilder({
         secondTotal={secondTotal}
       />
     </div>
+    {selected.length ? (
+      <PackageExports
+        rows={rows}
+        selected={selected}
+        calculator={calculator}
+        packageIdentity={packageIdentity}
+        scoresDate={scoresDate}
+        site={site}
+      />
+    ) : null}
     </>
+  );
+}
+
+/** The package as a CSV, a PNG and a citation, each opening with what the total leaves out. */
+function PackageExports({
+  rows,
+  selected,
+  calculator,
+  packageIdentity,
+  scoresDate,
+  site,
+}: {
+  rows: BuildRow[];
+  selected: string[];
+  calculator: Record<string, number>;
+  packageIdentity: EstimateIdentity;
+  scoresDate: string;
+  site: string;
+}) {
+  const [pngNote, flashPng] = useFlash(4000);
+  const [linkNote, flashLink] = useFlash();
+  const path = `/build?policies=${selected.join(",")}`;
+  const link = withVersion(`${site}${path}`, scoresDate);
+  const title = `A package of ${selected.length} ${selected.length === 1 ? "policy" : "policies"}`;
+  const cite = citation({ title, identity: packageIdentity, path, scoresDate, site });
+  const stem = `package-${selected.length}`;
+
+  function downloadCsv() {
+    const text = packageCsv(rows, selected, calculator, { link, dated: scoresDate ? longDate(scoresDate) : "" });
+    saveBlob(new Blob([text], { type: "text/csv;charset=utf-8" }), `${stem}.csv`);
+  }
+
+  async function downloadPng() {
+    try {
+      const style = getComputedStyle(document.documentElement);
+      const read = (name: string, fallback: string) => style.getPropertyValue(name).trim() || fallback;
+      const width = 640;
+      const { svg, height } = packageSvg(rows, selected, width, {
+        ink: read("--ink", "#1b1b1a"),
+        muted: read("--muted", "#5f5c55"),
+        rule: read("--rule", "#dcd9d0"),
+        adds: read("--s2", "#b14c28"),
+        reduces: read("--s1", "#1f5e7a"),
+        paper: read("--paper", "#fbfaf6"),
+      });
+      const host = site.replace(/^https?:\/\//, "");
+      const blob = await renderPng(svg, width, height, pngText(title, identityLine(packageIdentity), `Fiscal Policy Calculator, ${host}/build`, "Interactions between these policies are not measured."));
+      saveBlob(blob, `${stem}.png`);
+    } catch {
+      flashPng("Could not render the chart");
+    }
+  }
+
+  return (
+    <section className="packageexports" id="exports" aria-labelledby="exports-head">
+      <h2 id="exports-head">Take the package with you</h2>
+      <p className="note">{PACKAGE_EXCLUSION} The CSV and the picture both open with that sentence.</p>
+      <p className="foot">
+        <button type="button" onClick={downloadCsv}>
+          Download CSV
+        </button>
+        <button type="button" onClick={() => void downloadPng()}>
+          {pngNote || "Download PNG"}
+        </button>
+        <button type="button" onClick={() => void copyText(link).then(() => flashLink("Copied"))}>
+          {linkNote || "Copy link"}
+        </button>
+        <span className="sr-only" aria-live="polite">
+          {pngNote || linkNote}
+        </span>
+      </p>
+      <CiteBlock text={cite.text} />
+    </section>
   );
 }
 

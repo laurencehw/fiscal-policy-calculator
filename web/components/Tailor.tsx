@@ -7,6 +7,7 @@ import { Checked, YearTable } from "@/components/ScoreParts";
 import { YearChart } from "@/components/YearChart";
 import { direction, money } from "@/lib/format";
 import { estimateIdentity } from "@/lib/identity";
+import { withVersion } from "@/lib/share";
 import { frozenFrom, frozenQuery, frozenRefusal, type Frozen } from "@/lib/frozen";
 import { DEFAULT_INPUT, RATE_MAX, RATE_MIN, WHO_CHOICES, describe, fromQuery, toQuery, type TailorInput } from "@/lib/tailor";
 import type { ScoreResult, Views } from "@/lib/types";
@@ -18,7 +19,7 @@ type ViewsState = { status: "idle" | "loading" } | { status: "done"; views: View
 
 type State = { status: "idle" } | { status: "scoring" } | { status: "done"; result: ScoreResult; input: TailorInput } | { status: "error"; message: string };
 
-export function Tailor() {
+export function Tailor({ scoresDate = "" }: { scoresDate?: string }) {
   const [input, setInput] = useState<TailorInput>(DEFAULT_INPUT);
   const [state, setState] = useState<State>({ status: "idle" });
   const [views, setViews] = useState<ViewsState>({ status: "idle" });
@@ -234,7 +235,7 @@ export function Tailor() {
           </div>
         ) : null}
         {state.status === "error" ? <p className="note warn">{state.message}</p> : null}
-        {state.status === "done" ? <Result result={state.result} input={state.input} /> : null}
+        {state.status === "done" ? <Result result={state.result} input={state.input} scoresDate={scoresDate} /> : null}
       </div>
       {state.status === "done" ? (
         <div aria-live="polite">
@@ -253,7 +254,7 @@ export function Tailor() {
   );
 }
 
-function Result({ result, input }: { result: ScoreResult; input: TailorInput }) {
+function Result({ result, input, scoresDate }: { result: ScoreResult; input: TailorInput; scoresDate: string }) {
   const headline = result.ten_year_deficit_impact;
   const dyn = result.dynamic_adjusted_impact;
   const name = describe(input);
@@ -293,7 +294,7 @@ function Result({ result, input }: { result: ScoreResult; input: TailorInput }) 
         />
         <YearTable c={result} d={result} />
       </section>
-      <ShareLink query={toQuery(input)} />
+      <ShareLink query={toQuery(input)} scoresDate={scoresDate} />
     </section>
   );
 }
@@ -303,15 +304,16 @@ function perYear(total: number, years: number): string {
   return money(Math.abs(total) / years).replace("+", "");
 }
 
-function ShareLink({ query }: { query: string }) {
+function ShareLink({ query, scoresDate }: { query: string; scoresDate: string }) {
   const [copied, setCopied] = useState(false);
+  const href = withVersion(`/tailor?${query}`, scoresDate);
   return (
     <div className="tailorform buttons">
       <button
         type="button"
         className="quiet"
         onClick={() => {
-          const link = `${window.location.origin}/tailor?${query}`;
+          const link = `${window.location.origin}${href}`;
           navigator.clipboard?.writeText(link).then(
             () => setCopied(true),
             () => setCopied(false),
@@ -320,7 +322,7 @@ function ShareLink({ query }: { query: string }) {
       >
         {copied ? "Link copied" : "Copy a link to this result"}
       </button>
-      <a className="note" href={`/tailor?${query}`}>
+      <a className="note" href={href}>
         Permanent link
       </a>
     </div>

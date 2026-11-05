@@ -109,6 +109,9 @@ export type Manifest = {
   values_archetypes: number;
   social_security_options: number;
   sign_convention: string;
+  /** The day the scored figures last changed; share links carry it as v=. */
+  scores_date?: string;
+  scores_fingerprint?: string;
 };
 
 export type TrackerRow = {

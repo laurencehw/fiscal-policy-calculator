@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Tailor } from "@/components/Tailor";
+import { StaleLink } from "@/components/StaleLink";
+import { manifest } from "@/lib/data";
 
 export const metadata: Metadata = {
   title: "Tailor",
@@ -8,6 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default function TailorPage() {
+  const scoresDate = manifest().scores_date ?? "";
   return (
     <div className="work">
       <header>
@@ -20,9 +23,10 @@ export default function TailorPage() {
           The engine can also score capital gains rates, spending changes and phase-ins, and I plan to add those to this
           page.
         </p>
+        <StaleLink scoresDate={scoresDate} />
       </header>
       <Suspense>
-        <Tailor />
+        <Tailor scoresDate={scoresDate} />
       </Suspense>
     </div>
   );

@@ -13,7 +13,9 @@ const OUT = process.argv[3] ?? "layout-shots";
 
 export const PAGES = [
   "/",
+  "/?vs=medicare-surcharge-2pp",
   "/explore",
+  "/explore?show=reduces&sort=size",
   "/explore/tcja-full-extension",
   "/explore/corporate-28pct",
   "/explore/corporate-15pct",
@@ -23,6 +25,7 @@ export const PAGES = [
   "/build",
   "/build?policies=corporate-28pct,estate-repeal,salt-cap-repeal",
   "/build?values=deficit-hawk",
+  "/explore/top-rate-39-6?v=2020-01-01",
   "/tailor",
   "/social-security",
   "/states",
@@ -34,6 +37,7 @@ export const PAGES = [
   "/about",
   "/contact",
   "/privacy",
+  "/changes",
 ];
 
 const VIEWPORTS = [
@@ -134,6 +138,17 @@ async function checkPage(browser, route, viewport) {
     const diff = await page.evaluate(() => document.querySelector("#difference")?.textContent ?? "");
     if (!diff) problems.push("compare page has no difference line or reason");
   }
+  if (viewport.name === "desktop" && (route === "/" || route.startsWith("/?"))) {
+    const fold = await page.evaluate(() => {
+      const seen = (sel) => {
+        const box = document.querySelector(sel)?.getBoundingClientRect();
+        return !!box && box.top >= 0 && box.top < window.innerHeight;
+      };
+      return { chart: seen(".comparecard .smallmultiple"), figure: seen(".comparecard .v") };
+    });
+    if (!fold.chart) problems.push("home: no chart above the fold");
+    if (!fold.figure) problems.push("home: no scored figure above the fold");
+  }
   if (route.startsWith("/build?")) {
     const summary = await page.evaluate(() => {
       const block = document.querySelector(".summarytotal");
@@ -152,7 +167,23 @@ async function checkPage(browser, route, viewport) {
       return !!box && box.top >= 0 && box.bottom <= window.innerHeight;
     });
     if (!inView) problems.push("package total scrolls out of view");
+    const exports = await page.evaluate(() => ({
+      buttons: [...document.querySelectorAll(".packageexports button")].map((b) => b.textContent ?? ""),
+      cite: document.querySelector(".packageexports .citetext")?.textContent ?? "",
+    }));
+    for (const label of ["Download CSV", "Download PNG", "Copy link"]) {
+      if (!exports.buttons.includes(label)) problems.push(`Build exports have no ${label}`);
+    }
+    if (!/sum of standalone published scores/.test(exports.cite)) problems.push("Build citation does not name the package sum");
     await page.evaluate(() => window.scrollTo(0, 0));
+  }
+  if (route.includes("?v=2020-01-01")) {
+    const notice = await page.evaluate(() => document.querySelector(".stalelink")?.textContent ?? "");
+    if (!/recomputed/.test(notice)) problems.push("an old link does not say the figures were recomputed");
+  }
+  if (route.startsWith("/explore/") || route.startsWith("/compare?ids=")) {
+    const cite = await page.evaluate(() => document.querySelector(".cite .citetext")?.textContent ?? "");
+    if (!/v=\d{4}-\d{2}-\d{2}/.test(cite)) problems.push("citation has no v= link");
   }
   if (viewport.name === "desktop" && route.startsWith("/explore/")) {
     const above = await page.evaluate(() => {
@@ -193,7 +224,7 @@ async function checkPage(browser, route, viewport) {
   }
   problems.push(...errors);
 
-  const file = `${route === "/" ? "home" : route.slice(1).replace(/[/?=,]/g, "-")}-${viewport.name}.png`;
+  const file = `${route === "/" ? "home" : route.slice(1).replace(/[/?=,&]/g, "-")}-${viewport.name}.png`;
   await page.screenshot({ path: path.join(OUT, file), fullPage: true });
   await page.close();
   return problems;

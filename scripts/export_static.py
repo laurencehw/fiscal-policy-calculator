@@ -33,6 +33,11 @@ once a night, and written as JSON under ``site_data/``:
 - ``baseline.json``: CBO's February 2026 deficit, debt held by the public and
   nominal GDP by fiscal year, so a proposal page can draw the policy on the
   baseline. Deficit keeps CBO's sign.
+- ``changes.json``: what moved since the previous export, kept for a year:
+  preset scores that moved by more than 0.5% (old and new figures), new CBO
+  estimates in the tracker, and a baseline vintage change. Each item says
+  whether it is a score change or a data refresh. It is built only from
+  exported files, so no visitor's scenario can ever appear in it.
 - ``social-security.json``: the Social Security page's inputs (Trustees
   baseline rates, OCACT options and their annual paths, the CRFB comparison)
   plus the ledger's own answers for current law and each option alone, which
@@ -41,7 +46,10 @@ once a night, and written as JSON under ``site_data/``:
 The script calls the API's own endpoint functions, so an exported preset is the
 API's answer by construction; ``tests/test_export_static.py`` checks it anyway.
 The output carries no timestamps, so a night with no model change writes
-identical files and the nightly job has nothing to commit.
+identical files and the nightly job has nothing to commit. The one date in it,
+``manifest.json``'s ``scores_date``, is the day the scored figures last changed:
+it moves only when ``scores_fingerprint`` does, and share links carry it as
+``v=`` so a page can say when the numbers behind an old link were recomputed.
 
 Usage:
     python scripts/export_static.py                 # writes site_data/
@@ -52,6 +60,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime as dt
+import hashlib
 import json
 import shutil
 import sys
@@ -466,10 +476,175 @@ def classroom_payloads() -> dict[str, Any]:
     }
 
 
-def export(out: Path) -> dict[str, Any]:
+def scores_fingerprint(figures: dict[str, Any]) -> str:
+    """A short hash of the scored figures, rounded to $0.1B so float noise is not a change."""
+
+    def rounded(value: Any) -> Any:
+        if isinstance(value, float):
+            return round(value, 1) + 0.0  # -0.0 and 0.0 hash alike
+        if isinstance(value, dict):
+            return {k: rounded(v) for k, v in sorted(value.items())}
+        if isinstance(value, list):
+            return [rounded(v) for v in value]
+        return value
+
+    text = json.dumps(rounded(figures), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def scores_date(fingerprint: str, previous: dict[str, Any] | None, today: str) -> str:
+    """Keep the previous date while the figures are unchanged; otherwise today."""
+    if previous and previous.get("scores_fingerprint") == fingerprint and previous.get("scores_date"):
+        return str(previous["scores_date"])
+    return today
+
+
+#: A preset figure must move by more than this share (or $0.1B near zero) to be listed.
+CHANGE_THRESHOLD = 0.005
+CHANGE_FLOOR_BILLIONS = 0.1
+#: How long changes.json keeps an item, and the most it keeps.
+CHANGES_KEEP_DAYS = 400
+CHANGES_KEEP_MAX = 500
+
+
+def _read_json(path: Path) -> Any:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def export_snapshot(out: Path) -> dict[str, Any] | None:
+    """The figures an export published, read back from its files; None if there is no export."""
+    index = _read_json(out / "presets" / "index.json")
+    if not isinstance(index, dict):
+        return None
+    presets: dict[str, Any] = {}
+    vintages: set[str] = set()
+    for info in index.get("presets", []):
+        data = _read_json(out / "presets" / f"{info['id']}.json")
+        if not isinstance(data, dict):
+            continue
+        conventional = data.get("conventional") or {}
+        dynamic = data.get("dynamic") or {}
+        presets[info["id"]] = {
+            "name": info.get("name") or conventional.get("policy_name") or info["id"],
+            "conventional": conventional.get("ten_year_deficit_impact"),
+            "dynamic": dynamic.get("dynamic_adjusted_impact"),
+        }
+        if conventional.get("baseline_vintage"):
+            vintages.add(conventional["baseline_vintage"])
+    cbo: dict[str, Any] = {}
+    tracker = _read_json(out / "tracker" / "index.json")
+    if isinstance(tracker, dict):
+        for row in tracker.get("rows", []):
+            if row.get("cbo_ten_year_billions") is not None:
+                cbo[row["id"]] = {
+                    "title": row.get("title", ""),
+                    "ten_year": row["cbo_ten_year_billions"],
+                    "url": row.get("url") or "",
+                }
+    return {"presets": presets, "cbo": cbo, "vintages": sorted(vintages)}
+
+
+def _moved(old: Any, new: Any) -> bool:
+    if old is None or new is None:
+        return (old is None) != (new is None)
+    diff = abs(float(new) - float(old))
+    return diff > max(CHANGE_FLOOR_BILLIONS, CHANGE_THRESHOLD * abs(float(old)))
+
+
+def _rounded(value: Any) -> Any:
+    return None if value is None else round(float(value), 1)
+
+
+def changes_between(
+    before: dict[str, Any] | None, after: dict[str, Any], today: str
+) -> list[dict[str, Any]]:
+    """What moved from one export to the next. Nothing when there is no earlier export."""
+    if not before:
+        return []
+    items: list[dict[str, Any]] = []
+    if before["vintages"] != after["vintages"]:
+        items.append(
+            {
+                "date": today,
+                "category": "data",
+                "kind": "baseline",
+                "id": "baseline",
+                "title": "Baseline vintage",
+                "old": ", ".join(before["vintages"]),
+                "new": ", ".join(after["vintages"]),
+                "href": "/methods",
+            }
+        )
+    for preset_id, now in sorted(after["presets"].items()):
+        then = before["presets"].get(preset_id)
+        if then is None:
+            continue
+        if _moved(then["conventional"], now["conventional"]) or _moved(then["dynamic"], now["dynamic"]):
+            items.append(
+                {
+                    "date": today,
+                    "category": "score",
+                    "kind": "preset",
+                    "id": preset_id,
+                    "title": now["name"],
+                    "old": _rounded(then["conventional"]),
+                    "new": _rounded(now["conventional"]),
+                    "old_dynamic": _rounded(then["dynamic"]),
+                    "new_dynamic": _rounded(now["dynamic"]),
+                    "href": f"/explore/{preset_id}",
+                }
+            )
+    for bill_id, estimate in sorted(after["cbo"].items()):
+        if bill_id in before["cbo"]:
+            continue
+        items.append(
+            {
+                "date": today,
+                "category": "data",
+                "kind": "cbo_estimate",
+                "id": bill_id,
+                "title": estimate["title"],
+                "old": None,
+                "new": _rounded(estimate["ten_year"]),
+                "href": estimate.get("url") or "/tracker",
+            }
+        )
+    return items
+
+
+def merged_changes(
+    previous: list[dict[str, Any]], new: list[dict[str, Any]], today: str
+) -> list[dict[str, Any]]:
+    """New items first, then the kept ones, newest first, trimmed by age and count."""
+    cutoff = (dt.date.fromisoformat(today) - dt.timedelta(days=CHANGES_KEEP_DAYS)).isoformat()
+    kept = [item for item in previous if str(item.get("date", "")) >= cutoff]
+    items = sorted(new + kept, key=lambda item: str(item.get("date", "")), reverse=True)
+    return items[:CHANGES_KEEP_MAX]
+
+
+def _previous_manifest(out: Path) -> dict[str, Any] | None:
+    for path in (out / "manifest.json", DEFAULT_OUT / "manifest.json"):
+        if path.exists():
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                return None
+    return None
+
+
+def export(out: Path, *, today: str | None = None) -> dict[str, Any]:
     """Write the whole export to ``out`` (replacing it) and return the manifest."""
     import api
 
+    previous = _previous_manifest(out)
+    before = export_snapshot(out)
+    previous_changes = _read_json(out / "changes.json")
+    if not isinstance(previous_changes, dict):
+        previous_changes = {"items": []}
+    day = today or dt.datetime.now(dt.timezone.utc).date().isoformat()
     if out.exists():
         shutil.rmtree(out)
 
@@ -480,11 +655,16 @@ def export(out: Path) -> dict[str, Any]:
     comparison_models: dict[bool, Any] = {}
     windows: set[str] = set()
     headlines: dict[str, float] = {}
+    figures: dict[str, Any] = {"presets": {}, "build": {}}
     for preset in index["presets"]:
         conventional = score_preset_payload(preset["id"], dynamic=False)
         dynamic = score_preset_payload(preset["id"], dynamic=True)
         if preset["id"] in STRIP_POLICY_IDS:
             headlines[preset["id"]] = float(conventional["ten_year_deficit_impact"])
+        figures["presets"][preset["id"]] = [
+            conventional.get("ten_year_deficit_impact"),
+            dynamic.get("dynamic_adjusted_impact"),
+        ]
         vintages.add(conventional["baseline_vintage"])
         windows.add(conventional["budget_window"])
         _write(
@@ -495,6 +675,7 @@ def export(out: Path) -> dict[str, Any]:
 
     catalog = build_catalog_payload()
     _write(out / "build-catalog.json", catalog)
+    figures["build"] = {row["build_id"]: row["score"] for row in catalog}
     scorecard = scorecard_payload()
     _write(out / "validation" / "scorecard.json", scorecard)
     _write(out / "validation" / "evidence.json", evidence_payload())
@@ -541,7 +722,19 @@ def export(out: Path) -> dict[str, Any]:
             "the deficit, negative reduces it."
         ),
     }
+    fingerprint = scores_fingerprint({**figures, "vintages": sorted(vintages)})
+    manifest["scores_fingerprint"] = fingerprint
+    manifest["scores_date"] = scores_date(fingerprint, previous, day)
     _write(out / "manifest.json", manifest)
+    after = export_snapshot(out)
+    new_items = changes_between(before, after, day) if after else []
+    _write(
+        out / "changes.json",
+        {
+            "threshold": CHANGE_THRESHOLD,
+            "items": merged_changes(list(previous_changes.get("items", [])), new_items, day),
+        },
+    )
     return manifest
 
 
