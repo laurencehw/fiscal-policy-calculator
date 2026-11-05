@@ -3,7 +3,7 @@
     "policy_id": "biden_corporate_28",
     "model_billions": -1310.9199937081369,
     "subject": "a 7.0pp corporate rate increase",
-    "window": "FY2025\u20132034",
+    "window": "FY2025–2034",
     "basis": "each house's own published ten-year score divided by its own rate step, times this policy's step",
     "caveat": "Per-point dollars are not comparable across rate levels or scopes, which is why this is a range and not a consensus: Treasury's row moves the GILTI effective rate with the statutory rate, a rate cut is not a rate increase run backwards (Tax Foundation's Options 2.0 is the one edition pricing both directions in one model, and a point of cut costs about 29% more than a point of increase yields), and a run that also extends bonus depreciation prices something none of the four does.",
     "estimates": [
@@ -60,7 +60,7 @@
       "high_billions": 673.1,
       "source_name": "Tax Foundation (anchor); Penn Wharton Budget Model",
       "source_document": "Garrett Watson and Erica York, 'A Lower Corporate Tax Rate Can Be Part of Broader Tax Reform', Tax Foundation (17 July 2024, updated 23 October 2024)",
-      "label": "Tax Foundation\u2013PWBM range"
+      "label": "Tax Foundation–PWBM range"
     }
   },
   "pillar-two-adoption": {
