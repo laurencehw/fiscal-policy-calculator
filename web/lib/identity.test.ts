@@ -45,9 +45,27 @@ test("a package sum does not claim one baseline or one tier", () => {
   assert.doesNotMatch(identityLine(identity), /\bCBO\b/);
 });
 
-test("the dynamic tag names the feedback and keeps the fitted tier", () => {
+test("the dynamic tag names the feedback and does not inherit the conventional tier", () => {
   const identity = estimateIdentity(corp.dynamic, "model-dynamic");
-  assert.equal(identity.tier, "fitted");
-  assert.match(identityLine(identity), /with macroeconomic feedback/);
-  assert.match(identityLine(identity), /calibrated/i);
+  assert.equal(identity.tier, "none");
+  const line = identityLine(identity);
+  assert.match(line, /with macroeconomic feedback/);
+  assert.doesNotMatch(line, /calibrated/i);
+  assert.match(line, /not benchmarked/);
+});
+
+test("the published tag names the producer and carries no tier label", () => {
+  const index = JSON.parse(readFileSync(new URL("../../site_data/presets/index.json", import.meta.url), "utf8")) as {
+    presets: { id: string; cbo_source?: string }[];
+  };
+  const source = index.presets.find((row) => row.id === "corporate-28pct")?.cbo_source ?? "";
+  assert.match(source, /Treasury/, "the exported corporate 28% source should name Treasury");
+  const line = identityLine(estimateIdentity({ ...corp.conventional, cbo_source: source }, "published"));
+  assert.doesNotMatch(line, /calibrated|out-of-sample|reconstruction/i);
+  assert.doesNotMatch(line, /\bCBO\b/);
+});
+
+test("a column header with no named producer does not repeat the word published", () => {
+  const line = identityLine(estimateIdentity({ cbo_source: "Published", credibility: null }, "published"));
+  assert.equal(line, "Published");
 });
