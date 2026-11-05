@@ -1,13 +1,26 @@
 // Pieces of a score page shared by Explore (static) and Tailor (live).
+import { EstimateTag } from "@/components/EstimateTag";
 import { money } from "@/lib/format";
+import type { EstimateIdentity } from "@/lib/identity";
 import { checkedSentence, yearRows } from "@/lib/scoreparts";
 import type { Credibility, ScoreResult } from "@/lib/types";
 
-export function Checked({ cred, point, window }: { cred: Credibility | null; point: number; window: string }) {
+export function Checked({
+  cred,
+  point,
+  window,
+  published,
+}: {
+  cred: Credibility | null;
+  point: number;
+  window: string;
+  published?: EstimateIdentity | null;
+}) {
   if (!cred) return null;
   return (
     <section className="checked" aria-label="Checked against">
       <span className="tag">Checked against</span>
+      {published ? <EstimateTag identity={published} /> : null}
       <p>
         {checkedSentence(cred, point, window)}
         {cred.own_row_official_billions === null || !cred.own_row_caption ? "" : ` ${cred.own_row_caption}`}

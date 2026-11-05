@@ -3,6 +3,7 @@ import { ExploreList } from "@/components/ExploreList";
 import { manifest, preset, presetsByArea } from "@/lib/data";
 import type { ExploreRow } from "@/lib/explore";
 import { shortLabel } from "@/lib/format";
+import { estimateIdentity } from "@/lib/identity";
 
 export const metadata: Metadata = {
   title: "Explore",
@@ -11,6 +12,7 @@ export const metadata: Metadata = {
 
 export default function Explore() {
   const m = manifest();
+  const frame = { budget_window: m.budget_windows[0] ?? "", baseline_vintage: m.baseline_vintages[0] ?? "", credibility: null };
   const rows: ExploreRow[] = presetsByArea().flatMap((group) =>
     group.presets.map((info) => ({
       id: info.id,
@@ -31,7 +33,11 @@ export default function Explore() {
           positive figure adds to the deficit; a negative one reduces it. Bars share one scale.
         </p>
       </header>
-      <ExploreList rows={rows} />
+      <ExploreList
+        rows={rows}
+        calculator={estimateIdentity(frame, "model")}
+        published={estimateIdentity({ cbo_source: "Published", credibility: null }, "published")}
+      />
     </>
   );
 }
