@@ -111,14 +111,32 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
   }
   const { tier, tierLabel, limitation } = resolveTier(result.credibility);
   if (kind === "published") {
+    // The tier describes this calculator's figure against the published one, not
+    // the published figure itself: "Treasury · published · Calibrated reference"
+    // would read as Treasury's number being calibrated. The tier stays on the
+    // record for code; the tag names only the producer.
     return {
       producer: result.cbo_source?.trim() || "Published",
       kind,
       window: "",
       baseline: "",
       tier,
-      tierLabel,
+      tierLabel: "",
       limitation: result.credibility ? limitation : "The producer is named on each proposal.",
+    };
+  }
+  if (kind === "model-dynamic") {
+    // The scorecard's tiers grade conventional scores. A fitted conventional row
+    // does not make the dynamic figure calibrated, and the dynamic tier (B6) is
+    // never pooled with the conventional one.
+    return {
+      producer: "This calculator",
+      kind,
+      window: result.budget_window?.trim() ?? "",
+      baseline: baselinePhrase(result.baseline_vintage),
+      tier: "none",
+      tierLabel: "not benchmarked",
+      limitation: "The macroeconomic feedback is not scored against a published dynamic estimate here.",
     };
   }
   return {
@@ -134,7 +152,10 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
 
 /** The long form a reader sees, with empty parts left out. */
 export function identityLine(identity: EstimateIdentity): string {
-  return [identity.producer, KIND_WORD[identity.kind], identity.window, identity.baseline, identity.tierLabel]
+  const word = KIND_WORD[identity.kind];
+  // "Published · published" says nothing twice; drop the kind word when the producer already is it.
+  const kindPart = word.toLowerCase() === identity.producer.trim().toLowerCase() ? "" : word;
+  return [identity.producer, kindPart, identity.window, identity.baseline, identity.tierLabel]
     .filter((part) => part.length > 0)
     .join(" · ");
 }
