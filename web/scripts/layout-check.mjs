@@ -21,6 +21,8 @@ export const PAGES = [
   "/compare?ids=corporate-28pct,corporate-15pct",
   "/compare?ids=top-rate-39-6,top-rate-45,tariff-universal-10pct",
   "/build",
+  "/build?policies=corporate-28pct,estate-repeal,salt-cap-repeal",
+  "/build?values=deficit-hawk",
   "/tailor",
   "/social-security",
   "/states",
@@ -112,6 +114,26 @@ async function checkPage(browser, route, viewport) {
     if (viewport.name === "desktop" && columns !== cards.length) problems.push("compare multiples are not side by side");
     const diff = await page.evaluate(() => document.querySelector("#difference")?.textContent ?? "");
     if (!diff) problems.push("compare page has no difference line or reason");
+  }
+  if (route.startsWith("/build?")) {
+    const summary = await page.evaluate(() => {
+      const block = document.querySelector(".summarytotal");
+      return {
+        together: !!block?.querySelector(".big") && !!block?.querySelector(".exclusion"),
+        exclusion: block?.querySelector(".exclusion")?.textContent ?? "",
+      };
+    });
+    if (!summary.together) problems.push("the exclusion sentence is not in the same block as the package total");
+    if (!/Interactions between these policies are not measured/.test(summary.exclusion)) problems.push("exclusion sentence missing");
+    // Scrolled halfway down the list, the total and the gap must still be on screen.
+    const inView = await page.evaluate(async () => {
+      window.scrollTo(0, document.documentElement.scrollHeight / 2);
+      await new Promise((r) => setTimeout(r, 150));
+      const box = document.querySelector(".summarytotal .big")?.getBoundingClientRect();
+      return !!box && box.top >= 0 && box.bottom <= window.innerHeight;
+    });
+    if (!inView) problems.push("package total scrolls out of view");
+    await page.evaluate(() => window.scrollTo(0, 0));
   }
   if (viewport.name === "desktop" && route.startsWith("/explore/")) {
     const above = await page.evaluate(() => {
