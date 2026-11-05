@@ -8,6 +8,7 @@ import { ResultSections } from "@/components/ResultSections";
 import { EstimateTag } from "@/components/EstimateTag";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
+import { adjustable, tailorHref } from "@/lib/adjust";
 import { estimateIdentity } from "@/lib/identity";
 import { siteUrl } from "@/lib/site";
 
@@ -67,6 +68,13 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
+      <nav className="actions" aria-label="Proposal">
+        <a href={`/build?add=${id}`}>Add to package</a>
+        {/* Compare joins this row in U4, with /compare itself; a link to a missing page would 404. */}
+        {adjustable(id) ? <a href={tailorHref(id) ?? "/tailor"}>Adjust in Tailor</a> : null}
+        <a href="#exports">Share</a>
+      </nav>
+
       <Checked cred={c.credibility} point={headline} window={c.budget_window} published={published} />
 
       <BaselineChart
@@ -86,7 +94,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           label={`Annual deficit effect of ${name}, ${c.budget_window}`}
         />
         <YearTable c={c} d={d} />
-        <p className="foot">
+        <p className="foot" id="exports">
           <a href={`/explore/${id}/csv`} download>
             Download CSV
           </a>

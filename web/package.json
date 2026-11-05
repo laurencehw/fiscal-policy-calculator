@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/register-alias.mjs --test lib/format.test.ts lib/data.test.ts lib/package.test.ts lib/tailor.test.ts lib/socialSecurity.test.ts lib/olg.test.ts lib/classroom.test.ts lib/frozen.test.ts lib/ask.test.ts lib/home.test.ts lib/contrast.test.ts lib/nav.test.ts lib/explore.test.ts lib/tracker.test.ts lib/chartaxis.test.ts lib/chartpng.test.ts lib/baseline.test.ts lib/scoreparts.test.ts lib/identity.test.ts",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./scripts/register-alias.mjs --test lib/format.test.ts lib/data.test.ts lib/package.test.ts lib/tailor.test.ts lib/socialSecurity.test.ts lib/olg.test.ts lib/classroom.test.ts lib/frozen.test.ts lib/ask.test.ts lib/home.test.ts lib/contrast.test.ts lib/nav.test.ts lib/explore.test.ts lib/tracker.test.ts lib/chartaxis.test.ts lib/chartpng.test.ts lib/baseline.test.ts lib/scoreparts.test.ts lib/identity.test.ts lib/adjust.test.ts",
     "layout": "node scripts/layout-check.mjs"
   },
   "dependencies": {

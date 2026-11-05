@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { EstimateTag } from "@/components/EstimateTag";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
-import { calculatorGap, choose, covered, fromQuery, total } from "@/lib/package";
+import { addToPackage, calculatorGap, choose, covered, fromQuery, total } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
 
 export function PackageBuilder({
@@ -24,6 +24,8 @@ export function PackageBuilder({
 }) {
   const [selected, setSelected] = useState<string[]>([]);
   const [philosophy, setPhilosophy] = useState<ValuesArchetype | null>(null);
+  const [ready, setReady] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   function usePhilosophy(a: ValuesArchetype) {
     setPhilosophy(a);
@@ -32,25 +34,40 @@ export function PackageBuilder({
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const nameOf = (policyId: string) => cleanLabel(rows.find((r) => r.build_id === policyId)?.label ?? policyId);
     // ?values=<id> is the app's share link for a philosophy; it resolves to its package.
     const a = archetypes.find((x) => x.id === params.get("values"));
-    if (a && !params.get("policies")) {
+    const add = params.get("add");
+    if (a && !params.get("policies") && !add) {
       setPhilosophy(a);
       setSelected(fromQuery(rows, a.picks.map((p) => p.policy_id).join(",")));
     } else {
-      setSelected(fromQuery(rows, params.get("policies")));
+      const stored = readStored();
+      let base = fromQuery(rows, params.get("policies") ?? stored);
+      if (add) {
+        const result = addToPackage(rows, base, add);
+        if (result.replaced.length) {
+          setNotice(`Replaced ${nameOf(result.replaced[0])} with ${nameOf(add)}. These are alternatives.`);
+        }
+        base = result.selected;
+      }
+      setSelected(base);
     }
+    setReady(true);
   }, [rows, archetypes]);
 
   useEffect(() => {
+    if (!ready) return;
+    writeStored(selected.join(","));
     const url = new URL(window.location.href);
     url.searchParams.delete("policies");
     url.searchParams.delete("values");
+    url.searchParams.delete("add");
     const rest = url.searchParams.toString();
     // Ids are [a-z0-9-], so the list needs no encoding; keep the commas readable.
     const query = [rest, selected.length ? `policies=${selected.join(",")}` : ""].filter(Boolean).join("&");
     window.history.replaceState(null, "", `${url.pathname}${query ? `?${query}` : ""}${url.hash}`);
-  }, [selected]);
+  }, [selected, ready]);
 
   const inside = covered(rows, selected);
   const sum = total(rows, selected);
@@ -164,6 +181,7 @@ export function PackageBuilder({
         ))}
       </div>
       <aside className="buildtotal" aria-live="polite">
+        {notice ? <p className="note">{notice}</p> : null}
         <span className="eyebrow">Your package</span>
         <p className={`fig big ${sum > 0 ? "adds" : sum < 0 ? "reduces" : ""}`}>{money(sum)}</p>
         <EstimateTag identity={packageIdentity} />
@@ -189,6 +207,26 @@ export function PackageBuilder({
     </div>
     </>
   );
+}
+
+// localStorage can be missing or throw (private windows, blocked site data);
+// the package then lives only in the URL, as it did before.
+const STORE_KEY = "fpc-package";
+
+function readStored(): string | null {
+  try {
+    return window.localStorage.getItem(STORE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(value: string): void {
+  try {
+    window.localStorage.setItem(STORE_KEY, value);
+  } catch {
+    // Nothing to do: the URL still carries the package.
+  }
 }
 
 function CalculatorNote({
