@@ -1,6 +1,7 @@
 // Text and numbers for the shared score-page pieces (ScoreParts.tsx), kept out
 // of the component so the sign conventions and the gap sentence can be tested.
 import { money, pct } from "./format";
+import { publishedWindow } from "./identity";
 import type { Credibility, ScoreResult } from "./types";
 
 /**
@@ -58,7 +59,9 @@ export function checkedSentence(cred: Credibility, point: number, window: string
     return `Published score ${money(published)}; this estimate is ${pct(err)} away${tier}.`;
   }
   const model = cred.own_row_model_billions;
-  const run = model == null ? "The model run on the published estimate's own window and terms" : `The model run on the published estimate's own window and terms, ${money(model)},`;
+  const ownWindow = publishedWindow(cred);
+  const terms = ownWindow ? `own window (${ownWindow}) and terms` : "own window and terms";
+  const run = model == null ? `The model run on the published estimate's ${terms}` : `The model run on the published estimate's ${terms}, ${money(model)},`;
   return (
     `Published score ${money(published)}${tier}. ${run} is ${pct(err)} away from it. ` +
     `The figure above is scored on ${window} against this site's baseline, so it sits ${pct(shown)} from the published number.`

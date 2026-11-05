@@ -377,6 +377,9 @@ class ResultCredibilityModel(BaseModel):
     #: The model's figure on the published estimate's own window and terms,
     #: which ``own_row_abs_pct_error`` is measured against.
     own_row_model_billions: float | None = None
+    #: The window the published figure covers (e.g. Treasury's FY2025-2034),
+    #: which can differ from the window this response is scored on.
+    own_row_window: str | None = None
     holdout_status: str
     limitations: list[str] = Field(default_factory=list)
     caption: str

@@ -130,6 +130,7 @@
       "own_row_official_billions": 673.1,
       "own_row_caption": "Unfitted reconstruction, 129.6% from $673B (Tax Foundation / Penn Wharton Budget Model) — no constant is fitted to this figure. Published range [$595B, $673B]: the model's $1.55T is outside it by $872B.",
       "own_row_model_billions": 1545.2400501655757,
+      "own_row_window": "FY2025-2034",
       "holdout_status": "calibration_reference_only",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -281,6 +282,7 @@
       "own_row_official_billions": 673.1,
       "own_row_caption": "Unfitted reconstruction, 129.6% from $673B (Tax Foundation / Penn Wharton Budget Model) — no constant is fitted to this figure. Published range [$595B, $673B]: the model's $1.55T is outside it by $872B.",
       "own_row_model_billions": 1545.2400501655757,
+      "own_row_window": "FY2025-2034",
       "holdout_status": "calibration_reference_only",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

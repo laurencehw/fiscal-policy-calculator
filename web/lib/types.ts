@@ -32,6 +32,8 @@ export type Credibility = {
   own_row_caption: string;
   /** The model's figure on the published estimate's own window; absent in exports before Nov 2026. */
   own_row_model_billions?: number | null;
+  /** The window the published figure covers, as transcribed; absent in exports before U1b. */
+  own_row_window?: string | null;
   limitations: string[];
   caption: string;
 };

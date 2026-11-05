@@ -130,6 +130,7 @@
       "own_row_official_billions": -500.0,
       "own_row_caption": "Calibrated to reproduce -$500B (Biden proposal) — agreement is by construction, not an independent test.",
       "own_row_model_billions": -523.466270560995,
+      "own_row_window": "FY2022-2031",
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -276,6 +277,7 @@
       "own_row_official_billions": -500.0,
       "own_row_caption": "Calibrated to reproduce -$500B (Biden proposal) — agreement is by construction, not an independent test.",
       "own_row_model_billions": -523.466270560995,
+      "own_row_window": "FY2022-2031",
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",

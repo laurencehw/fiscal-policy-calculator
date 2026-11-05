@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { estimateIdentity, identityLine, shortProducer, withoutTier } from "./identity";
+import { estimateIdentity, identityLine, publishedWindow, shortProducer, withoutTier } from "./identity";
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
@@ -77,4 +77,13 @@ test("sections the tier does not grade carry the producer and window but no tier
   const bare = withoutTier(full);
   assert.doesNotMatch(identityLine(bare), /Calibrated reference|out-of-sample|reconstruction/i);
   assert.match(identityLine(bare), /This calculator · conventional · FY2026-2035/);
+});
+
+test("the published tag carries the published figure's own window, not the page's", () => {
+  const identity = estimateIdentity({ ...corp.conventional, cbo_source: "Treasury" }, "published");
+  assert.equal(identity.window, "FY2025-2034");
+  assert.equal(identityLine(identity), "Treasury · published · FY2025-2034");
+  const unstated = { ...corp.conventional.credibility!, own_row_window: "unstated" };
+  assert.equal(publishedWindow(unstated), "");
+  assert.equal(publishedWindow(null), "");
 });

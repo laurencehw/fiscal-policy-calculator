@@ -130,6 +130,7 @@
       "own_row_official_billions": -1500.0,
       "own_row_caption": "Unfitted reconstruction, 10.3% from -$1.50T (CRFB) — no constant is fitted to this figure. Published range [-$1.80T, -$1.40T]: the model's -$1.65T is inside it, so the % is a distance from an anchor, not a measure of accuracy.",
       "own_row_model_billions": -1654.6828073254642,
+      "own_row_window": "FY2025-2034",
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -356,6 +357,7 @@
       "own_row_official_billions": -1500.0,
       "own_row_caption": "Unfitted reconstruction, 10.3% from -$1.50T (CRFB) — no constant is fitted to this figure. Published range [-$1.80T, -$1.40T]: the model's -$1.65T is inside it, so the % is a distance from an anchor, not a measure of accuracy.",
       "own_row_model_billions": -1654.6828073254642,
+      "own_row_window": "FY2025-2034",
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
