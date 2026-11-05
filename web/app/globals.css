@@ -135,6 +135,8 @@ a:hover { text-decoration-color: var(--accent); }
 .work .sentence { margin: 0; }
 .work h1 { font-size: clamp(30px, 4.5vw, 40px); }
 .work :is(.chart, .tablewrap, .headline, .explore, .builder, .values) { max-width: 1200px; }
+.actions { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.actions a { font-family: var(--label); font-size: 15px; }
 /* Home: one door per section, grouped as in the header. */
 .doors { display: grid; gap: 28px; }
 .doorgroup { display: grid; gap: 10px; }

@@ -1,9 +1,19 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCatalog } from "./data";
-import { choose, covered, fromQuery, total, calculatorGap } from "./package";
+import { addToPackage, choose, covered, fromQuery, total, calculatorGap } from "./package";
 
 const rows = buildCatalog();
+
+test("adding a policy twice does not duplicate the row", () => {
+  let s = addToPackage(rows, [], "corporate-28pct").selected;
+  const again = addToPackage(rows, s, "corporate-28pct");
+  assert.deepEqual(again.selected, ["corporate-28pct"]);
+  assert.deepEqual(again.replaced, []);
+  const swapped = addToPackage(rows, s, "corporate-15pct");
+  assert.deepEqual(swapped.selected, ["corporate-15pct"]);
+  assert.deepEqual(swapped.replaced, ["corporate-28pct"]);
+});
 
 test("one policy per exclusive group", () => {
   let s = choose(rows, [], "corporate-28pct");

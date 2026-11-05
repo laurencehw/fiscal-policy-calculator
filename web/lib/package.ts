@@ -2,6 +2,16 @@
 // exclusive group, and a policy that already contains another hides it.
 import type { BuildRow } from "./types";
 
+/** Add ``id``, and name anything the exclusive-group rules dropped. */
+export function addToPackage(
+  rows: BuildRow[],
+  selected: string[],
+  id: string,
+): { selected: string[]; replaced: string[] } {
+  const next = choose(rows, selected, id);
+  return { selected: next, replaced: selected.filter((other) => !next.includes(other)) };
+}
+
 /** Add ``id`` to the package, dropping anything it conflicts with or contains. */
 export function choose(rows: BuildRow[], selected: string[], id: string): string[] {
   const row = rows.find((r) => r.build_id === id);
