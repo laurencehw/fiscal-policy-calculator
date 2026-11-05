@@ -170,6 +170,12 @@ table.sheet th, table.sheet td { border-bottom: 1px solid var(--rule); text-alig
 table.sheet th:first-child, table.sheet td:first-child { text-align: left; padding-left: 0; }
 table.sheet th { font-family: var(--label); font-size: 14px; letter-spacing: 0.05em; font-variant-caps: all-small-caps; color: var(--muted); font-weight: 600; }
 .cite { display: grid; gap: 4px; margin: 0; max-width: 70ch; color: var(--muted); font-size: 15px; }
+div.cite { justify-items: start; }
+.cite .citetext { margin: 0; overflow-wrap: anywhere; }
+div.cite > button { font-family: var(--label); font-size: 12px; background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; text-decoration: underline; }
+.stalelink { border-left: 3px solid var(--warn); padding-left: 10px; color: var(--ink); }
+.packageexports { border-top: 1px solid var(--ink); padding-top: 14px; display: grid; gap: 10px; margin-top: 32px; }
+.packageexports h2 { margin: 0; }
 .marked { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 70ch; color: var(--muted); font-size: 15px; }
 code { font-family: var(--code); font-size: 0.85em; }
 @media (prefers-reduced-motion: reduce) {

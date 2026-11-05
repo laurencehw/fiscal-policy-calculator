@@ -242,3 +242,17 @@ def test_the_classroom_export_is_the_assignments_without_answers(exported: Path)
     for assignment_id in ids:
         text = (exported / "classroom" / f"{assignment_id}.json").read_text(encoding="utf-8")
         assert "min_acceptable" not in text and "policy_params" not in text
+
+
+def test_the_scores_date_moves_only_when_the_figures_do(exported: Path):
+    manifest = _read(exported / "manifest.json")
+    assert len(manifest["scores_fingerprint"]) == 12
+    assert len(manifest["scores_date"]) == 10  # YYYY-MM-DD
+    fp = export_static.scores_fingerprint({"presets": {"a": [-100.0, -90.0]}})
+    # Float noise below $0.05B is not a change.
+    assert export_static.scores_fingerprint({"presets": {"a": [-100.00001, -90.0]}}) == fp
+    assert export_static.scores_fingerprint({"presets": {"a": [-101.0, -90.0]}}) != fp
+    previous = {"scores_fingerprint": fp, "scores_date": "2026-11-01"}
+    assert export_static.scores_date(fp, previous, "2026-11-05") == "2026-11-01"
+    assert export_static.scores_date("other", previous, "2026-11-05") == "2026-11-05"
+    assert export_static.scores_date(fp, None, "2026-11-05") == "2026-11-05"
