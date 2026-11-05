@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     ...NAV_ITEMS.map((item) => item.href),
     "/contact",
     "/privacy",
+    "/changes",
     ...presets().map((info) => `/explore/${info.id}`),
     ...classroomIndex().map((row) => `/classroom/${row.id}`),
   ];

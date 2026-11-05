@@ -69,6 +69,8 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
             Laurence Wilse-Samson
           </a>
           , not affiliated with any employer. Code and methods: <a href={REPO_URL}>GitHub</a>.{" "}
+          <Link href="/changes">What changed</Link>
+          {" · "}
           <Link href="/contact">Contact</Link>
           {" · "}
           <Link href="/privacy">Privacy</Link>.

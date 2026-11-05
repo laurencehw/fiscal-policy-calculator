@@ -6,6 +6,7 @@ import type { ClassroomAssignment, ClassroomIndexRow } from "./classroom";
 import type { HouseStripData } from "./houses";
 import type { SSData } from "./socialSecurity";
 import type { BaselineFile } from "./baseline";
+import type { ChangesFile } from "./changes";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
@@ -16,6 +17,13 @@ function read<T>(...parts: string[]): T {
 
 export function manifest(): Manifest {
   return read<Manifest>("manifest.json");
+}
+
+/** What moved between nightly exports. Empty when the file is missing (an export from before U8). */
+export function changes(): ChangesFile {
+  const file = path.join(DATA_DIR, "changes.json");
+  if (!fs.existsSync(file)) return { threshold: 0.005, items: [] };
+  return read<ChangesFile>("changes.json");
 }
 
 export function presets(): PresetInfo[] {
