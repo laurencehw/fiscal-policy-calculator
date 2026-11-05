@@ -42,7 +42,7 @@ export function PackageBuilder({
       setPhilosophy(a);
       setSelected(fromQuery(rows, a.picks.map((p) => p.policy_id).join(",")));
     } else {
-      const stored = window.localStorage.getItem("fpc-package");
+      const stored = readStored();
       let base = fromQuery(rows, params.get("policies") ?? stored);
       if (add) {
         const result = addToPackage(rows, base, add);
@@ -58,7 +58,7 @@ export function PackageBuilder({
 
   useEffect(() => {
     if (!ready) return;
-    window.localStorage.setItem("fpc-package", selected.join(","));
+    writeStored(selected.join(","));
     const url = new URL(window.location.href);
     url.searchParams.delete("policies");
     url.searchParams.delete("values");
@@ -207,6 +207,26 @@ export function PackageBuilder({
     </div>
     </>
   );
+}
+
+// localStorage can be missing or throw (private windows, blocked site data);
+// the package then lives only in the URL, as it did before.
+const STORE_KEY = "fpc-package";
+
+function readStored(): string | null {
+  try {
+    return window.localStorage.getItem(STORE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeStored(value: string): void {
+  try {
+    window.localStorage.setItem(STORE_KEY, value);
+  } catch {
+    // Nothing to do: the URL still carries the package.
+  }
 }
 
 function CalculatorNote({

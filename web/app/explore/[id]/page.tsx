@@ -70,7 +70,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
 
       <nav className="actions" aria-label="Proposal">
         <a href={`/build?add=${id}`}>Add to package</a>
-        <a href={`/compare?ids=${id}`}>Compare</a>
+        {/* Compare joins this row in U4, with /compare itself; a link to a missing page would 404. */}
         {adjustable(id) ? <a href={tailorHref(id) ?? "/tailor"}>Adjust in Tailor</a> : null}
         <a href="#exports">Share</a>
       </nav>
