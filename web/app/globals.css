@@ -386,9 +386,11 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .more button:hover { border-color: var(--ink); }
 /* Build on a phone: the package total stays in view at the bottom of the screen. */
 @media (max-width: 860px) {
-  .buildtotal { position: sticky; bottom: 0; z-index: 5; order: 1; padding: 10px 0 12px; gap: 4px; box-shadow: 0 -8px 16px -12px rgba(0, 0, 0, 0.35); }
+  .buildtotal { position: sticky; bottom: 0; z-index: 5; order: 1; padding: 10px 0 12px; gap: 4px; box-shadow: 0 -8px 16px -12px rgba(0, 0, 0, 0.35); max-height: 70vh; overflow-y: auto; }
   .buildtotal .big { font-size: 26px; }
-  .buildtotal .note + .note { display: none; }
+  .summary .summarylist, .summary .clear { display: none; }
+  .summary.open .summarylist, .summary.open .clear { display: grid; }
+  .summary.open .clear { display: inline-block; }
 }
 /* Tailor: the inputs sit in one row on a wide screen, and the result has a place before it exists. */
 .tailorform.wide { max-width: none; }
@@ -441,3 +443,25 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .comparesearch .matches li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--rule); }
 .dropped p { margin: 0; }
 .difference { max-width: 70ch; border-left: 2px solid var(--accent); padding-left: 12px; }
+/* Build summary (U5): contribution bars on one scale, centred on zero. */
+.summary .summarytotal { display: grid; gap: 4px; }
+.summary .exclusion { font-size: 14px; }
+.summary .summarynotice:empty { display: none; }
+.summary .summarynotice .note { color: var(--ink); }
+.summary .summarynotice .note:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+.summary button.undo { font: inherit; font-size: 14px; background: none; border: 1px solid var(--rule); padding: 1px 10px; cursor: pointer; color: inherit; }
+.summary .summarytarget { font-size: 14px; }
+.summary .sheettoggle { display: none; font: inherit; font-family: var(--label); font-size: 14px; background: none; border: 1px solid var(--rule); padding: 3px 12px; cursor: pointer; color: inherit; justify-self: start; }
+.summarylist { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 50vh; overflow-y: auto; }
+.summarylist li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 10px; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--rule); font-size: 14px; }
+.summarylist .summaryname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summarylist .fig { font-size: 13px; }
+.summarybar { grid-column: 1 / -1; position: relative; height: 4px; background: var(--grid); margin-top: 3px; }
+.summarybar > span { position: absolute; top: 0; height: 4px; }
+.summarybar > span.adds { background: var(--adds); }
+.summarybar > span.reduces { background: var(--reduces); }
+.secondtotal { margin: 0; display: grid; gap: 2px; }
+.whys .shortresult { font-size: 17px; }
+.whys details > summary { margin-top: 0; }
+@media (min-width: 861px) { .summary { max-height: calc(100vh - 32px); overflow-y: auto; } }
+@media (max-width: 860px) { .summary .sheettoggle { display: inline-block; } .summary .summarytarget { margin: 0; } }
