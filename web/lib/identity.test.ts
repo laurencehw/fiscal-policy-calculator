@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { estimateIdentity, identityLine, shortProducer } from "./identity";
+import { estimateIdentity, identityLine, shortProducer, withoutTier } from "./identity";
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
@@ -68,4 +68,10 @@ test("the published tag names the producer and carries no tier label", () => {
 test("a column header with no named producer does not repeat the word published", () => {
   const line = identityLine(estimateIdentity({ cbo_source: "Published", credibility: null }, "published"));
   assert.equal(line, "Published");
+});
+
+test("a distribution can name the calculator without wearing the ten-year tier", () => {
+  const fitted = estimateIdentity(corp.conventional, "model");
+  assert.match(identityLine(fitted), /calibrated/i);
+  assert.doesNotMatch(identityLine(withoutTier(fitted)), /calibrated/i);
 });

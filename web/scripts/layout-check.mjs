@@ -16,6 +16,8 @@ export const PAGES = [
   "/explore",
   "/explore/tcja-full-extension",
   "/explore/corporate-28pct",
+  "/compare?ids=corporate-28pct,corporate-15pct",
+  "/compare?ids=corporate-28pct,corporate-15pct,top-rate-39-6",
   "/build",
   "/tailor",
   "/social-security",
@@ -51,7 +53,10 @@ async function checkPage(browser, route, viewport) {
   });
   page.on("requestfailed", (req) => {
     if (ENGINE_PATH.test(req.url())) return;
-    errors.push(`request failed: ${req.url()} (${req.failure()?.errorText})`);
+    // Leaving a page cancels its prefetch. That is not a broken request.
+    const reason = req.failure()?.errorText ?? "";
+    if (reason.includes("ERR_ABORTED")) return;
+    errors.push(`request failed: ${req.url()} (${reason})`);
   });
 
   const problems = [];
@@ -133,7 +138,17 @@ async function checkPage(browser, route, viewport) {
   }
   problems.push(...errors);
 
-  const file = `${route === "/" ? "home" : route.slice(1).replaceAll("/", "-")}-${viewport.name}.png`;
+  if (route.startsWith("/compare") && viewport.name === "phone") {
+    const stacked = await page.evaluate(() => {
+      const cards = [...document.querySelectorAll(".comparecard")];
+      if (cards.length < 2) return false;
+      const first = cards[0].getBoundingClientRect();
+      const second = cards[1].getBoundingClientRect();
+      return second.top >= first.bottom - 1;
+    });
+    if (!stacked) problems.push("compare multiples do not stack");
+  }
+  const file = `${route === "/" ? "home" : route.slice(1).replace(/[/?=,]/g, "-")}-${viewport.name}.png`;
   await page.screenshot({ path: path.join(OUT, file), fullPage: true });
   await page.close();
   return problems;

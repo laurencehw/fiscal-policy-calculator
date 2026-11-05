@@ -150,6 +150,11 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
   };
 }
 
+/** The same identity with the tier left off, for a figure the tier does not grade. */
+export function withoutTier(identity: EstimateIdentity): EstimateIdentity {
+  return { ...identity, tierLabel: "" };
+}
+
 /** The long form a reader sees, with empty parts left out. */
 export function identityLine(identity: EstimateIdentity): string {
   const word = KIND_WORD[identity.kind];

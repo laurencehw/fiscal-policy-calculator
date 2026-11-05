@@ -7,9 +7,9 @@ export type NavGroup = { name: string; items: NavItem[] };
 export const NAV_GROUPS: NavGroup[] = [
   {
     name: "Policies",
-    // Compare joins this group in U4, once /compare exists.
     items: [
       { href: "/explore", label: "Explore", blurb: "Every preset proposal, with its ten-year score beside the published score it is checked against." },
+      { href: "/compare", label: "Compare", blurb: "Set two or three proposals beside each other on one scale." },
       { href: "/build", label: "Build", blurb: "Put policies together, or start from your values, and see the package total." },
       { href: "/tailor", label: "Tailor", blurb: "Set your own income or corporate tax rate change and score it." },
     ],

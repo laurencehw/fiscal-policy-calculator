@@ -356,6 +356,17 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .explorelist .exploresection { display: block; }
 .explorelist .explorehead { border-top: 0; padding: 0 0 2px; }
 .explorelist .explorehead .figlabel { text-align: right; display: block; font-family: var(--label); font-size: 12px; letter-spacing: 0.05em; font-variant-caps: all-small-caps; color: var(--muted); }
+.explorename { display: flex; gap: 8px; align-items: baseline; min-width: 0; }
+.explorename a { min-width: 0; }
+.comparepick { display: inline-flex; }
+.comparegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px; align-items: start; }
+.comparecard { display: grid; gap: 8px; min-width: 0; }
+.comparecard h2 { font-size: 22px; }
+.comparecard h2 a { text-decoration: none; }
+.comparecard .v { font-family: var(--data); font-size: 28px; margin: 0; }
+.compmatches { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; flex-basis: 100%; }
+.compmatches button { font: inherit; font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 10px; cursor: pointer; color: inherit; }
+@media (max-width: 720px) { .comparegrid { grid-template-columns: 1fr; } }
 .figcell { display: grid; gap: 3px; justify-items: end; }
 .figcell .fig { font-family: var(--data); font-size: 15px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fig.published { color: var(--muted); }
@@ -368,7 +379,7 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 @media (max-width: 560px) {
   .explorelist li { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 4px 10px; }
   .figcell .fig { font-size: 13px; }
-  .explorelist li > a { font-size: 16px; }
+  .explorelist li > a, .explorename a { font-size: 16px; }
 }
 /* Bill tracker: paging under each table. */
 .more { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 10px; }

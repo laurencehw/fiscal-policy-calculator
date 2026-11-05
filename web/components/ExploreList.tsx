@@ -29,9 +29,17 @@ export function ExploreList({
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ExploreSort>("topic");
+  const [compare, setCompare] = useState<string[]>([]);
   const scale = useMemo(() => scaleOf(rows), [rows]);
   const shown = filterRows(rows, query);
   const groups = arrange(shown, sort);
+  function toggleCompare(id: string) {
+    setCompare((current) => {
+      if (current.includes(id)) return current.filter((other) => other !== id);
+      if (current.length >= 3) return current;
+      return [...current, id];
+    });
+  }
   return (
     <div className="explore">
       <div className="exploretools">
@@ -61,6 +69,13 @@ export function ExploreList({
         <EstimateTag identity={calculator} />
         <EstimateTag identity={published} />
       </p>
+      {compare.length ? (
+        <p className="note">
+          <a href={`/compare?ids=${compare.join(",")}`}>
+            Compare {compare.length === 1 ? "this proposal" : `these ${compare.length}`}
+          </a>
+        </p>
+      ) : null}
       <ul className="presetlist explorelist">
         <li className="explorehead" aria-hidden="true">
           <span />
@@ -79,7 +94,18 @@ export function ExploreList({
           ) : null,
           ...group.rows.map((row) => (
             <li key={row.id}>
-              <Link href={`/explore/${row.id}`}>{row.name}</Link>
+              <span className="explorename">
+                <label className="comparepick">
+                  <input
+                    type="checkbox"
+                    checked={compare.includes(row.id)}
+                    disabled={!compare.includes(row.id) && compare.length >= 3}
+                    onChange={() => toggleCompare(row.id)}
+                  />
+                  <span className="sr-only">Compare {row.name}</span>
+                </label>
+                <Link href={`/explore/${row.id}`}>{row.name}</Link>
+              </span>
               <span className="figcell">
                 {row.conventional === null ? null : (
                   <>

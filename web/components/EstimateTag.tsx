@@ -1,8 +1,16 @@
-import { identityLine, shortProducer, type EstimateIdentity } from "@/lib/identity";
+import { identityLine, shortProducer, withoutTier, type EstimateIdentity } from "@/lib/identity";
 
-/** One line naming who produced a figure. `short` is the table-cell form. */
-export function EstimateTag({ identity, short = false }: { identity: EstimateIdentity; short?: boolean }) {
-  const line = identityLine(identity);
+/** One line naming who produced a figure. `short` is the table-cell form. `omitTier` drops a tier that does not grade this figure. */
+export function EstimateTag({
+  identity,
+  short = false,
+  omitTier = false,
+}: {
+  identity: EstimateIdentity;
+  short?: boolean;
+  omitTier?: boolean;
+}) {
+  const line = identityLine(omitTier ? withoutTier(identity) : identity);
   if (!short) {
     return (
       <span className="tag estimatetag" data-kind={identity.kind} data-producer={identity.producer}>
