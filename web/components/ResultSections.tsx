@@ -4,7 +4,7 @@ import { EconomicEffects } from "@/components/EconomicEffects";
 import { EstimateTag } from "@/components/EstimateTag";
 import { ScoringModels } from "@/components/ScoringModels";
 import { WhoPays } from "@/components/WhoPays";
-import type { EstimateIdentity } from "@/lib/identity";
+import { withoutTier, type EstimateIdentity } from "@/lib/identity";
 import type { Views } from "@/lib/types";
 
 export function ResultSections({
@@ -22,7 +22,7 @@ export function ResultSections({
         <div className="head">
           <h2>Who pays</h2>
           <span className="tag">first year, by income group</span>
-          {conventional ? <EstimateTag identity={conventional} /> : null}
+          {conventional ? <EstimateTag identity={withoutTier(conventional)} /> : null}
         </div>
         <WhoPays dist={views.distribution} />
       </section>
@@ -30,7 +30,7 @@ export function ResultSections({
         <div className="head">
           <h2>Economic effects</h2>
           <span className="tag">difference from the CBO baseline</span>
-          {dynamic ? <EstimateTag identity={dynamic} /> : null}
+          {dynamic ? <EstimateTag identity={withoutTier(dynamic)} /> : null}
         </div>
         <EconomicEffects econ={views.economic} />
       </section>

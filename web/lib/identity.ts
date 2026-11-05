@@ -175,3 +175,13 @@ export function shortProducer(identity: EstimateIdentity): string {
   const brief = name.split(/[/;(]/)[0].trim();
   return brief.length > 22 ? `${brief.slice(0, 20)}…` : brief;
 }
+
+/**
+ * The same identity with the tier left off, for a figure the tier does not
+ * grade: the first-year distribution and the economic effects sit under a
+ * proposal whose ten-year score has a tier, but nothing was checked against
+ * them.
+ */
+export function withoutTier(identity: EstimateIdentity): EstimateIdentity {
+  return { ...identity, tier: "none", tierLabel: "" };
+}

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { EstimateTag } from "@/components/EstimateTag";
+import { MAX_COMPARE, compareHref, toggleId } from "@/lib/compare";
 import { arrange, filterRows, scaleOf, type ExploreRow, type ExploreSort } from "@/lib/explore";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
@@ -29,6 +30,7 @@ export function ExploreList({
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ExploreSort>("topic");
+  const [picked, setPicked] = useState<string[]>([]);
   const scale = useMemo(() => scaleOf(rows), [rows]);
   const shown = filterRows(rows, query);
   const groups = arrange(shown, sort);
@@ -56,6 +58,17 @@ export function ExploreList({
           {shown.length === rows.length ? `${rows.length} proposals.` : `${shown.length} of ${rows.length} proposals.`}
           {shown.length === 0 ? " Nothing matches; try a shorter word." : null}
         </p>
+        {picked.length ? (
+          <p className="comparepick" aria-live="polite">
+            <Link href={compareHref(picked)}>
+              Compare {picked.length} {picked.length === 1 ? "proposal" : "proposals"}
+            </Link>
+            {picked.length >= MAX_COMPARE ? <span className="note"> (the most the page shows)</span> : null}
+            <button type="button" onClick={() => setPicked([])}>
+              Clear
+            </button>
+          </p>
+        ) : null}
       </div>
       <p className="note identitynote">
         <EstimateTag identity={calculator} />
@@ -79,7 +92,17 @@ export function ExploreList({
           ) : null,
           ...group.rows.map((row) => (
             <li key={row.id}>
-              <Link href={`/explore/${row.id}`}>{row.name}</Link>
+              <span className="rowname">
+                <input
+                  type="checkbox"
+                  aria-label={`Compare ${row.name}`}
+                  title="Compare"
+                  checked={picked.includes(row.id)}
+                  disabled={!picked.includes(row.id) && picked.length >= MAX_COMPARE}
+                  onChange={() => setPicked((ids) => toggleId(ids, row.id))}
+                />
+                <Link href={`/explore/${row.id}`}>{row.name}</Link>
+              </span>
               <span className="figcell">
                 {row.conventional === null ? null : (
                   <>

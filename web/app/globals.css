@@ -378,7 +378,7 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 @media (max-width: 560px) {
   .explorelist li { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 4px 10px; }
   .figcell .fig { font-size: 13px; }
-  .explorelist li > a { font-size: 16px; }
+  .explorelist li > .rowname a { font-size: 16px; }
 }
 /* Bill tracker: paging under each table. */
 .more { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 10px; }
@@ -416,3 +416,28 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .homestats span { font-family: var(--data); font-size: 13px; line-height: 1.35; color: var(--muted); }
 .homestats a:hover span, .homestats a:focus-visible span { color: var(--ink); text-decoration: underline; }
 @media (max-width: 720px) { .homestats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; } .homestats b { font-size: 24px; } }
+
+/* Explore: pick up to three rows for Compare. */
+.explorelist .rowname { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.explorelist .rowname input { flex: none; margin: 0; accent-color: var(--accent); transform: translateY(2px); }
+.comparepick { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin: 0; font-family: var(--label); font-size: 15px; }
+.comparepick button { font: inherit; font-size: 14px; background: none; border: 1px solid var(--rule); padding: 2px 10px; cursor: pointer; color: inherit; }
+
+/* Compare: small multiples on one axis; they stack on a phone. */
+.comparegrid { display: grid; gap: 28px 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); max-width: 1200px; }
+.comparegrid.n1 { max-width: 560px; }
+.comparegrid > .comparecard { margin-top: 0; }
+.comparecard { display: grid; gap: 10px; align-content: start; min-width: 0; border-top: 2px solid var(--ink); padding-top: 8px; }
+.comparecard h2 { font-size: 19px; margin: 0; }
+.comparecard h2 a { text-decoration: none; }
+.comparecard .stage { border: 0; padding: 0; }
+.smallmultiple { width: 100%; height: auto; display: block; }
+.smallmultiple .axislabel { font-family: var(--label); font-size: 11px; fill: var(--muted); }
+.comparefacts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 14px; color: var(--muted); }
+.comparefacts dt { font-family: var(--label); font-variant-caps: all-small-caps; letter-spacing: 0.05em; font-weight: 600; }
+.comparefacts dd { margin: 0; }
+.comparefacts .fig { font-family: var(--data); color: var(--ink); font-variant-numeric: tabular-nums; }
+.comparesearch .matches { list-style: none; margin: 0; padding: 0; flex-basis: 100%; display: grid; gap: 0; max-width: 40rem; }
+.comparesearch .matches li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 6px 0; border-top: 1px solid var(--rule); }
+.dropped p { margin: 0; }
+.difference { max-width: 70ch; border-left: 2px solid var(--accent); padding-left: 12px; }

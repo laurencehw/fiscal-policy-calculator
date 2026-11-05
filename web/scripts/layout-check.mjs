@@ -17,6 +17,9 @@ export const PAGES = [
   "/explore/tcja-full-extension",
   "/explore/corporate-28pct",
   "/explore/corporate-15pct",
+  "/compare",
+  "/compare?ids=corporate-28pct,corporate-15pct",
+  "/compare?ids=top-rate-39-6,top-rate-45,tariff-universal-10pct",
   "/build",
   "/tailor",
   "/social-security",
@@ -52,6 +55,9 @@ async function checkPage(browser, route, viewport) {
   });
   page.on("requestfailed", (req) => {
     if (ENGINE_PATH.test(req.url())) return;
+    // A link prefetch to a server-rendered page (/compare reads its ids per request)
+    // is cancelled when the check closes the page. A reader never sees it.
+    if (/[?&]_rsc=/.test(req.url()) && req.failure()?.errorText === "net::ERR_ABORTED") return;
     errors.push(`request failed: ${req.url()} (${req.failure()?.errorText})`);
   });
 
@@ -95,6 +101,18 @@ async function checkPage(browser, route, viewport) {
     if (named.length === 0) problems.push("published tag does not name Treasury");
     if (named.some((tag) => /\bCBO\b/.test(tag.text))) problems.push("published tag names CBO");
   }
+  if (route.startsWith("/compare?ids=")) {
+    const cards = await page.evaluate(() =>
+      [...document.querySelectorAll(".comparecard")].map((el) => Math.round(el.getBoundingClientRect().left)),
+    );
+    const expected = route.split("=")[1].split(",").length;
+    if (cards.length !== expected) problems.push(`${cards.length} compare cards for ${expected} ids`);
+    const columns = new Set(cards).size;
+    if (viewport.name === "phone" && columns !== 1) problems.push("compare multiples do not stack on a phone");
+    if (viewport.name === "desktop" && columns !== cards.length) problems.push("compare multiples are not side by side");
+    const diff = await page.evaluate(() => document.querySelector("#difference")?.textContent ?? "");
+    if (!diff) problems.push("compare page has no difference line or reason");
+  }
   if (viewport.name === "desktop" && route.startsWith("/explore/")) {
     const above = await page.evaluate(() => {
       const figure = document.querySelector(".headline .v");
@@ -134,7 +152,7 @@ async function checkPage(browser, route, viewport) {
   }
   problems.push(...errors);
 
-  const file = `${route === "/" ? "home" : route.slice(1).replaceAll("/", "-")}-${viewport.name}.png`;
+  const file = `${route === "/" ? "home" : route.slice(1).replace(/[/?=,]/g, "-")}-${viewport.name}.png`;
   await page.screenshot({ path: path.join(OUT, file), fullPage: true });
   await page.close();
   return problems;

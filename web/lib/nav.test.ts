@@ -15,7 +15,7 @@ test("every section in the nav has a page, and no page is listed twice", () => {
     ["Policies", "Topics", "Learn"],
   );
   const policies = NAV_GROUPS[0].items.map((item) => item.href);
-  assert.deepEqual(policies, ["/explore", "/build", "/tailor"]);
+  assert.deepEqual(policies, ["/explore", "/compare", "/build", "/tailor"]);
 });
 
 test("every nav page is a page the sitemap lists", () => {
