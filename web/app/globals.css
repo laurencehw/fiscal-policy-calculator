@@ -482,3 +482,11 @@ button.linkish { font: inherit; background: none; border: 0; padding: 0; color: 
 .homeswap, .homeswap label { min-width: 0; max-width: 100%; }
 .homeswap select { min-width: 0; width: 100%; }
 @media (min-width: 721px) { .homeswap select { width: auto; max-width: 36rem; } }
+/* Shared "US economic policy" strip (same links as monetary.lwilsesamson.com). */
+.policystrip { display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; padding: 0.15rem 0; border-bottom: 1px solid var(--rule); font-family: var(--data); font-size: 0.75rem; line-height: 1.4; margin-bottom: -28px; }
+.wrap:has(.work) > .policystrip { margin-bottom: -10px; }
+.policystrip a { text-decoration: none; }
+.policystrip a[aria-current="page"] { color: var(--ink); font-weight: 600; }
+.policystrip-label { color: var(--muted); }
+.policystrip-home { margin-left: auto; }
+@media (max-width: 560px) { .policystrip-home { margin-left: 0; } }

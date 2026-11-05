@@ -4,6 +4,7 @@ import { AUTHOR_URL, REPO_URL } from "@/lib/site";
 import { NAV_GROUPS } from "@/lib/nav";
 import { MobileMenu } from "./MobileMenu";
 import { NavLink } from "./NavLink";
+import { PolicyStrip } from "./PolicyStrip";
 
 const [POLICIES, TOPICS, LEARN] = NAV_GROUPS;
 const UTILITY = new Set(["/methods", "/about"]);
@@ -14,6 +15,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
       <a className="skip" href="#main">
         Skip to content
       </a>
+      <PolicyStrip />
       <nav className="site noprint" aria-label="Site">
         <div className="siterow">
           <Link href="/" className="wordmark">
