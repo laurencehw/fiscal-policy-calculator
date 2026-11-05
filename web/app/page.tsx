@@ -1,46 +1,58 @@
 import Link from "next/link";
+import { Compare } from "@/components/Compare";
+import { HomeSwap } from "@/components/HomeSwap";
 import { manifest, presets } from "@/lib/data";
-import { NAV_GROUPS } from "@/lib/nav";
-import { homeRowLine, homeSectionParagraphs, homeStats, workedRows } from "@/lib/home";
+import { compareHref } from "@/lib/compare";
+import { compareCards } from "@/lib/compareData";
+import { homeCandidates, homePair, homeRowLine, homeSectionParagraphs, STARTING_POINTS, trustStrip, workedRows } from "@/lib/home";
 
-export default function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const params = await searchParams;
   const m = manifest();
   const rows = workedRows();
+  const pair = homePair(params.vs);
+  const candidates = homeCandidates();
+  const trust = trustStrip();
   return (
     <>
       <header>
         <h1>What a proposal does to the deficit</h1>
         <p className="lede">
-          Ten-year estimates of U.S. tax and spending proposals, on CBO&apos;s {m.baseline_vintages.join(" and ")} baseline.
-          You can <Link href="/explore">explore {presets().length} proposals</Link>; each shows this calculator&apos;s
-          conventional score and, where one exists, the published score beside it.
+          Ten-year estimates of {presets().length} U.S. tax and spending proposals on CBO&apos;s{" "}
+          {m.baseline_vintages.join(" and ")} baseline. Each shows this calculator&apos;s score and, where one exists, the
+          published score it is checked against.
         </p>
       </header>
-      <ul className="homestats" aria-label="At a glance">
-        {homeStats().map((stat) => (
-          <li key={stat.href}>
-            <Link href={stat.href}>
-              <b>{stat.figure}</b>
-              <span>{stat.label}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
-      <section className="doors" aria-label="Sections">
-        {NAV_GROUPS.map((group) => (
-          <div key={group.name} className="doorgroup">
-            <h2>{group.name}</h2>
-            <div className="doorgrid">
-              {group.items.map((item) => (
-                <Link key={item.href} href={item.href} className="door">
-                  <b>{item.label}</b>
-                  <span>{item.blurb}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
+
+      <section className="homeexample" id="example" aria-label="Two proposals compared">
+        <div className="homeexamplehead">
+          <p className="note">
+            Two proposals side by side. Both read off the out-of-sample tier, so neither agrees with a published score by
+            construction.
+          </p>
+          <HomeSwap first={pair[0]} second={pair[1]} options={candidates} />
+        </div>
+        <Compare cards={compareCards(pair)} />
+        <p className="trust">
+          {trust.text} <Link href="/methods">How the scores are checked</Link>
+        </p>
+        <nav className="actions homeactions" aria-label="Start">
+          <Link href={compareHref(pair)} className="primary">
+            Compare policies
+          </Link>
+          <Link href="/build">Build a package</Link>
+        </nav>
+      </section>
+
+      <section className="starts" aria-label="Starting points">
+        {STARTING_POINTS.map((start) => (
+          <Link key={start.href} href={start.href} className="door">
+            <b>{start.question}</b>
+            <span>{start.answer}</span>
+          </Link>
         ))}
       </section>
+
       <section className="reading">
         <h2>How to read a figure</h2>
         {homeSectionParagraphs().map((text) => (

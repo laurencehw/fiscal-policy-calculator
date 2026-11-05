@@ -13,7 +13,9 @@ const OUT = process.argv[3] ?? "layout-shots";
 
 export const PAGES = [
   "/",
+  "/?vs=medicare-surcharge-2pp",
   "/explore",
+  "/explore?show=reduces&sort=size",
   "/explore/tcja-full-extension",
   "/explore/corporate-28pct",
   "/explore/corporate-15pct",
@@ -115,6 +117,17 @@ async function checkPage(browser, route, viewport) {
     const diff = await page.evaluate(() => document.querySelector("#difference")?.textContent ?? "");
     if (!diff) problems.push("compare page has no difference line or reason");
   }
+  if (viewport.name === "desktop" && (route === "/" || route.startsWith("/?"))) {
+    const fold = await page.evaluate(() => {
+      const seen = (sel) => {
+        const box = document.querySelector(sel)?.getBoundingClientRect();
+        return !!box && box.top >= 0 && box.top < window.innerHeight;
+      };
+      return { chart: seen(".comparecard .smallmultiple"), figure: seen(".comparecard .v") };
+    });
+    if (!fold.chart) problems.push("home: no chart above the fold");
+    if (!fold.figure) problems.push("home: no scored figure above the fold");
+  }
   if (route.startsWith("/build?")) {
     const summary = await page.evaluate(() => {
       const block = document.querySelector(".summarytotal");
@@ -174,7 +187,7 @@ async function checkPage(browser, route, viewport) {
   }
   problems.push(...errors);
 
-  const file = `${route === "/" ? "home" : route.slice(1).replace(/[/?=,]/g, "-")}-${viewport.name}.png`;
+  const file = `${route === "/" ? "home" : route.slice(1).replace(/[/?=,&]/g, "-")}-${viewport.name}.png`;
   await page.screenshot({ path: path.join(OUT, file), fullPage: true });
   await page.close();
   return problems;

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { arrange, filterRows, scaleOf, type ExploreRow } from "./explore";
+import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow } from "./explore";
 
 const rows: ExploreRow[] = [
   { id: "a", name: "TCJA Full Extension", area: "TCJA / Individual", conventional: 4581.9, published: 4600 },
@@ -26,4 +26,12 @@ test("topic order keeps the export's groups; size order is one list by absolute 
 test("bars share one scale, the largest figure of either kind", () => {
   assert.equal(scaleOf(rows), 4600);
   assert.equal(scaleOf([]), 1);
+});
+
+test("the direction filter and the URL view", () => {
+  assert.deepEqual(byDirection(rows, "reduces").map((r) => r.id), ["b", "c"]);
+  assert.deepEqual(byDirection(rows, "adds").map((r) => r.id), ["a", "d"]);
+  assert.equal(byDirection(rows, "all").length, 4);
+  assert.deepEqual(viewFromQuery("?show=reduces&sort=size"), { query: "", sort: "size", show: "reduces" });
+  assert.deepEqual(viewFromQuery("?show=bogus&sort=x&q=tariff"), { query: "tariff", sort: "topic", show: "all" });
 });
