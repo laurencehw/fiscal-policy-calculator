@@ -1,4 +1,6 @@
-import { evidence, manifest, presets, scorecardEntries, tierOf, trackerIndex, type Tier } from "./data";
+import { evidence, manifest, preset, presets, scorecardEntries, tierOf, type Tier } from "./data";
+import { DEFAULT_PAIR } from "./compare";
+import { shortLabel } from "./format";
 import { money } from "./format";
 
 /**
@@ -72,28 +74,62 @@ export function homeSectionText(): string {
   return ["How to read a figure", ...homeSectionParagraphs(), ...rows].join(" ");
 }
 
-export type HomeStat = { figure: string; label: string; href: string };
+/**
+ * The proposals the home page's live compare may show: those whose figure reads
+ * off the out-of-sample tier, either through a pre-registered row of their own
+ * or through their class's out-of-sample band. Fitted rows and unfitted
+ * reconstructions are left out, so the first thing a visitor sees is never a
+ * figure that agrees by construction (C1's rule).
+ */
+export type HomeCandidate = { id: string; name: string; basis: string };
 
-/** The strip under the title. Every figure is read from the nightly export. */
-export function homeStats(): HomeStat[] {
-  const m = manifest();
-  const oos = evidence().out_of_sample;
-  const tracker = trackerIndex();
-  const updated = tracker.last_update
-    ? new Date(tracker.last_update).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
-    : null;
-  return [
-    { figure: String(presets().length), label: "proposals scored on CBO's baseline", href: "/explore" },
-    {
-      figure: `${oos.within_25pct ?? 0} of ${oos.n}`,
-      label: `blind predictions within 25% of the published score (median miss ${oos.median_abs_error.toFixed(1)}%)`,
-      href: "/methods",
-    },
-    {
-      figure: tracker.bills.toLocaleString("en-US"),
-      label: updated ? `bills in Congress tracked, updated ${updated}` : "bills in Congress tracked",
-      href: "/tracker",
-    },
-    { figure: String(m.social_security_options), label: "Social Security options and their trust fund effects", href: "/social-security" },
-  ];
+export function homeCandidates(): HomeCandidate[] {
+  return presets().flatMap((info) => {
+    const cred = preset(info.id)?.conventional.credibility;
+    if (!cred) return [];
+    const own = cred.own_row_tier;
+    if (own === "out_of_sample") {
+      return [{ id: info.id, name: shortLabel(info.name), basis: "out-of-sample, its own pre-registered row" }];
+    }
+    if (!own && cred.n_tier1_rows > 0) {
+      return [{ id: info.id, name: shortLabel(info.name), basis: `out-of-sample, class band of ${cred.n_tier1_rows} rows` }];
+    }
+    return [];
+  });
 }
+
+/** The pair the home page shows: the default first proposal, and ``vs`` when it is a candidate. */
+export function homePair(vs: string | string[] | undefined): [string, string] {
+  const first: string = DEFAULT_PAIR[0];
+  const wanted = Array.isArray(vs) ? vs[0] : vs;
+  const allowed = homeCandidates().map((c) => c.id).filter((id) => id !== first);
+  const second = wanted && allowed.includes(wanted) ? wanted : DEFAULT_PAIR[1];
+  return [first, second];
+}
+
+/** The one-line trust strip under the example. The count is the export's, so it cannot go stale. */
+export function trustStrip(): { count: number; text: string } {
+  const n = evidence().out_of_sample.n;
+  return { count: n, text: `${n} held-out benchmark cases; accuracy varies by policy type.` };
+}
+
+export type StartingPoint = { question: string; href: string; answer: string };
+
+/** Three questions in place of the section directory, each opening a page already set up to answer it. */
+export const STARTING_POINTS: StartingPoint[] = [
+  {
+    question: "Which policies reduce the deficit?",
+    href: "/explore?show=reduces&sort=size",
+    answer: "Every proposal that cuts the deficit, largest first.",
+  },
+  {
+    question: "What would it take to pay for a proposal?",
+    href: "/build?values=deficit-hawk",
+    answer: "A package built toward a deficit target, with the gap still to close.",
+  },
+  {
+    question: "Which Social Security changes close the gap?",
+    href: "/social-security",
+    answer: "The actuaries' options, and how far each goes toward 75-year solvency.",
+  },
+];

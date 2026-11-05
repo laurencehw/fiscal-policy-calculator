@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Compare, type CompareCard } from "@/components/Compare";
 import { CompareSearch, type CompareOption } from "@/components/CompareSearch";
-import { preset, presets, presetsByArea } from "@/lib/data";
+import { presets, presetsByArea } from "@/lib/data";
+import { compareCards } from "@/lib/compareData";
 import { DEFAULT_PAIR, MAX_COMPARE, compareHref, droppedSentences, parseIds } from "@/lib/compare";
 import { shortLabel } from "@/lib/format";
-import { estimateIdentity } from "@/lib/identity";
 
 export const metadata: Metadata = {
   title: "Compare",
@@ -21,34 +21,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
   const options: CompareOption[] = presetsByArea().flatMap((group) =>
     group.presets.map((info) => ({ id: info.id, name: shortLabel(info.name), area: group.area })),
   );
-  const cards: CompareCard[] = parsed.ids.flatMap((id) => {
-    const file = preset(id);
-    if (!file) return [];
-    const c = file.conventional;
-    const info = index.find((row) => row.id === id);
-    const published =
-      info && info.cbo_published && info.cbo_score !== null && info.cbo_source
-        ? {
-            value: info.cbo_score,
-            identity: estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published"),
-            date: info.cbo_date,
-          }
-        : null;
-    return [
-      {
-        item: {
-          id,
-          name: shortLabel(c.policy_name),
-          window: c.budget_window,
-          baseline: c.baseline_vintage,
-          tenYear: c.ten_year_deficit_impact,
-          years: c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect })),
-        },
-        calculator: estimateIdentity(c, "model"),
-        published,
-      },
-    ];
-  });
+  const cards: CompareCard[] = compareCards(parsed.ids);
   const dropped = droppedSentences(parsed);
   const nameOf = (id: string) => options.find((option) => option.id === id)?.name ?? id;
   return (

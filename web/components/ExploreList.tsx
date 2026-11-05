@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { EstimateTag } from "@/components/EstimateTag";
 import { MAX_COMPARE, compareHref, toggleId } from "@/lib/compare";
-import { arrange, filterRows, scaleOf, type ExploreRow, type ExploreSort } from "@/lib/explore";
+import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow, type ExploreShow, type ExploreSort } from "@/lib/explore";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
 
@@ -31,8 +31,16 @@ export function ExploreList({
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ExploreSort>("topic");
   const [picked, setPicked] = useState<string[]>([]);
+  const [show, setShow] = useState<ExploreShow>("all");
+  // A link such as /explore?show=reduces&sort=size opens on that view.
+  useEffect(() => {
+    const view = viewFromQuery(window.location.search);
+    setQuery(view.query);
+    setSort(view.sort);
+    setShow(view.show);
+  }, []);
   const scale = useMemo(() => scaleOf(rows), [rows]);
-  const shown = filterRows(rows, query);
+  const shown = filterRows(byDirection(rows, show), query);
   const groups = arrange(shown, sort);
   return (
     <div className="explore">
@@ -56,6 +64,12 @@ export function ExploreList({
         </div>
         <p className="note" aria-live="polite">
           {shown.length === rows.length ? `${rows.length} proposals.` : `${shown.length} of ${rows.length} proposals.`}
+          {show !== "all" ? ` Only those that ${show === "reduces" ? "reduce" : "add to"} the deficit. ` : null}
+          {show !== "all" ? (
+            <button type="button" className="linkish" onClick={() => setShow("all")}>
+              Show all
+            </button>
+          ) : null}
           {shown.length === 0 ? " Nothing matches; try a shorter word." : null}
         </p>
         {picked.length ? (
