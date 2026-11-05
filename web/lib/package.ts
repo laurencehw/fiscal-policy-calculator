@@ -2,6 +2,35 @@
 // exclusive group, and a policy that already contains another hides it.
 import type { BuildRow } from "./types";
 
+/** Policies in ``before`` that ``after`` dropped, and the policy that took each one's place. */
+export function replacedBy(
+  rows: BuildRow[],
+  before: string[],
+  after: string[],
+): { dropped: string; added: string }[] {
+  const added = after.find((id) => !before.includes(id));
+  if (!added || !rows.some((row) => row.build_id === added)) return [];
+  return before
+    .filter((id) => !after.includes(id))
+    .map((dropped) => ({ dropped, added }));
+}
+
+/** The selection to restore after a replacement. */
+export function undoSelection(previous: string[]): string[] {
+  return [...previous];
+}
+
+/** Share of a deficit-reduction target closed by a package total. */
+export function targetShare(total: number, gap: number): number {
+  if (!(gap > 0)) return 0;
+  return Math.max(0, -total / gap);
+}
+
+/** What is left of the target after this package, in the deficit convention. */
+export function remainingGap(total: number, gap: number): number {
+  return gap + total;
+}
+
 /** Add ``id``, and name anything the exclusive-group rules dropped. */
 export function addToPackage(
   rows: BuildRow[],
@@ -9,7 +38,7 @@ export function addToPackage(
   id: string,
 ): { selected: string[]; replaced: string[] } {
   const next = choose(rows, selected, id);
-  return { selected: next, replaced: selected.filter((other) => !next.includes(other)) };
+  return { selected: next, replaced: replacedBy(rows, selected, next).map((row) => row.dropped) };
 }
 
 /** Add ``id`` to the package, dropping anything it conflicts with or contains. */

@@ -108,6 +108,13 @@ async function checkPage(browser, route, viewport) {
     });
     if (!above) problems.push("headline figure is below the fold");
   }
+  if (route === "/build") {
+    const together = await page.evaluate(() => {
+      const block = document.querySelector("[data-package-total]");
+      return !!block && /Interactions between these policies are not measured/.test(block.textContent || "") && /\$/.test(block.textContent || "");
+    });
+    if (!together) problems.push("the exclusion sentence is not in the total's block");
+  }
   if (viewport.name === "desktop" && route === "/explore") {
     const visible = await page.evaluate(() =>
       [...document.querySelectorAll(".explorelist a")].filter((el) => {

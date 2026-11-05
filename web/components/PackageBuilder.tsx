@@ -3,9 +3,10 @@
 // in ?policies=, the same parameter the Streamlit app's share links use.
 import { useEffect, useState } from "react";
 import { EstimateTag } from "@/components/EstimateTag";
+import { PackageSummary } from "@/components/PackageSummary";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
-import { addToPackage, calculatorGap, choose, covered, fromQuery, total } from "@/lib/package";
+import { addToPackage, calculatorGap, choose, covered, fromQuery, replacedBy, targetShare, undoSelection } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
 
 export function PackageBuilder({
@@ -26,6 +27,7 @@ export function PackageBuilder({
   const [philosophy, setPhilosophy] = useState<ValuesArchetype | null>(null);
   const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [previous, setPrevious] = useState<string[] | null>(null);
 
   function usePhilosophy(a: ValuesArchetype) {
     setPhilosophy(a);
@@ -47,6 +49,7 @@ export function PackageBuilder({
       if (add) {
         const result = addToPackage(rows, base, add);
         if (result.replaced.length) {
+          setPrevious(base);
           setNotice(`Replaced ${nameOf(result.replaced[0])} with ${nameOf(add)}. These are alternatives.`);
         }
         base = result.selected;
@@ -70,12 +73,28 @@ export function PackageBuilder({
   }, [selected, ready]);
 
   const inside = covered(rows, selected);
-  const sum = total(rows, selected);
   const areas = [...new Set(rows.map((r) => r.area))];
   const label = (id: string) => cleanLabel(rows.find((r) => r.build_id === id)?.label ?? id);
 
   function toggle(id: string) {
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : choose(rows, s, id)));
+    if (selected.includes(id)) {
+      setSelected(selected.filter((other) => other !== id));
+      return;
+    }
+    const next = choose(rows, selected, id);
+    const swapped = replacedBy(rows, selected, next);
+    if (swapped.length) {
+      setPrevious(selected);
+      setNotice(`Replaced ${label(swapped[0].dropped)} with ${label(swapped[0].added)}. These are alternatives.`);
+    }
+    setSelected(next);
+  }
+
+  function undo() {
+    if (!previous) return;
+    setSelected(undoSelection(previous));
+    setPrevious(null);
+    setNotice(null);
   }
 
   const edited =
@@ -109,13 +128,19 @@ export function PackageBuilder({
           ))}
         </div>
         {philosophy ? (
-          <div className="whys" aria-live="polite">
+          <div className="whys">
             <p>
-              <b>{philosophy.name}:</b> {philosophy.summary}. The package scores {money(philosophy.total_billions)}{" "}
-              against a gap of {money(philosophy.gap_billions).replace("+", "")} to a deficit of{" "}
-              {philosophy.target_pct_gdp.toFixed(1)}% of GDP.
-              {philosophy.protected.length ? ` Protected: ${philosophy.protected.join(", ").toLowerCase()}.` : ""}
+              <b>{philosophy.name}:</b> {philosophy.picks.length} policies,{" "}
+              {Math.round(targetShare(philosophy.total_billions, philosophy.gap_billions) * 100)}% of the target.
               {edited ? " You have since edited the list below." : ""}
+            </p>
+            <details>
+              <summary>Why these choices?</summary>
+            <p>
+              {philosophy.summary}. The package scores {money(philosophy.total_billions)} against a gap of{" "}
+              {money(philosophy.gap_billions).replace("+", "")} to a deficit of {philosophy.target_pct_gdp.toFixed(1)}% of
+              GDP.
+              {philosophy.protected.length ? ` Protected: ${philosophy.protected.join(", ").toLowerCase()}.` : ""}
             </p>
             <ol>
               {philosophy.picks.map((p) => (
@@ -134,6 +159,7 @@ export function PackageBuilder({
                 </li>
               ))}
             </ol>
+            </details>
           </div>
         ) : null}
       </section>
@@ -180,30 +206,15 @@ export function PackageBuilder({
           </fieldset>
         ))}
       </div>
-      <aside className="buildtotal" aria-live="polite">
-        {notice ? <p className="note">{notice}</p> : null}
-        <span className="eyebrow">Your package</span>
-        <p className={`fig big ${sum > 0 ? "adds" : sum < 0 ? "reduces" : ""}`}>{money(sum)}</p>
-        <EstimateTag identity={packageIdentity} />
-        <p className="note">
-          {selected.length === 0
-            ? "Tick policies to add their ten-year figures."
-            : `${selected.length} ${selected.length === 1 ? "policy" : "policies"}; ${
-                sum > 0 ? "adds to" : sum < 0 ? "reduces" : "leaves unchanged"
-              } the deficit over ten years.`}
-        </p>
-        {selected.length > 1 ? (
-          <p className="note">
-            This is the sum of each policy&apos;s published score on its own. Policies that touch the same tax base
-            interact, so the package as a whole can differ from the sum. This page does not measure those interactions.
-          </p>
-        ) : null}
-        {selected.length ? (
-          <button type="button" onClick={() => setSelected([])}>
-            Clear
-          </button>
-        ) : null}
-      </aside>
+      <PackageSummary
+        rows={rows}
+        selected={selected}
+        identity={packageIdentity}
+        philosophy={philosophy}
+        notice={notice}
+        onUndo={undo}
+        onClear={() => setSelected([])}
+      />
     </div>
     </>
   );
