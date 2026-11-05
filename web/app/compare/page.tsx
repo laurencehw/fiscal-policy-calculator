@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Compare, type CompareCard } from "@/components/Compare";
 import { CompareSearch, type CompareOption } from "@/components/CompareSearch";
-import { preset, presets, presetsByArea } from "@/lib/data";
+import { manifest, preset, presets, presetsByArea } from "@/lib/data";
+import { CiteBlock } from "@/components/CiteBlock";
+import { StaleLink } from "@/components/StaleLink";
+import { citation } from "@/lib/share";
+import { siteUrl } from "@/lib/site";
 import { DEFAULT_PAIR, MAX_COMPARE, compareHref, droppedSentences, parseIds } from "@/lib/compare";
 import { shortLabel } from "@/lib/format";
-import { estimateIdentity } from "@/lib/identity";
+import { estimateIdentity, withoutTier } from "@/lib/identity";
 
 export const metadata: Metadata = {
   title: "Compare",
@@ -50,6 +54,18 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     ];
   });
   const dropped = droppedSentences(parsed);
+  const scoresDate = manifest().scores_date ?? "";
+  // One citation for the page: the proposals by name, on the calculator's conventional
+  // identity without a tier, since each card carries its own.
+  const cite = cards.length
+    ? citation({
+        title: `Comparison of ${cards.map((card) => card.item.name).join("; ")}`,
+        identity: withoutTier(cards[0].calculator),
+        path: compareHref(cards.map((card) => card.item.id)),
+        scoresDate,
+        site: siteUrl(),
+      })
+    : null;
   const nameOf = (id: string) => options.find((option) => option.id === id)?.name ?? id;
   return (
     <div className="work">
@@ -60,6 +76,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           Up to {MAX_COMPARE} proposals side by side. Every year-by-year chart uses the same axis, so bars of equal
           height are equal dollars. I never add the figures up: each is scored on its own.
         </p>
+        <StaleLink scoresDate={scoresDate} />
       </header>
 
       {dropped.length ? (
@@ -73,7 +90,10 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       <CompareSearch options={options} ids={parsed.ids} />
 
       {cards.length ? (
-        <Compare cards={cards} />
+        <>
+          <Compare cards={cards} />
+          {cite ? <CiteBlock text={cite.text} /> : null}
+        </>
       ) : (
         <p className="note">
           Pick a proposal above, or start from{" "}

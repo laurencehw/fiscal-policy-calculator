@@ -41,7 +41,10 @@ once a night, and written as JSON under ``site_data/``:
 The script calls the API's own endpoint functions, so an exported preset is the
 API's answer by construction; ``tests/test_export_static.py`` checks it anyway.
 The output carries no timestamps, so a night with no model change writes
-identical files and the nightly job has nothing to commit.
+identical files and the nightly job has nothing to commit. The one date in it,
+``manifest.json``'s ``scores_date``, is the day the scored figures last changed:
+it moves only when ``scores_fingerprint`` does, and share links carry it as
+``v=`` so a page can say when the numbers behind an old link were recomputed.
 
 Usage:
     python scripts/export_static.py                 # writes site_data/
@@ -52,6 +55,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime as dt
+import hashlib
 import json
 import shutil
 import sys
@@ -466,10 +471,44 @@ def classroom_payloads() -> dict[str, Any]:
     }
 
 
-def export(out: Path) -> dict[str, Any]:
+def scores_fingerprint(figures: dict[str, Any]) -> str:
+    """A short hash of the scored figures, rounded to $0.1B so float noise is not a change."""
+
+    def rounded(value: Any) -> Any:
+        if isinstance(value, float):
+            return round(value, 1) + 0.0  # -0.0 and 0.0 hash alike
+        if isinstance(value, dict):
+            return {k: rounded(v) for k, v in sorted(value.items())}
+        if isinstance(value, list):
+            return [rounded(v) for v in value]
+        return value
+
+    text = json.dumps(rounded(figures), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def scores_date(fingerprint: str, previous: dict[str, Any] | None, today: str) -> str:
+    """Keep the previous date while the figures are unchanged; otherwise today."""
+    if previous and previous.get("scores_fingerprint") == fingerprint and previous.get("scores_date"):
+        return str(previous["scores_date"])
+    return today
+
+
+def _previous_manifest(out: Path) -> dict[str, Any] | None:
+    for path in (out / "manifest.json", DEFAULT_OUT / "manifest.json"):
+        if path.exists():
+            try:
+                return json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                return None
+    return None
+
+
+def export(out: Path, *, today: str | None = None) -> dict[str, Any]:
     """Write the whole export to ``out`` (replacing it) and return the manifest."""
     import api
 
+    previous = _previous_manifest(out)
     if out.exists():
         shutil.rmtree(out)
 
@@ -480,11 +519,16 @@ def export(out: Path) -> dict[str, Any]:
     comparison_models: dict[bool, Any] = {}
     windows: set[str] = set()
     headlines: dict[str, float] = {}
+    figures: dict[str, Any] = {"presets": {}, "build": {}}
     for preset in index["presets"]:
         conventional = score_preset_payload(preset["id"], dynamic=False)
         dynamic = score_preset_payload(preset["id"], dynamic=True)
         if preset["id"] in STRIP_POLICY_IDS:
             headlines[preset["id"]] = float(conventional["ten_year_deficit_impact"])
+        figures["presets"][preset["id"]] = [
+            conventional.get("ten_year_deficit_impact"),
+            dynamic.get("dynamic_adjusted_impact"),
+        ]
         vintages.add(conventional["baseline_vintage"])
         windows.add(conventional["budget_window"])
         _write(
@@ -495,6 +539,7 @@ def export(out: Path) -> dict[str, Any]:
 
     catalog = build_catalog_payload()
     _write(out / "build-catalog.json", catalog)
+    figures["build"] = {row["build_id"]: row["score"] for row in catalog}
     scorecard = scorecard_payload()
     _write(out / "validation" / "scorecard.json", scorecard)
     _write(out / "validation" / "evidence.json", evidence_payload())
@@ -541,6 +586,11 @@ def export(out: Path) -> dict[str, Any]:
             "the deficit, negative reduces it."
         ),
     }
+    fingerprint = scores_fingerprint({**figures, "vintages": sorted(vintages)})
+    manifest["scores_fingerprint"] = fingerprint
+    manifest["scores_date"] = scores_date(
+        fingerprint, previous, today or dt.datetime.now(dt.timezone.utc).date().isoformat()
+    )
     _write(out / "manifest.json", manifest)
     return manifest
 

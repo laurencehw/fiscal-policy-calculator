@@ -4,13 +4,16 @@ import { ChartActions } from "@/components/ChartActions";
 import { BaselineChart } from "@/components/BaselineChart";
 import { HouseStrip } from "@/components/HouseStrip";
 import { YearChart } from "@/components/YearChart";
-import { baseline, houseStrip, preset, presets, views } from "@/lib/data";
+import { baseline, houseStrip, manifest, preset, presets, views } from "@/lib/data";
 import { ResultSections } from "@/components/ResultSections";
 import { EstimateTag } from "@/components/EstimateTag";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
 import { adjustable, tailorHref } from "@/lib/adjust";
-import { estimateIdentity } from "@/lib/identity";
+import { estimateIdentity, identityLine } from "@/lib/identity";
+import { citation } from "@/lib/share";
+import { CiteBlock } from "@/components/CiteBlock";
+import { StaleLink } from "@/components/StaleLink";
 import { siteUrl } from "@/lib/site";
 
 export const dynamicParams = false;
@@ -43,6 +46,9 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const v = views(id);
   const strip = houseStrip(id);
   const info = presets().find((row) => row.id === id);
+  const scoresDate = manifest().scores_date ?? "";
+  const modelIdentity = estimateIdentity(c, "model");
+  const cite = citation({ title: name, identity: modelIdentity, path: `/explore/${id}`, scoresDate, site: siteUrl() });
   const published =
     info?.cbo_published && info.cbo_source ? estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published") : null;
   return (
@@ -53,6 +59,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         </span>
         <h1>{name}</h1>
         <p className="sentence">{cleanLabel(c.policy_description)}</p>
+        <StaleLink scoresDate={scoresDate} />
       </header>
 
       <div className="headline">
@@ -105,8 +112,9 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           <ChartActions
             chartId="year-chart"
             title={name}
-            source="Fiscal Policy Calculator, conventional score"
-            vintage={`CBO ${c.baseline_vintage} baseline, ${c.budget_window}`}
+            identity={identityLine(modelIdentity)}
+            site={`Fiscal Policy Calculator, ${siteUrl().replace(/^https?:\/\//, "")}/explore/${id}`}
+            scoresDate={scoresDate}
           />
         </p>
       </section>
@@ -126,13 +134,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         </details>
       ) : null}
 
-      <p className="cite">
-        <span className="tag">Cite as</span>
-        <span>
-          Wilse-Samson, Laurence. &ldquo;{name}.&rdquo; Fiscal Policy Calculator, CBO {c.baseline_vintage} baseline,{" "}
-          {c.budget_window}. {siteUrl()}/explore/{id}
-        </span>
-      </p>
+      <CiteBlock text={cite.text} />
     </div>
   );
 }

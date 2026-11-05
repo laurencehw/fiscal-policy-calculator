@@ -23,6 +23,7 @@ export const PAGES = [
   "/build",
   "/build?policies=corporate-28pct,estate-repeal,salt-cap-repeal",
   "/build?values=deficit-hawk",
+  "/explore/top-rate-39-6?v=2020-01-01",
   "/tailor",
   "/social-security",
   "/states",
@@ -133,7 +134,23 @@ async function checkPage(browser, route, viewport) {
       return !!box && box.top >= 0 && box.bottom <= window.innerHeight;
     });
     if (!inView) problems.push("package total scrolls out of view");
+    const exports = await page.evaluate(() => ({
+      buttons: [...document.querySelectorAll(".packageexports button")].map((b) => b.textContent ?? ""),
+      cite: document.querySelector(".packageexports .citetext")?.textContent ?? "",
+    }));
+    for (const label of ["Download CSV", "Download PNG", "Copy link"]) {
+      if (!exports.buttons.includes(label)) problems.push(`Build exports have no ${label}`);
+    }
+    if (!/sum of standalone published scores/.test(exports.cite)) problems.push("Build citation does not name the package sum");
     await page.evaluate(() => window.scrollTo(0, 0));
+  }
+  if (route.includes("?v=2020-01-01")) {
+    const notice = await page.evaluate(() => document.querySelector(".stalelink")?.textContent ?? "");
+    if (!/recomputed/.test(notice)) problems.push("an old link does not say the figures were recomputed");
+  }
+  if (route.startsWith("/explore/") || route.startsWith("/compare?ids=")) {
+    const cite = await page.evaluate(() => document.querySelector(".cite .citetext")?.textContent ?? "");
+    if (!/v=\d{4}-\d{2}-\d{2}/.test(cite)) problems.push("citation has no v= link");
   }
   if (viewport.name === "desktop" && route.startsWith("/explore/")) {
     const above = await page.evaluate(() => {
