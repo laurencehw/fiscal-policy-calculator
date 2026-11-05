@@ -51,6 +51,17 @@ const KIND_WORD: Record<IdentityKind, string> = {
   "package-sum": "sum of standalone published scores",
 };
 
+/**
+ * The window of the published figure, from the scorecard's transcription, so a
+ * Treasury FY2025-2034 figure is not read as being on the page's FY2026-2035.
+ * Empty when nothing usable is recorded ("unstated" says nothing a reader can use).
+ */
+export function publishedWindow(cred: Credibility | null | undefined): string {
+  const text = cred?.own_row_window?.trim() ?? "";
+  if (!text || /^unstated$/i.test(text)) return "";
+  return text;
+}
+
 /** "February 2026" → "CBO Feb 2026 baseline". Empty when the vintage is unknown. */
 export function baselinePhrase(vintage: string | undefined): string {
   const text = (vintage ?? "").trim();
@@ -118,7 +129,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
     return {
       producer: result.cbo_source?.trim() || "Published",
       kind,
-      window: "",
+      window: publishedWindow(result.credibility),
       baseline: "",
       tier,
       tierLabel: "",

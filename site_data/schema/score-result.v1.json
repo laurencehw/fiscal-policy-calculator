@@ -218,6 +218,18 @@
           "default": null,
           "title": "Own Row Model Billions"
         },
+        "own_row_window": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Own Row Window"
+        },
         "holdout_status": {
           "title": "Holdout Status",
           "type": "string"

@@ -130,6 +130,7 @@
       "own_row_official_billions": -182.3,
       "own_row_caption": "Unfitted reconstruction, 25.3% from -$182B (Joint Committee on Taxation (JCX-35-25)) — no constant is fitted to this figure.",
       "own_row_model_billions": -228.41683017809316,
+      "own_row_window": "FY2025-2034",
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -356,6 +357,7 @@
       "own_row_official_billions": -182.3,
       "own_row_caption": "Unfitted reconstruction, 25.3% from -$182B (Joint Committee on Taxation (JCX-35-25)) — no constant is fitted to this figure.",
       "own_row_model_billions": -228.41683017809316,
+      "own_row_window": "FY2025-2034",
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
