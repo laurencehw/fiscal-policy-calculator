@@ -64,6 +64,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from fiscal_model.ui.formatting import format_money
 
@@ -77,6 +78,7 @@ __all__ = [
     "PublishedRange",
     "corporate_estimator_range",
     "corporate_per_point_record",
+    "house_strip",
     "published_range_for",
     "scope_verdict_for",
 ]
@@ -493,3 +495,147 @@ def scope_verdict_for(policy_id: str) -> str:
     except Exception:  # pragma: no cover — defensive
         return ""
     return str(getattr(source, "scope_differs", "") or "") if source else ""
+
+
+# The same non-rate channels results_summary treats as bundled. Copied so this
+# module does not import the Plotly results surface.
+_BUNDLED_FIELDS: tuple[tuple[str, str], ...] = (
+    ("extend_bonus_depreciation", "100% bonus depreciation"),
+    ("gilti_rate_change", "a GILTI rate change"),
+    ("eliminate_fdii", "FDII repeal"),
+    ("fdii_rate_change", "an FDII rate change"),
+    ("restore_rd_expensing", "R&D expensing"),
+    ("adjust_book_minimum", "the book minimum tax"),
+    ("book_minimum_rate_change", "a book-minimum rate change"),
+)
+
+
+def _rate_change_pp(policy: Any) -> float:
+    try:
+        return (float(policy._get_reform_rate()) - float(policy.baseline_rate)) * 100.0
+    except Exception:
+        return float(getattr(policy, "rate_change", 0.0) or 0.0) * 100.0
+
+
+def _brief_house(name: str) -> str:
+    """A track label has to fit a phone. The long house name stays in the list."""
+    if "Penn Wharton" in name:
+        return "PWBM"
+    return name
+
+
+def _direct_range(published: PublishedRange) -> tuple[list[dict[str, Any]], str]:
+    """The bounds of a range that is itself the published score of this reform.
+
+    A semicolon in ``source_name`` is the ledger's way of naming two houses
+    (``Tax Foundation (anchor); Penn Wharton Budget Model``). The clause marked
+    anchor is the high bound. One publisher's scenario span has no second house.
+    """
+    raw = [part.strip() for part in published.source_name.split(";") if part.strip()]
+
+    def clean(part: str) -> str:
+        return " ".join(part.replace("(anchor)", "").split())
+
+    if len(raw) == 2:
+        if any("anchor" in part.lower() for part in raw):
+            high_name = clean(next(part for part in raw if "anchor" in part.lower()))
+            low_name = clean(next(part for part in raw if "anchor" not in part.lower()))
+        else:
+            low_name, high_name = clean(raw[0]), clean(raw[1])
+        houses = [
+            {
+                "estimator": low_name,
+                "document": published.source_document,
+                "value_billions": published.low_billions,
+                "fitted": False,
+            },
+            {
+                "estimator": high_name,
+                "document": published.source_document,
+                "value_billions": published.high_billions,
+                "fitted": False,
+            },
+        ]
+        label = f"{_brief_house(high_name)}–{_brief_house(low_name)} range"
+        return houses, label
+    return [], f"{published.source_name} range"
+
+
+def house_strip(
+    *,
+    policy_id: str,
+    policy: Any,
+    model_billions: float,
+    fitted_target_billions: float | None = None,
+) -> dict[str, Any] | None:
+    """One proposal's place among the houses that scored it, as JSON.
+
+    A published range is a direct score of this reform, so it is drawn as that
+    range and — when the ledger names two houses — those two bounds. The
+    per-point conversion of a different rate step is not drawn beside it: that
+    put Tax Foundation's scaled 28% yield and Tax Foundation's own 15% score
+    on one strip. A statutory-rate change with no such range still gets the
+    converted record. ``None`` when neither exists, so the page draws nothing.
+    """
+    estimates: list[dict[str, Any]] = []
+    subject = ""
+    window = ""
+    basis = ""
+    caveat = ""
+    published = published_range_for(policy_id)
+    span = None
+    if published is not None:
+        houses, label = _direct_range(published)
+        estimates = houses
+        subject = "Published scores of this reform"
+        span = {
+            "low_billions": published.low_billions,
+            "high_billions": published.high_billions,
+            "source_name": published.source_name,
+            "source_document": published.source_document,
+            "label": label,
+        }
+    else:
+        rate = _rate_change_pp(policy)
+        if rate:
+            bundled = tuple(
+                label
+                for attribute, label in _BUNDLED_FIELDS
+                if getattr(policy, attribute, None)
+            )
+            converted = corporate_estimator_range(
+                rate_change_pp=rate, model_billions=model_billions, bundled=bundled
+            )
+            if converted is not None:
+                subject = converted.subject
+                window = converted.window
+                basis = converted.basis
+                caveat = converted.caveat
+                for estimate in converted.estimates:
+                    # The scorecard rounds a published total (Treasury's
+                    # -$1,349.9B is carried as -$1,347B). A few billion still
+                    # names that house.
+                    fitted = (
+                        fitted_target_billions is not None
+                        and abs(estimate.value_billions - fitted_target_billions) < 5.0
+                    )
+                    estimates.append(
+                        {
+                            "estimator": estimate.estimator,
+                            "document": estimate.document,
+                            "value_billions": estimate.value_billions,
+                            "fitted": fitted,
+                        }
+                    )
+    if not estimates and span is None:
+        return None
+    return {
+        "policy_id": policy_id,
+        "model_billions": model_billions,
+        "subject": subject,
+        "window": window,
+        "basis": basis,
+        "caveat": caveat,
+        "estimates": estimates,
+        "range": span,
+    }

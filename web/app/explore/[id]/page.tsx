@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ChartActions } from "@/components/ChartActions";
 import { BaselineChart } from "@/components/BaselineChart";
+import { HouseStrip } from "@/components/HouseStrip";
 import { YearChart } from "@/components/YearChart";
-import { baseline, preset, presets, views } from "@/lib/data";
+import { baseline, houseStrip, preset, presets, views } from "@/lib/data";
 import { ResultSections } from "@/components/ResultSections";
 import { EstimateTag } from "@/components/EstimateTag";
 import { Checked, YearTable } from "@/components/ScoreParts";
@@ -40,6 +41,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const headline = c.ten_year_deficit_impact;
   const dyn = d.dynamic_adjusted_impact;
   const v = views(id);
+  const strip = houseStrip(id);
   const info = presets().find((row) => row.id === id);
   const published =
     info?.cbo_published && info.cbo_source ? estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published") : null;
@@ -82,6 +84,8 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         effects={c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect }))}
         headline={headline}
       />
+
+      {strip ? <HouseStrip strip={strip} /> : null}
 
       <section className="chart">
         <div className="head">

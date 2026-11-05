@@ -80,6 +80,16 @@ tr[id^="bench-"] { scroll-margin-top: 16px; }
 section.chart:has(.plot[data-direct]) .legend { display: none; }
 .legend span::before { content: ""; display: inline-block; width: 14px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c); }
 .plot { position: relative; width: 100%; min-width: 0; }
+.track { position: relative; height: 46px; margin: 8px 0 4px; border-bottom: 1px solid var(--rule); }
+.track .rangelabel { position: absolute; top: 0; left: 0; font-family: var(--label); font-size: 12px; color: var(--muted); }
+.track .span { position: absolute; top: 28px; height: 4px; background: var(--grid); border-radius: 2px; }
+.track .dot, .track .model { position: absolute; top: 25px; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); transform: translateX(-50%); }
+.track .dot.fitted { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
+.track .model { top: 23px; width: 14px; height: 14px; border-radius: 2px; background: var(--accent); }
+.houselist { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-family: var(--label); font-size: 14px; }
+.houselist .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); margin-right: 8px; }
+.houselist .swatch.model { border-radius: 2px; background: var(--accent); }
+.houselist .swatch.fitted { box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--ink); }
 .plot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .shield { position: absolute; inset: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }

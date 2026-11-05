@@ -1,0 +1,98 @@
+{
+  "corporate-28pct": {
+    "policy_id": "biden_corporate_28",
+    "model_billions": -1310.9199937081369,
+    "subject": "a 7.0pp corporate rate increase",
+    "window": "FY2025\u20132034",
+    "basis": "each house's own published ten-year score divided by its own rate step, times this policy's step",
+    "caveat": "Per-point dollars are not comparable across rate levels or scopes, which is why this is a range and not a consensus: Treasury's row moves the GILTI effective rate with the statutory rate, a rate cut is not a rate increase run backwards (Tax Foundation's Options 2.0 is the one edition pricing both directions in one model, and a point of cut costs about 29% more than a point of increase yields), and a run that also extends bonus depreciation prices something none of the four does.",
+    "estimates": [
+      {
+        "estimator": "Treasury OTA",
+        "document": "General Explanations of the Administration's FY2025 Revenue Proposals (Green Book), \"Raise the corporate income tax rate to 28 percent\"",
+        "value_billions": -1349.9410000000007,
+        "fitted": true
+      },
+      {
+        "estimator": "Penn Wharton Budget Model",
+        "document": "President Biden's FY2025 Budget Proposal (22 May 2024), \"Raise the corporate income tax rate to 28 percent\"",
+        "value_billions": -1093.0000000000005,
+        "fitted": false
+      },
+      {
+        "estimator": "JCT",
+        "document": "Options for Reducing the Deficit: 2025 to 2034 (pub. 60557), Option 64, \"Increase the Corporate Income Tax Rate by 1 Percentage Point\"",
+        "value_billions": -949.9000000000004,
+        "fitted": false
+      },
+      {
+        "estimator": "Tax Foundation",
+        "document": "Biden Budget Tax Proposals: Details and Analysis (21 June 2024, updated 30 October 2024), \"Raise the corporate income tax rate to 28 percent\"",
+        "value_billions": -935.8000000000004,
+        "fitted": false
+      }
+    ],
+    "range": null
+  },
+  "corporate-15pct": {
+    "policy_id": "trump_corporate_15",
+    "model_billions": 1562.7532398095523,
+    "subject": "Published scores of this reform",
+    "window": "",
+    "basis": "",
+    "caveat": "",
+    "estimates": [
+      {
+        "estimator": "Penn Wharton Budget Model",
+        "document": "Garrett Watson and Erica York, 'A Lower Corporate Tax Rate Can Be Part of Broader Tax Reform', Tax Foundation (17 July 2024, updated 23 October 2024)",
+        "value_billions": 595.0,
+        "fitted": false
+      },
+      {
+        "estimator": "Tax Foundation",
+        "document": "Garrett Watson and Erica York, 'A Lower Corporate Tax Rate Can Be Part of Broader Tax Reform', Tax Foundation (17 July 2024, updated 23 October 2024)",
+        "value_billions": 673.1,
+        "fitted": false
+      }
+    ],
+    "range": {
+      "low_billions": 595.0,
+      "high_billions": 673.1,
+      "source_name": "Tax Foundation (anchor); Penn Wharton Budget Model",
+      "source_document": "Garrett Watson and Erica York, 'A Lower Corporate Tax Rate Can Be Part of Broader Tax Reform', Tax Foundation (17 July 2024, updated 23 October 2024)",
+      "label": "Tax Foundation\u2013PWBM range"
+    }
+  },
+  "pillar-two-adoption": {
+    "policy_id": "pillar_two_adoption",
+    "model_billions": -61.19999999999999,
+    "subject": "Published scores of this reform",
+    "window": "",
+    "basis": "",
+    "caveat": "",
+    "estimates": [],
+    "range": {
+      "low_billions": -102.6,
+      "high_billions": 56.5,
+      "source_name": "Joint Committee on Taxation",
+      "source_document": "Joint Committee on Taxation, JCX-22-23, 'Possible Effects of Adopting the OECD's Pillar Two, Both Worldwide and in the United States'",
+      "label": "Joint Committee on Taxation range"
+    }
+  },
+  "tariff-reciprocal": {
+    "policy_id": "reciprocal_tariffs",
+    "model_billions": -1655.3396012421058,
+    "subject": "Published scores of this reform",
+    "window": "",
+    "basis": "",
+    "caveat": "",
+    "estimates": [],
+    "range": {
+      "low_billions": -1800.0,
+      "high_billions": -1400.0,
+      "source_name": "Committee for a Responsible Federal Budget",
+      "source_document": "Committee for a Responsible Federal Budget, 'How Much Will Trump's New Tariffs Raise?'",
+      "label": "Committee for a Responsible Federal Budget range"
+    }
+  }
+}
