@@ -151,10 +151,21 @@ export type EvidenceSummary = {
   error_mass?: number;
 };
 
+/** One out-of-sample prediction beside the published score it is checked against. */
+export type OutOfSampleRow = {
+  policy_id: string;
+  class: string;
+  model: number;
+  published: number;
+  error: number;
+};
+
 /** site_data/validation/evidence.json: the validation figures every page quotes. */
 export type Evidence = {
   out_of_sample: EvidenceSummary;
   out_of_sample_classes: Record<string, EvidenceSummary & { label: string }>;
+  /** One point per out-of-sample row: signed model and published ten-year totals, $B. */
+  out_of_sample_rows: OutOfSampleRow[];
   calibrated: {
     fitted: EvidenceSummary;
     fitted_held_in_place: EvidenceSummary;
