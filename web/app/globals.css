@@ -534,3 +534,9 @@ details.numbers table { margin-top: 8px; }
 .buildlist { position: relative; }
 .inlineskip:focus { left: 0; top: -40px; }
 #your-package:focus { outline: none; }
+
+/* Out-of-sample scatter on /methods (plan C3). */
+.oosscatter { margin: 16px 0 24px; }
+.oosscatter-key { list-style: none; padding: 0; margin: 8px 0 4px; display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--label); font-size: 13px; color: var(--muted); }
+.oosscatter-key li { display: inline-flex; align-items: center; gap: 6px; }
+.oosscatter .source { font-family: var(--label); font-size: 13px; color: var(--muted); margin: 0; }

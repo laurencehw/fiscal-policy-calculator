@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { evidence, scorecardEntries, tierOf, type Tier } from "@/lib/data";
 import { money } from "@/lib/format";
+import OutOfSampleScatter from "@/components/OutOfSampleScatter";
 import type { EvidenceSummary, ScorecardEntry } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -189,6 +190,11 @@ export default function Methods() {
             </tbody>
           </table>
         </div>
+        <p>
+          The chart puts each of those predictions beside its published score. A point on the dashed line is exact,
+          and the further a point sits from the line, the larger the gap.
+        </p>
+        <OutOfSampleScatter ev={ev} />
         <h3>Reconstructions of published scores</h3>
         <p>
           For {cal.fitted.n} policies I fitted a constant in the relevant module so that the model reproduces the
