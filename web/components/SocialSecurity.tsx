@@ -158,7 +158,7 @@ export function SocialSecurityMenu({ data }: { data: SSData }) {
             <p className="units">Reserves at the start of each year as a percent of that year&apos;s cost</p>
             <div className="plot" role="img" aria-label="Trust fund ratio by year, current law and your plan">
               <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={chart} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <LineChart accessibilityLayer={false} data={chart} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
                   <CartesianGrid stroke="var(--grid)" vertical={false} />
                   <XAxis dataKey="year" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} interval={9} />
                   <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={44} tickFormatter={(v: number) => `${v}%`} />
@@ -202,6 +202,30 @@ export function SocialSecurityMenu({ data }: { data: SSData }) {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+            <details className="numbers">
+              <summary>The numbers in this chart</summary>
+              <div className="tablewrap">
+                <table className="sheet">
+                  <caption className="sr-only">Trust fund ratio by year, percent of the year&apos;s cost</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Year</th>
+                      <th scope="col">Current law</th>
+                      {selected.length ? <th scope="col">Your plan</th> : null}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chart.map((row) => (
+                      <tr key={row.year}>
+                        <th scope="row">{row.year}</th>
+                        <td>{row.law}%</td>
+                        {selected.length ? <td>{row.plan}%</td> : null}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
           </section>
         </div>
       </div>

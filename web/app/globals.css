@@ -500,3 +500,37 @@ button.linkish { font: inherit; background: none; border: 0; padding: 0; color: 
 .policystrip-label { color: var(--muted); }
 .policystrip-home { margin-left: auto; }
 @media (max-width: 560px) { .policystrip-home { margin-left: 0; } }
+/* U9: accessibility and phone pass. */
+.explorelist .exploresection h2 { font: inherit; letter-spacing: inherit; color: inherit; margin: 0; }
+details.numbers { font-family: var(--label); font-size: 13px; color: var(--muted); }
+details.numbers summary { cursor: pointer; }
+details.numbers table { margin-top: 8px; }
+/* Phone: every primary control is a 44px target (WCAG 2.5.5). Text links inside
+   sentences keep their size; buttons, fields, disclosure toggles and action rows grow. */
+@media (max-width: 720px) {
+  main button,
+  main select,
+  main input[type="search"],
+  main input[type="text"],
+  main input[type="number"],
+  main input[type="email"],
+  main summary,
+  main .actions a,
+  .menu button,
+  .mobilemenu button {
+    min-height: 44px;
+  }
+  main button,
+  main summary,
+  main .actions a {
+    display: inline-flex;
+    align-items: center;
+  }
+  main summary { display: flex; }
+  main label:has(> input[type="radio"]) { min-height: 44px; display: flex; align-items: center; }
+  main .actions { gap: 0 20px; }
+  main .foot { align-items: center; }
+}
+.buildlist { position: relative; }
+.inlineskip:focus { left: 0; top: -40px; }
+#your-package:focus { outline: none; }

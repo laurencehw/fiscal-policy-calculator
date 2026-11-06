@@ -11,7 +11,7 @@ export function YearChart({ rows, label, plotId }: { rows: Row[]; label: string;
   return (
     <div className="plot" id={plotId} role="img" aria-label={label}>
       <ResponsiveContainer width="100%" height={260}>
-        <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }} barCategoryGap="24%">
+        <BarChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }} barCategoryGap="24%">
           <CartesianGrid stroke="var(--grid)" vertical={false} />
           <XAxis dataKey="year" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} interval="preserveStartEnd" minTickGap={8} />
           <YAxis

@@ -205,6 +205,9 @@ export function PackageBuilder({
     ) : null}
     <div className="builder">
       <div className="buildlist">
+        <a className="skip inlineskip" href="#your-package">
+          Skip the list to your package
+        </a>
         {areas.map((area) => (
           <fieldset key={area}>
             <legend>{area}</legend>

@@ -161,7 +161,7 @@ function Result({ r }: { r: OlgResult }) {
         </div>
         <div className="plot" role="img" aria-label={`${meta[1]}, change from baseline, ${r.years[0]} to ${r.years[r.years.length - 1]}`}>
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+            <LineChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
               <CartesianGrid stroke="var(--grid)" vertical={false} />
               <XAxis dataKey="year" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} minTickGap={24} />
               <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => `${v.toFixed(1)}${meta[2]}`} />
@@ -237,7 +237,7 @@ function Welfare({ rows, start }: { rows: { born: number; pct: number }[]; start
       </div>
       <div className="plot" role="img" aria-label="Welfare change by year of birth">
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+          <BarChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
             <CartesianGrid stroke="var(--grid)" vertical={false} />
             <XAxis dataKey="born" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} minTickGap={24} />
             <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => `${v.toFixed(1)}%`} />
@@ -300,7 +300,7 @@ function Accounts({ a }: { a: NonNullable<OlgResult["accounts"]> }) {
       </div>
       <div className="plot" role="img" aria-label="Change in remaining lifetime net taxes by current age">
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={a.by_age} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+          <BarChart accessibilityLayer={false} data={a.by_age} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
             <CartesianGrid stroke="var(--grid)" vertical={false} />
             <XAxis dataKey="age" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} minTickGap={16} />
             <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => v.toFixed(2)} />

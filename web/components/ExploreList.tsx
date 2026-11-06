@@ -101,7 +101,7 @@ export function ExploreList({
         {groups.flatMap((group) => [
           group.area ? (
             <li key={group.area} className="exploresection">
-              {group.area}
+              <h2>{group.area}</h2>
             </li>
           ) : null,
           ...group.rows.map((row) => (

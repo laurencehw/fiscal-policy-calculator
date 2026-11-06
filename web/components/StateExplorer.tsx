@@ -57,7 +57,7 @@ export function StateExplorer({ data }: { data: StatesData }) {
         </div>
         <div className="plot" role="img" aria-label={`Federal, state and combined effective income tax rates by income in ${s.name}`}>
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+            <LineChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
               <CartesianGrid stroke="var(--grid)" vertical={false} />
               <XAxis dataKey="agi" scale="log" domain={["dataMin", "dataMax"]} type="number" tickFormatter={incomeTick} tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} />
               <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={44} tickFormatter={(v: number) => `${v}%`} />

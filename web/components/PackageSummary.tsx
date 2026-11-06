@@ -36,7 +36,7 @@ export const PackageSummary = forwardRef<HTMLParagraphElement, Props>(function P
   const { rows: list, scale } = contributions(rows, selected);
   const progress = target ? towardTarget(sum, target.gapBillions) : null;
   return (
-    <aside className={`buildtotal summary${open ? " open" : ""}`} aria-label="Your package">
+    <aside className={`buildtotal summary${open ? " open" : ""}`} aria-label="Your package" id="your-package" tabIndex={-1}>
       <div className="summarynotice" aria-live="polite">
         {notice ? (
           <p className="note" ref={noticeRef} tabIndex={-1}>
