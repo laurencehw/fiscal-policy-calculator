@@ -256,6 +256,44 @@ def fdii_income_billions() -> float:
     )
 
 
+#: IRS SOI's TY2021 Form 8992 / Form 8993 headline figures: corporate GILTI and
+#: its section 250 deduction. The sourced GILTI base lane B5 asked for. See the
+#: file's own header and ``planning/lanes/B5_corporate_anchor_scope.md``.
+SOI_GILTI_FILE = (
+    Path(__file__).parent
+    / "data_files"
+    / "international"
+    / "soi_gilti_section250_ty2021.csv"
+)
+
+
+@lru_cache(maxsize=1)
+def soi_gilti_base() -> dict[str, float]:
+    """The transcribed SOI GILTI / section 250 figures, keyed as in the file.
+
+    Read only by documentation, tests and ``scripts/corporate_marginal_share.py``
+    style reports. **No scoring path reads it**: lane B5 found that net GILTI is
+    already inside SOI Table 11's "income subject to tax", the base the derived
+    corporate rate channel prices, so adding it to a rate-change score would
+    count it twice.
+    """
+    with SOI_GILTI_FILE.open(encoding="utf-8") as handle:
+        body = (line for line in handle if not line.startswith("#"))
+        return {row["key"]: float(row["value"]) for row in csv.DictReader(body)}
+
+
+def net_gilti_in_taxable_income_lower_bound_billions() -> float:
+    """Net GILTI inside corporate taxable income, TY2021, as a lower bound.
+
+    Taxable income carries ``GILTI + gross-up - section 250 deduction``. The
+    gross-up attributable to GILTI is not printed in the headline figures but
+    is non-negative, so ``GILTI - deduction`` bounds the net amount from below:
+    $607B - $311B = $296B.
+    """
+    data = soi_gilti_base()
+    return data["gilti_inclusion_billions"] - data["section_250_gilti_deduction_billions"]
+
+
 def _blended_gilti_claims(
     rows: tuple[ForeignProfitRow, ...],
     gilti_rate: float,
