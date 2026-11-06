@@ -67,12 +67,16 @@ def test_hours_scale_by_the_share():
 
 
 def test_the_reference_policy_lands_on_its_preregistered_figures():
-    """+2.6pp above $400K: final -$86.1B -> -$206.4B, feedback -$216.1B -> -$95.9B."""
+    """+2.6pp above $400K: final -$86.1B -> -$206.4B, feedback -$216.1B -> -$95.9B.
+
+    Re-pinned after lane B2a aged the SOI base on CBO's taxable-income path
+    (+2.49% on the static path): final -$213.0B, feedback -$96.7B, static -$354.0B.
+    """
     scorer = FiscalPolicyScorer(start_year=APP_DEFAULT_START_YEAR)
     result = scorer.score_policy(_tax(0.026, 400_000), dynamic=True)
-    assert float(np.sum(result.final_deficit_effect)) == pytest.approx(-206.36, abs=0.1)
-    assert float(np.sum(result.dynamic_effects.revenue_feedback)) == pytest.approx(-95.87, abs=0.1)
-    assert float(np.sum(result.static_deficit_effect)) == pytest.approx(-345.41, abs=0.1)
+    assert float(np.sum(result.final_deficit_effect)) == pytest.approx(-213.03, abs=0.1)
+    assert float(np.sum(result.dynamic_effects.revenue_feedback)) == pytest.approx(-96.73, abs=0.1)
+    assert float(np.sum(result.static_deficit_effect)) == pytest.approx(-354.01, abs=0.1)
 
 
 def test_a_zero_threshold_rate_change_is_unweighted():

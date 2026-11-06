@@ -1280,6 +1280,27 @@ def agi_income_column_caption(policy: Any, result: Any) -> str:
     if total == 0.0:
         return ""
     previous = total / ratio
+    # Since lane B2a the column also picks the projection series (CBO's AGI path
+    # rather than its taxable-income path), so undoing the column undoes that
+    # year by year too - the taxable column was aged on taxable income.
+    baseline = getattr(result, "baseline", None)
+    years = getattr(result, "years", None)
+    soi_year = getattr(policy, "soi_base_tax_year", None)
+    if baseline is not None and years is not None and len(years) and soi_year is not None:
+        from fiscal_model.scoring_engine import income_base_ratio
+
+        path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+            result.behavioral_offset, dtype=float
+        )
+        swap = np.array(
+            [
+                income_base_ratio(baseline, int(soi_year), int(y), "taxable_income")
+                / income_base_ratio(baseline, int(soi_year), int(y), "agi")
+                for y in years
+            ]
+        )
+        if np.all(np.isfinite(swap)) and np.all(swap > 0):
+            previous = float(np.sum(path * swap)) / ratio
 
     return (
         f"Income column: the base is **AGI itself**, not taxable income, because "
@@ -1334,13 +1355,12 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
     years = getattr(result, "years", None)
     if baseline is None or years is None or len(years) == 0:
         return ""
-    index = getattr(baseline, "nominal_income_index", None)
-    if index is None:
+    if getattr(baseline, "nominal_income_index", None) is None:
         return ""
 
-    anchor = float(index(int(soi_year)))
-    if anchor <= 0:
-        return ""
+    from fiscal_model.scoring_engine import cbo_income_ratio, income_base_ratio
+
+    measure = getattr(policy, "income_measure", None)
 
     # The conventional path, for the reason in the docstring: it is the one the
     # projection is linear in, and on a static run it is final_deficit_effect
@@ -1348,7 +1368,18 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
     path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
         result.behavioral_offset, dtype=float
     )
-    factors = np.array([float(index(int(year))) / anchor for year in years])
+    # The ratio the scorer itself applied (one function for both, so this
+    # caption cannot explain a number the engine did not compute).
+    factors = np.array(
+        [income_base_ratio(baseline, int(soi_year), int(year), measure) for year in years]
+    )
+    on_cbo_path = cbo_income_ratio(baseline, int(soi_year), int(years[0]), measure) > 0
+    path_name = (
+        f"CBO's own projection of {'AGI' if measure == 'agi' else 'taxable income'} "
+        f"for this baseline's vintage"
+        if on_cbo_path
+        else "this baseline's own nominal path"
+    )
     if not np.all(factors > 0) or np.allclose(factors, 1.0):
         return ""
 
@@ -1362,8 +1393,8 @@ def income_base_projection_caption(policy: Any, result: Any) -> str:
         f"Base year: the filer counts and incomes behind this score are IRS SOI "
         f"tax year {int(soi_year)}, and they are projected onto each year being "
         f"scored — {factors[0]:.3f}× in FY{first} rising to {factors[-1]:.3f}× in "
-        f"FY{last}, {factors.mean():.3f}× on the window average, off this "
-        f"baseline's own nominal path. Held at TY{int(soi_year)} across all ten "
+        f"FY{last}, {factors.mean():.3f}× on the window average, off "
+        f"{path_name}. Held at TY{int(soi_year)} across all ten "
         rf"years, as a flat base, it would score {format_money(previous, escape=True)} rather than "
         rf"the {format_money(total, escape=True)} above. The index is the baseline's, not a "
         f"constant, so a run on a different vintage or window projects "
@@ -1478,6 +1509,66 @@ def statutory_threshold_caption(policy: Any, result: Any) -> str:
     )
 
 
+def cbo_income_path_caption(policy: Any, result: Any) -> str:
+    """Decision 6 for B2a: the base is aged on CBO's own income projection now.
+
+    Until lane B2a (``planning/lanes/B2a_cbo_income_path.md``) the SOI base was
+    projected onto each scored year with the vintage's nominal-GDP index. It is
+    now projected with CBO's own projection of the base itself - taxable income,
+    or AGI for a surtax stated on AGI - from CBO's *Revenue Projections, by
+    Category* on the same vintage. On the app's February 2026 vintage that moved
+    every SOI-based ordinary-rate preset by about +2.5% (AGI presets +3.0%).
+
+    The old figure is **computed**, never stored: the conventional path divided
+    by the factor the scorer applied and multiplied by the GDP factor, which is
+    exact because every year's contribution is linear in its own factor. It
+    quotes the conventional score (``static + behavioral``) for the reason
+    :func:`income_base_projection_caption` gives.
+
+    Returns ``""`` for a policy whose base did not come from SOI, a baseline
+    with no CBO projection, and whenever the two paths agree.
+    """
+    if not isinstance(policy, TaxPolicy) or isinstance(policy, CapitalGainsPolicy):
+        return ""
+    soi_year = getattr(policy, "soi_base_tax_year", None)
+    if soi_year is None:
+        return ""
+    baseline = getattr(result, "baseline", None)
+    years = getattr(result, "years", None)
+    if baseline is None or years is None or len(years) == 0:
+        return ""
+    if getattr(baseline, "nominal_income_index", None) is None:
+        return ""
+
+    from fiscal_model.scoring_engine import cbo_income_ratio, nominal_gdp_ratio
+
+    measure = getattr(policy, "income_measure", None)
+    cbo = np.array([cbo_income_ratio(baseline, int(soi_year), int(y), measure) for y in years])
+    if not np.all(cbo > 0):
+        return ""
+    gdp = np.array([nominal_gdp_ratio(baseline, int(soi_year), int(y)) for y in years])
+    if np.allclose(cbo, gdp, rtol=1e-6):
+        return ""
+
+    path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
+        result.behavioral_offset, dtype=float
+    )
+    total = float(path.sum())
+    previous = float(np.sum(path / cbo * gdp))
+    if total == 0.0 or previous == 0.0:
+        return ""
+    shift = (total - previous) / abs(previous) * 100.0
+    series = "AGI" if measure == "agi" else "taxable income"
+    return (
+        f"Base path: the tax-year {int(soi_year)} base is now aged on CBO's own "
+        f"projection of {series} for this baseline's vintage, "
+        f"{cbo.mean():.4f}× on the window average, rather than on nominal GDP's "
+        rf"{gdp.mean():.4f}×. On the GDP path this policy scored "
+        rf"{format_money(previous, escape=True)}; it now scores "
+        rf"{format_money(total, escape=True)}, a {shift:+.2f}% move."
+    )
+
+
 def cbo_baseline_transcription_caption(policy: Any, result: Any) -> str:
     """Decision 6 for R1: the baseline under this score is CBO's own table now.
 
@@ -1531,6 +1622,17 @@ def cbo_baseline_transcription_caption(policy: Any, result: Any) -> str:
         return ""
     index = getattr(baseline, "nominal_income_index", None)
     if index is None:
+        return ""
+
+    from fiscal_model.scoring_engine import cbo_income_ratio
+
+    # Since lane B2a the base is aged on CBO's own income projection wherever
+    # the vintage has one, so the GDP-path correction this caption states no
+    # longer reaches the number above; :func:`cbo_income_path_caption` states
+    # the move that replaced it.
+    if cbo_income_ratio(
+        baseline, int(soi_year), int(years[0]), getattr(policy, "income_measure", None)
+    ) > 0:
         return ""
 
     vintage = _result_vintage(result)
@@ -2420,6 +2522,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     threshold_note = statutory_threshold_caption(policy, result)
     if threshold_note:
         st_module.caption(threshold_note)
+    income_path_note = cbo_income_path_caption(policy, result)
+    if income_path_note:
+        st_module.caption(income_path_note)
     transcription_note = cbo_baseline_transcription_caption(policy, result)
     if transcription_note:
         st_module.caption(transcription_note)

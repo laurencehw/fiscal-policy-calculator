@@ -343,14 +343,17 @@ def test_the_millionaire_surtax_says_its_base_is_a_design_choice():
 #: the SOI base onto the years being scored, and **1.029683x** those again since
 #: ``planning/lanes/R1_baseline_transcription.md`` replaced the reconstructed
 #: February 2026 GDP path with CBO's own published one, which ages the base
-#: 1.3963x across FY2026-2035 rather than 1.3560x. The ratio between the two
+#: 1.3963x across FY2026-2035 rather than 1.3560x, and since lane B2a
+#: (``planning/lanes/B2a_cbo_income_path.md``) by 1.024915x again (1.030172x for
+#: the Warren surtax, read on AGI): the base is aged on CBO's own taxable-income
+#: (or AGI) projection instead of nominal GDP. The ratio between the two
 #: halves - the only thing this caption is about - is untouched by either: the
 #: projection multiplies the finished annual and the ordinary-income share
 #: multiplies the base, so the two commute.
 CAPTION_MOVES = {
-    "Warren Ultra-Millionaire Surtax": (-187.951449, -395.792194),
-    "High-Earner Medicare Surcharge 2pp": (-232.472418, -439.315472),
-    "Progressive Millionaire Tax": (-495.180000, -904.920081),
+    "Warren Ultra-Millionaire Surtax": (-193.622374, -407.734150),
+    "High-Earner Medicare Surcharge 2pp": (-238.264570, -450.261209),
+    "Progressive Millionaire Tax": (-507.517626, -927.466560),
 }
 
 #: What each of them actually scores now. It equals ``CAPTION_MOVES[...][1]``
@@ -365,9 +368,9 @@ CAPTION_MOVES = {
 #: total this tree produces. The alternative, each caption claiming the whole
 #: gap, would print two different "used to print" numbers for one preset.
 SCORED_TOTALS = {
-    "Warren Ultra-Millionaire Surtax": -469.570050,
-    "High-Earner Medicare Surcharge 2pp": -439.315472,
-    "Progressive Millionaire Tax": -904.920081,
+    "Warren Ultra-Millionaire Surtax": -483.738053,
+    "High-Earner Medicare Surcharge 2pp": -450.261209,
+    "Progressive Millionaire Tax": -927.466560,
 }
 
 

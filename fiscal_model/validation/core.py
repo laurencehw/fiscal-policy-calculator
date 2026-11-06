@@ -413,12 +413,23 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
     "cbo2021_opt1_top4_brackets_1pp": [
         "Two causes, both stated. CBO's 2020 edition prices this reform "
         "*below* its 2018 edition ($203.3B against $222.9B) on the "
-        "pandemic-depressed September 2020 baseline, which a base growing "
-        "monotonically with CBO's February 2024 nominal path cannot "
-        "reproduce. And the boundary is read from CBO's own statutory "
+        "pandemic-depressed September 2020 baseline, which a base aged on "
+        "CBO's June 2024 income projection (the nearest edition to February "
+        "2024; lane B2a) cannot reproduce. And the boundary is read from CBO's own statutory "
         "schedule, which begins in CY2021 on this vintage, so the option's own "
         "CY2021 floors are applied for the whole window rather than the "
         "schedule's later re-indexation being anticipated.",
+    ],
+    "cbo2021_opt1_top2_brackets_1pp": [
+        "Scored on CBO's February 2024 vintage and, since lane B2a, aged on "
+        "CBO's June 2024 taxable-income projection (graded nearest_vintage): "
+        "the 2020 volume's own September 2020 baseline income detail (CBO "
+        "publication 51138 archives) is not transcribed. The window straddles "
+        "the SOI anchor year, and on the top two brackets the re-indexed "
+        "threshold moves against the base factor, so B2a took this row 19.9% "
+        "-> 21.2%, outside its registered band (a recorded miss). As the "
+        "top-four row: CBO's 2020 edition sits on a pandemic-depressed "
+        "baseline the model's base cannot reproduce.",
     ],
     "biden_ctc_2021": [
         "Credit eligibility and refundability are modeled with synthetic tax units rather than CPS ASEC microdata.",

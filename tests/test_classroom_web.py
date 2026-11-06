@@ -41,12 +41,14 @@ def test_the_index_lists_every_assignment_with_counts_by_level():
 
 
 def test_a_model_answer_is_checked_at_the_students_own_settings():
-    right = check_exercise("laffer_curve", "laffer_ug_ex1", {}, -266.0)
+    # The model answer moved -$265.7B -> -$272.3B in lane B2a (base aged on
+    # CBO's taxable-income path, planning/lanes/B2a_cbo_income_path.md).
+    right = check_exercise("laffer_curve", "laffer_ug_ex1", {}, -272.0)
     assert right["correct"] and right["unit"] == "$B"
     assert "Key insight" not in right["feedback"]
     wrong = check_exercise("laffer_curve", "laffer_ug_ex1", {}, -100.0)
     assert not wrong["correct"]
-    assert "-$265.7B" in wrong["feedback"]
+    assert "-$272.3B" in wrong["feedback"]
 
 
 def test_sliders_are_held_to_their_range_and_unknown_names_are_dropped():

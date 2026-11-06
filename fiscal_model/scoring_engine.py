@@ -4,6 +4,7 @@ Fiscal policy scoring engine.
 
 import logging
 from collections.abc import Callable
+from typing import Any
 
 import numpy as np
 
@@ -38,6 +39,76 @@ from .tax_expenditures import TaxExpenditurePolicy
 from .tcja import TCJAExtensionPolicy
 
 logger = logging.getLogger(__name__)
+
+_INCOME_INDEX_FALLBACKS_LOGGED: set[tuple[str, str]] = set()
+
+
+def _log_income_index_fallback(vintage_key: str, series: str) -> None:
+    """Say, once per vintage and series, that the GDP index stood in."""
+    key = (str(vintage_key), str(series))
+    if key in _INCOME_INDEX_FALLBACKS_LOGGED:
+        return
+    _INCOME_INDEX_FALLBACKS_LOGGED.add(key)
+    logger.info(
+        "No CBO %s projection for baseline vintage %r; the SOI income base is "
+        "projected on the vintage's nominal-GDP index instead.",
+        series,
+        vintage_key or "(none)",
+    )
+
+
+def cbo_income_ratio(
+    baseline: Any, from_year: int, to_year: int, income_measure: str | None = None
+) -> float:
+    """CBO's own income-base growth between two years on ``baseline``, or 0.0.
+
+    ``0.0`` means the baseline carries no CBO projection of this base (a
+    hand-built projection, or a vintage with no transcribed edition), which is
+    the signal :func:`income_base_ratio` falls back to the GDP index on.
+    """
+    from . import cbo_income_detail
+
+    income_index = getattr(baseline, "income_base_index", None)
+    if income_index is None:
+        return 0.0
+    series = cbo_income_detail.series_for_income_measure(income_measure)
+    anchor = income_index(int(from_year), series)
+    scored = income_index(int(to_year), series)
+    if anchor > 0 and scored > 0:
+        return float(scored / anchor)
+    return 0.0
+
+
+def nominal_gdp_ratio(baseline: Any, from_year: int, to_year: int) -> float:
+    """The vintage's nominal-GDP index between two years, or 1.0 without one."""
+    anchor = baseline.nominal_income_index(int(from_year))
+    if anchor <= 0:
+        return 1.0
+    scored = baseline.nominal_income_index(int(to_year))
+    if scored <= 0:
+        return 1.0
+    return float(scored / anchor)
+
+
+def income_base_ratio(
+    baseline: Any, from_year: int, to_year: int, income_measure: str | None = None
+) -> float:
+    """The growth factor the scorer applies to an SOI base between two years.
+
+    One function, so the scorer and every caption that explains its number read
+    the same ratio. CBO's own projection of the base where the vintage has one
+    (lane B2a), else the vintage's nominal-GDP index exactly as before, logged.
+    """
+    ratio = cbo_income_ratio(baseline, from_year, to_year, income_measure)
+    if ratio > 0:
+        return ratio
+    from . import cbo_income_detail
+
+    _log_income_index_fallback(
+        getattr(baseline, "baseline_vintage_key", ""),
+        cbo_income_detail.series_for_income_measure(income_measure),
+    )
+    return nominal_gdp_ratio(baseline, from_year, to_year)
 
 
 class FiscalPolicyScorer:
@@ -389,22 +460,28 @@ class FiscalPolicyScorer:
         soi_year = getattr(policy, "soi_base_tax_year", None)
         if soi_year is None:
             return 1.0
-        return self._nominal_income_ratio(int(soi_year), year)
+        return self._nominal_income_ratio(
+            int(soi_year), year, getattr(policy, "income_measure", None)
+        )
 
-    def _nominal_income_ratio(self, from_year: int, to_year: int) -> float:
-        """This baseline's own nominal-income index between two years, or 1.0.
+    def _nominal_income_ratio(
+        self, from_year: int, to_year: int, income_measure: str | None = None
+    ) -> float:
+        """Growth of the policy's income base between two years, or 1.0.
 
         The one place the ratio is formed, so the base projection and the
         threshold deflator cannot drift apart - they are the two halves of one
         unit conversion and a discrepancy between them would be silent.
+
+        Since lane B2a (``planning/lanes/B2a_cbo_income_path.md``) the ratio is
+        **CBO's own projection of the base**, on the scored vintage's edition:
+        ``rev_iit_taxable_income`` for a policy on taxable income (the default)
+        and ``rev_iit_agi`` for one whose ``income_measure`` is AGI - see
+        :meth:`fiscal_model.baseline.BaselineProjection.income_base_index`.
+        Where the vintage has no such projection (a hand-built baseline), the
+        vintage's nominal-GDP index is used exactly as before, and logged.
         """
-        anchor = self.baseline.nominal_income_index(int(from_year))
-        if anchor <= 0:
-            return 1.0
-        scored = self.baseline.nominal_income_index(int(to_year))
-        if scored <= 0:
-            return 1.0
-        return float(scored / anchor)
+        return income_base_ratio(self.baseline, from_year, to_year, income_measure)
 
     def _threshold_deflator(self, policy: TaxPolicy, year: int) -> float:
         """Converts a threshold stated in ``year``'s dollars into SOI-year dollars.
@@ -426,7 +503,9 @@ class FiscalPolicyScorer:
         soi_year = policy.resolve_soi_base_tax_year()
         if soi_year is None:
             return 1.0
-        return self._nominal_income_ratio(int(soi_year), year)
+        return self._nominal_income_ratio(
+            int(soi_year), year, getattr(policy, "income_measure", None)
+        )
 
     def _score_growth_tax_policy_year(
         self,
