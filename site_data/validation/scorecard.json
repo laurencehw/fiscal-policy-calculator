@@ -1,22 +1,22 @@
 {
   "total_entries": 99,
-  "within_5pct": 28,
-  "within_10pct": 39,
+  "within_5pct": 27,
+  "within_10pct": 40,
   "within_15pct": 52,
   "within_20pct": 57,
   "direction_match": 99,
   "poor": 42,
-  "mean_abs_percent_difference": 31.244726425896726,
-  "median_abs_percent_difference": 13.974830927233118,
+  "mean_abs_percent_difference": 31.211524020586282,
+  "median_abs_percent_difference": 13.938779896720838,
   "calibrated_entries": 55,
   "generic_entries": 44,
   "holdout_entries": 10,
   "validation_note": "Scorecard entries are published-score benchmark comparisons. The post-lock holdout protocol revenue-scorecard-post-lock-2026-05-02 was locked on 2026-05-02; holdout labels are future regression checkpoints, not retroactive historical out-of-sample claims.",
   "ratings_breakdown": {
-    "Excellent": 28,
-    "Acceptable": 18,
+    "Excellent": 27,
+    "Acceptable": 17,
     "Poor": 42,
-    "Good": 11
+    "Good": 13
   },
   "provenance_breakdown": {
     "line_item": 80,
@@ -43,7 +43,7 @@
   "by_category": {
     "TCJA": {
       "n": 3,
-      "mean_abs_percent_difference": 19.538884528100862,
+      "mean_abs_percent_difference": 19.53888452810086,
       "within_15pct": 2,
       "ratings": {
         "Excellent": 1,
@@ -179,13 +179,13 @@
     },
     "Generic": {
       "n": 44,
-      "mean_abs_percent_difference": 15.189741787659607,
+      "mean_abs_percent_difference": 15.115036375711107,
       "within_15pct": 26,
       "ratings": {
         "Poor": 13,
-        "Excellent": 12,
-        "Acceptable": 13,
-        "Good": 6
+        "Excellent": 11,
+        "Acceptable": 12,
+        "Good": 8
       }
     }
   },
@@ -199,10 +199,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024-05",
       "benchmark_url": "https://www.cbo.gov/publication/60271",
-      "model_10yr_billions": 4581.937589425782,
-      "difference_billions": -18.06241057421812,
-      "percent_difference": -0.3926610994395244,
-      "abs_percent_difference": 0.3926610994395244,
+      "model_10yr_billions": 4581.937589425783,
+      "difference_billions": -18.06241057421721,
+      "percent_difference": -0.3926610994395046,
+      "abs_percent_difference": 0.3926610994395046,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [
@@ -2363,10 +2363,10 @@
       "benchmark_kind": "Published administration estimate",
       "benchmark_date": "2024-03",
       "benchmark_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
-      "model_10yr_billions": -299.84475953189826,
-      "difference_billions": -53.94475953189826,
-      "percent_difference": -21.93768179418392,
-      "abs_percent_difference": 21.93768179418392,
+      "model_10yr_billions": -306.8401053797076,
+      "difference_billions": -60.9401053797076,
+      "percent_difference": -24.782474737579342,
+      "abs_percent_difference": 24.782474737579342,
       "rating": "Poor",
       "direction_match": true,
       "known_limitations": [
@@ -2485,10 +2485,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2022-12",
       "benchmark_url": "https://www.cbo.gov/publication/58164",
-      "model_10yr_billions": -1235.673486093728,
-      "difference_billions": -154.37348609372793,
-      "percent_difference": -14.276656440740584,
-      "abs_percent_difference": 14.276656440740584,
+      "model_10yr_billions": -1264.5016150351453,
+      "difference_billions": -183.20161503514532,
+      "percent_difference": -16.942718490256667,
+      "abs_percent_difference": 16.942718490256667,
       "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [
@@ -2526,10 +2526,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024-12",
       "benchmark_url": "https://www.cbo.gov/publication/60557",
-      "model_10yr_billions": -1201.2435858424117,
-      "difference_billions": -15.943585842411721,
-      "percent_difference": -1.3451097479466567,
-      "abs_percent_difference": 1.3451097479466567,
+      "model_10yr_billions": -1132.0010905484437,
+      "difference_billions": 53.298909451556256,
+      "percent_difference": 4.496659871050052,
+      "abs_percent_difference": 4.496659871050052,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [
@@ -2566,11 +2566,11 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024-12",
       "benchmark_url": "https://www.cbo.gov/publication/60557",
-      "model_10yr_billions": -671.2128510336707,
-      "difference_billions": -101.71285103367074,
-      "percent_difference": -17.860026520398726,
-      "abs_percent_difference": 17.860026520398726,
-      "rating": "Acceptable",
+      "model_10yr_billions": -614.6312666495394,
+      "difference_billions": -45.131266649539384,
+      "percent_difference": -7.924717585520524,
+      "abs_percent_difference": 7.924717585520524,
+      "rating": "Good",
       "direction_match": true,
       "known_limitations": [
         "The filing-status boundary is now the option's own: joint returns and surviving spouses face the 2025 24%-bracket floor of $206,700 and every other status $103,350 (IRS Rev. Proc. 2024-40 section 2.01, tables 1-4). That took the row from a 17.9% OVER-prediction to a 12.4% under-prediction - it removed 25.7% of the base, which was more than the gap.",
@@ -2608,10 +2608,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024-12",
       "benchmark_url": "https://www.cbo.gov/publication/60557",
-      "model_10yr_billions": -1326.3080457212852,
-      "difference_billions": 113.79195427871468,
-      "percent_difference": 7.9016703200274065,
-      "abs_percent_difference": 7.9016703200274065,
+      "model_10yr_billions": -1322.307428481447,
+      "difference_billions": 117.7925715185529,
+      "percent_difference": 8.17947166992243,
+      "abs_percent_difference": 8.17947166992243,
       "rating": "Good",
       "direction_match": true,
       "known_limitations": [
@@ -2651,10 +2651,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024-12",
       "benchmark_url": "https://www.cbo.gov/publication/60557",
-      "model_10yr_billions": -1075.8472774013044,
-      "difference_billions": -24.847277401304382,
-      "percent_difference": -2.364155794605555,
-      "abs_percent_difference": 2.364155794605555,
+      "model_10yr_billions": -1072.602139004316,
+      "difference_billions": -21.602139004316086,
+      "percent_difference": -2.055389058450627,
+      "abs_percent_difference": 2.055389058450627,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [
@@ -3129,10 +3129,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2018-12",
       "benchmark_url": "https://www.cbo.gov/publication/54667",
-      "model_10yr_billions": -912.6780850135895,
-      "difference_billions": -7.278085013589475,
-      "percent_difference": -0.803852994653134,
-      "abs_percent_difference": 0.803852994653134,
+      "model_10yr_billions": -930.461491100205,
+      "difference_billions": -25.06149110020499,
+      "percent_difference": -2.7680021095874743,
+      "abs_percent_difference": 2.7680021095874743,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [],
@@ -3165,10 +3165,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2018-12",
       "benchmark_url": "https://www.cbo.gov/publication/54667",
-      "model_10yr_billions": -250.6747761785035,
-      "difference_billions": -27.774776178503487,
-      "percent_difference": -12.460644315165315,
-      "abs_percent_difference": 12.460644315165315,
+      "model_10yr_billions": -258.62767950285297,
+      "difference_billions": -35.727679502852965,
+      "percent_difference": -16.028568641925958,
+      "abs_percent_difference": 16.028568641925958,
       "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [
@@ -3203,11 +3203,11 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2018-12",
       "benchmark_url": "https://www.cbo.gov/publication/54667",
-      "model_10yr_billions": -124.35165708417239,
-      "difference_billions": -0.9516570841723819,
-      "percent_difference": -0.7711969887944748,
-      "abs_percent_difference": 0.7711969887944748,
-      "rating": "Excellent",
+      "model_10yr_billions": -129.83043070691636,
+      "difference_billions": -6.430430706916354,
+      "percent_difference": -5.2110459537409675,
+      "abs_percent_difference": 5.2110459537409675,
+      "rating": "Good",
       "direction_match": true,
       "known_limitations": [
         "As the four-bracket alternative: CY2019 and CY2020 are clamped to CY2021, the first year CBO's transcribed schedule covers on this vintage."
@@ -3393,10 +3393,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2020-12",
       "benchmark_url": "https://www.cbo.gov/publication/56783",
-      "model_10yr_billions": -1016.666237402122,
-      "difference_billions": -132.66623740212196,
-      "percent_difference": -15.007492918792078,
-      "abs_percent_difference": 15.007492918792078,
+      "model_10yr_billions": -1000.5338299042264,
+      "difference_billions": -116.53382990422642,
+      "percent_difference": -13.182559943917017,
+      "abs_percent_difference": 13.182559943917017,
       "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [],
@@ -3429,14 +3429,14 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2020-12",
       "benchmark_url": "https://www.cbo.gov/publication/56783",
-      "model_10yr_billions": -285.90115331634917,
-      "difference_billions": -82.60115331634915,
-      "percent_difference": -40.630178709468346,
-      "abs_percent_difference": 40.630178709468346,
+      "model_10yr_billions": -277.9716162267023,
+      "difference_billions": -74.67161622670227,
+      "percent_difference": -36.7297669585353,
+      "abs_percent_difference": 36.7297669585353,
       "rating": "Poor",
       "direction_match": true,
       "known_limitations": [
-        "Two causes, both stated. CBO's 2020 edition prices this reform *below* its 2018 edition ($203.3B against $222.9B) on the pandemic-depressed September 2020 baseline, which a base growing monotonically with CBO's February 2024 nominal path cannot reproduce. And the boundary is read from CBO's own statutory schedule, which begins in CY2021 on this vintage, so the option's own CY2021 floors are applied for the whole window rather than the schedule's later re-indexation being anticipated."
+        "Two causes, both stated. CBO's 2020 edition prices this reform *below* its 2018 edition ($203.3B against $222.9B) on the pandemic-depressed September 2020 baseline, which a base aged on CBO's June 2024 income projection (the nearest edition to February 2024; lane B2a) cannot reproduce. And the boundary is read from CBO's own statutory schedule, which begins in CY2021 on this vintage, so the option's own CY2021 floors are applied for the whole window rather than the schedule's later re-indexation being anticipated."
       ],
       "notes": "CBO Options 2021-2030 (pub. 56783), revenue option 1, second alternative (report p. 204): +$203.3B over FY2021-2030. The amounts are CBO's own CY2021 bracket-4 floors from the transcribed parameter schedule - the option's own first calendar year.",
       "provenance": "line_item",
@@ -3467,13 +3467,15 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2020-12",
       "benchmark_url": "https://www.cbo.gov/publication/56783",
-      "model_10yr_billions": -136.46412000070913,
-      "difference_billions": -22.664120000709133,
-      "percent_difference": -19.915746925051963,
-      "abs_percent_difference": 19.915746925051963,
-      "rating": "Acceptable",
+      "model_10yr_billions": -137.90301458729903,
+      "difference_billions": -24.10301458729903,
+      "percent_difference": -21.180153415904243,
+      "abs_percent_difference": 21.180153415904243,
+      "rating": "Poor",
       "direction_match": true,
-      "known_limitations": [],
+      "known_limitations": [
+        "Scored on CBO's February 2024 vintage and, since lane B2a, aged on CBO's June 2024 taxable-income projection (graded nearest_vintage): the 2020 volume's own September 2020 baseline income detail (CBO publication 51138 archives) is not transcribed. The window straddles the SOI anchor year, and on the top two brackets the re-indexed threshold moves against the base factor, so B2a took this row 19.9% -> 21.2%, outside its registered band (a recorded miss). As the top-four row: CBO's 2020 edition sits on a pandemic-depressed baseline the model's base cannot reproduce."
+      ],
       "notes": "CBO Options 2021-2030 (pub. 56783), revenue option 1, third alternative (report p. 204): +$113.8B over FY2021-2030. The smallest target in the battery, and the only row that prices the top two brackets alone.",
       "provenance": "line_item",
       "calibrated_to_target": true,
@@ -3655,11 +3657,11 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2022-12",
       "benchmark_url": "https://www.cbo.gov/publication/58164",
-      "model_10yr_billions": -621.4369473379159,
-      "difference_billions": -119.53694733791588,
-      "percent_difference": -23.81688530343014,
-      "abs_percent_difference": 23.81688530343014,
-      "rating": "Poor",
+      "model_10yr_billions": -583.5946221336886,
+      "difference_billions": -81.69462213368865,
+      "percent_difference": -16.27707155482938,
+      "abs_percent_difference": 16.27707155482938,
+      "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [
         "The same reform as cbo_opt45_top4_brackets_2pp on the previous decade, and it carries that row's limitation: the option's own text says 'the scheduled changes to the underlying tax brackets and rates would still take effect in 2026', which a single statutory bracket index cannot express. The pair is a measurement of the model's sensitivity to the decade (23.8% on FY2023-2032 against 17.9% on FY2025-2034), not two independent predictions."
@@ -3693,10 +3695,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2022-12",
       "benchmark_url": "https://www.cbo.gov/publication/58164",
-      "model_10yr_billions": -1325.727690573987,
-      "difference_billions": 3.372309426012862,
-      "percent_difference": 0.2537287958778769,
-      "abs_percent_difference": 0.2537287958778769,
+      "model_10yr_billions": -1329.0158524036192,
+      "difference_billions": 0.084147596380717,
+      "percent_difference": 0.006331171197104583,
+      "abs_percent_difference": 0.006331171197104583,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [],
@@ -3729,10 +3731,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2022-12",
       "benchmark_url": "https://www.cbo.gov/publication/58164",
-      "model_10yr_billions": -914.2897840639173,
-      "difference_billions": -140.48978406391734,
-      "percent_difference": -18.15582631996864,
-      "abs_percent_difference": 18.15582631996864,
+      "model_10yr_billions": -916.5574690421798,
+      "difference_billions": -142.75746904217988,
+      "percent_difference": -18.44888460095372,
+      "abs_percent_difference": 18.44888460095372,
       "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [],
@@ -3837,10 +3839,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2022-12",
       "benchmark_url": "https://www.cbo.gov/publication/58164",
-      "model_10yr_billions": -659.8906777842398,
-      "difference_billions": -8.490677784239779,
-      "percent_difference": -1.3034506884003345,
-      "abs_percent_difference": 1.3034506884003345,
+      "model_10yr_billions": -659.8906777842396,
+      "difference_billions": -8.490677784239665,
+      "percent_difference": -1.303450688400317,
+      "abs_percent_difference": 1.303450688400317,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [],
@@ -4631,7 +4633,7 @@
       "details": {
         "reason": "documented_or_generic_poor",
         "direction_match": true,
-        "abs_percent_difference": 21.93768179418392,
+        "abs_percent_difference": 24.782474737579342,
         "known_limitations": [
           "Scored on all four of the thresholds the Green Book prints (report p. 78): $450,000 joint and surviving spouses, $425,000 head of household, $400,000 unmarried, $225,000 married filing separately. This is the one row in the battery whose base GREW under the filing-status split - the separate-return floor is $175,000 BELOW the unmarried one, so those returns had been under-counted, not over-counted - and the row moved 12.0% to 9.2%.",
           "The thresholds are on taxable income and SOI's classes are on AGI. The thresholds are C-CPI-U indexed after 2024 by the proposal's own text and the model's do not move; the base now does, so the two no longer push the same way. This is a registered regression of the base-growth lane: the row was 9.2% UNDER and is now 18.0% OVER, because it had been under-predicting by less than a decade of nominal growth is worth (planning/lanes/HSB_h2_base_growth.md section 3.2)."
@@ -4765,9 +4767,26 @@
       "details": {
         "reason": "documented_or_generic_poor",
         "direction_match": true,
-        "abs_percent_difference": 40.630178709468346,
+        "abs_percent_difference": 36.7297669585353,
         "known_limitations": [
-          "Two causes, both stated. CBO's 2020 edition prices this reform *below* its 2018 edition ($203.3B against $222.9B) on the pandemic-depressed September 2020 baseline, which a base growing monotonically with CBO's February 2024 nominal path cannot reproduce. And the boundary is read from CBO's own statutory schedule, which begins in CY2021 on this vintage, so the option's own CY2021 floors are applied for the whole window rather than the schedule's later re-indexation being anticipated."
+          "Two causes, both stated. CBO's 2020 edition prices this reform *below* its 2018 edition ($203.3B against $222.9B) on the pandemic-depressed September 2020 baseline, which a base aged on CBO's June 2024 income projection (the nearest edition to February 2024; lane B2a) cannot reproduce. And the boundary is read from CBO's own statutory schedule, which begins in CY2021 on this vintage, so the option's own CY2021 floors are applied for the whole window rather than the schedule's later re-indexation being anticipated."
+        ],
+        "holdout_status": "generic_reference"
+      }
+    },
+    {
+      "surface": "revenue_scorecard",
+      "severity": "warn",
+      "policy_id": "cbo2021_opt1_top2_brackets_1pp",
+      "category": "Generic",
+      "rating": "Poor",
+      "message": "cbo2021_opt1_top2_brackets_1pp has a Poor revenue scorecard rating.",
+      "details": {
+        "reason": "documented_or_generic_poor",
+        "direction_match": true,
+        "abs_percent_difference": 21.180153415904243,
+        "known_limitations": [
+          "Scored on CBO's February 2024 vintage and, since lane B2a, aged on CBO's June 2024 taxable-income projection (graded nearest_vintage): the 2020 volume's own September 2020 baseline income detail (CBO publication 51138 archives) is not transcribed. The window straddles the SOI anchor year, and on the top two brackets the re-indexed threshold moves against the base factor, so B2a took this row 19.9% -> 21.2%, outside its registered band (a recorded miss). As the top-four row: CBO's 2020 edition sits on a pandemic-depressed baseline the model's base cannot reproduce."
         ],
         "holdout_status": "generic_reference"
       }
@@ -4821,23 +4840,6 @@
           "The module answers a 1pp corporate rate increase with nearly the same figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across the four Options volumes, a 2.2% spread, where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 80.8% against a published 55.1-79.5%), not a decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
           "The residual on every edition of this reform is one number, not an edition-specific mechanism. The derived path reaches about 80.8% of the credit-realized statutory base its receipts path implies (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase), where JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each row's error to within a tenth of a point, which is what makes the four residuals four readings of one gap. The channel that points it downward and is entirely unbooked is IRC section 38(c): a general-business-credit carryforward stock of $124.47B against $72.17B of claims, under a statutory cap that RISES with the rate. The share of the base held by taxpayers who are both capped and holding stock is published for no post-2010 year (SOI's excess-position tables stop at TY2010), so nothing here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/CORP_class_accuracy.md section 2.2.",
           "This row's receipts path is CBO's September 2020 Outlook (publication 56517, Table 1), which is the baseline JCT's estimate was priced against and is also a COVID outlier: it projects FY2021 corporate receipts at $122.8B against a Treasury MTS actual of $371.8B. So this row's error is the module's usual marginal-share level measured against a depressed denominator, not a more accurate score, and it must not be quoted without that clause. The correct path is still this one - JCT scored a projection, not realized receipts."
-        ],
-        "holdout_status": "generic_reference"
-      }
-    },
-    {
-      "surface": "revenue_scorecard",
-      "severity": "warn",
-      "policy_id": "cbo2023_opt13_top4_brackets_2pp",
-      "category": "Generic",
-      "rating": "Poor",
-      "message": "cbo2023_opt13_top4_brackets_2pp has a Poor revenue scorecard rating.",
-      "details": {
-        "reason": "documented_or_generic_poor",
-        "direction_match": true,
-        "abs_percent_difference": 23.81688530343014,
-        "known_limitations": [
-          "The same reform as cbo_opt45_top4_brackets_2pp on the previous decade, and it carries that row's limitation: the option's own text says 'the scheduled changes to the underlying tax brackets and rates would still take effect in 2026', which a single statutory bracket index cannot express. The pair is a measurement of the model's sensitivity to the decade (23.8% on FY2023-2032 against 17.9% on FY2025-2034), not two independent predictions."
         ],
         "holdout_status": "generic_reference"
       }

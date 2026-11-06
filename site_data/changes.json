@@ -1,4 +1,89 @@
 {
   "threshold": 0.005,
-  "items": []
+  "items": [
+    {
+      "date": "2026-11-06",
+      "category": "score",
+      "kind": "preset",
+      "id": "across-the-board-rate-cut-5pp",
+      "title": "Flat Tax Reform",
+      "old": 6424.9,
+      "new": 6585.0,
+      "old_dynamic": 7389.6,
+      "new_dynamic": 7575.0,
+      "href": "/explore/across-the-board-rate-cut-5pp"
+    },
+    {
+      "date": "2026-11-06",
+      "category": "score",
+      "kind": "preset",
+      "id": "medicare-surcharge-2pp",
+      "title": "High-Earner Medicare Surcharge 2pp",
+      "old": -439.3,
+      "new": -450.3,
+      "old_dynamic": -492.4,
+      "new_dynamic": -504.5,
+      "href": "/explore/medicare-surcharge-2pp"
+    },
+    {
+      "date": "2026-11-06",
+      "category": "score",
+      "kind": "preset",
+      "id": "middle-class-rate-cut-2pp",
+      "title": "Middle Class Tax Cut",
+      "old": 1437.4,
+      "new": 1473.2,
+      "old_dynamic": 1622.5,
+      "new_dynamic": 1662.8,
+      "href": "/explore/middle-class-rate-cut-2pp"
+    },
+    {
+      "date": "2026-11-06",
+      "category": "score",
+      "kind": "preset",
+      "id": "millionaire-surtax-5pp",
+      "title": "Progressive Millionaire Tax",
+      "old": -904.9,
+      "new": -927.5,
+      "old_dynamic": -1012.4,
+      "new_dynamic": -1037.4,
+      "href": "/explore/millionaire-surtax-5pp"
+    },
+    {
+      "date": "2026-11-06",
+      "category": "score",
+      "kind": "preset",
+      "id": "top-rate-39-6",
+      "title": "Biden 2025 Proposal",
+      "old": -302.2,
+      "new": -309.8,
+      "old_dynamic": -338.9,
+      "new_dynamic": -347.3,
+      "href": "/explore/top-rate-39-6"
+    },
+    {
+      "date": "2026-11-06",
+      "category": "score",
+      "kind": "preset",
+      "id": "top-rate-45",
+      "title": "Top Rate to 45%",
+      "old": -1011.5,
+      "new": -1036.7,
+      "old_dynamic": -1131.1,
+      "new_dynamic": -1159.1,
+      "href": "/explore/top-rate-45"
+    },
+    {
+      "date": "2026-11-06",
+      "category": "score",
+      "kind": "preset",
+      "id": "ultra-millionaire-surtax-3pp",
+      "title": "Warren Ultra-Millionaire Surtax",
+      "old": -469.6,
+      "new": -483.7,
+      "old_dynamic": -526.2,
+      "new_dynamic": -542.1,
+      "href": "/explore/ultra-millionaire-surtax-3pp"
+    }
+  ]
 }
