@@ -187,3 +187,90 @@ Outturn as the last commit: predicted vs actual per row (§3.1, §3.2), the
 44-row cohort and the class table, each miss called a miss. A row outside its
 band is a miss. `build_current_evidence.py` is not rerun in the lane; it moves
 in the docs-sync PR after the wave.
+
+---
+
+## Outturn (2026-11-06, last commit of the lane)
+
+`python scripts/cold_holdout.py --json` after the mechanism in §2, against the
+§1 run. Nothing was retuned after the pre-registration commit; the mechanism
+is exactly §2.
+
+### Ordinary rows (§3.1)
+
+| row | err before | predicted | band | **actual** | verdict |
+|---|--:|--:|---|--:|---|
+| `biden_high_income_tax` | 21.9 | 24.8 | 24.2–25.4 | **24.8** | hit (worse, as registered) |
+| `cbo2019_opt1_all_rates_1pp` | 0.8 | 2.8 | 2.3–3.3 | **2.8** | hit (worse, as registered) |
+| `cbo2019_opt1_top2_brackets_1pp` | 0.8 | 2.8 | 2.8–6.7 | **5.2** | hit (worse, as registered) |
+| `cbo2019_opt1_top4_brackets_1pp` | 12.5 | 14.7 | 14.7–19.0 | **16.0** | hit (worse, as registered) |
+| `cbo2021_opt1_all_rates_1pp` | 15.0 | 13.2 | 12.6–13.8 | **13.2** | hit |
+| `cbo2021_opt1_top2_brackets_1pp` | 19.9 | 18.0 | 14.2–18.0 | **21.2** | **MISS** |
+| `cbo2021_opt1_top4_brackets_1pp` | 40.6 | 38.4 | 33.9–38.4 | **36.7** | hit |
+| `cbo2023_opt13_top4_brackets_2pp` | 23.8 | 18.7 | 8.5–18.7 | **16.3** | hit |
+| `cbo_opt45_all_rates_1pp` | 1.3 | 4.5 | 4.0–5.0 | **4.5** | hit (worse, as registered) |
+| `cbo_opt45_top4_brackets_2pp` | 17.9 | 11.1 | 2.5–11.1 | **7.9** | hit |
+| `illustrative_1pp_all` | 14.3 | 16.9 | 16.4–17.5 | **16.9** | hit (worse, as registered) |
+
+**The miss.** `cbo2021_opt1_top2_brackets_1pp` was predicted to improve and got
+worse, −136.5 → −137.9 (19.9% → 21.2%). The prediction's rule for re-indexed
+thresholds ("the deflator amplifies the scalar, same sign") was wrong for a
+window that straddles the anchor year. FY2021-2022 sit before TY2023, where
+CBO's taxable income ratio is *above* GDP's, so the deflated top-two floor falls
+in those years and the narrow top-bracket base grows faster than the scalar
+says. On a top-two base that effect outweighs the later years' scalar below 1.
+The same mechanism explains why the 2018 top-two and top-four rows landed in the
+upper half of their bands. The row now rates Poor and its reason is in
+`known_limitations` (`fiscal_model/validation/core.py`).
+
+### AGI-surtax rows (§3.2): all four hit
+
+| row | before | predicted | **actual** |
+|---|--:|--:|--:|
+| `cbo2023_opt13_agi_surtax_1pp_stdded` | 0.3 | 0.0 | **0.0** |
+| `cbo2023_opt13_agi_surtax_2pp_bracket4` | 18.2 | 18.5 | **18.4** |
+| `cbo_opt46_agi_surtax_1pp_20k` | 7.9 | 8.2 | **8.2** |
+| `cbo_opt46_agi_surtax_2pp_100k` | 2.4 | 2.1 | **2.1** |
+
+### Classes and the 44-row cohort
+
+| | n | mean | median | within 15 | within 25 | mass |
+|---|--:|--:|--:|--:|--:|--:|
+| ordinary rate change, before | 11 | 15.3% | 15.0% | 6 | 10 | 168.8 |
+| ordinary rate change, predicted | 11 | 15.1% (12.4–16.1) | | 6 (5-8) | 10 | 165.9 |
+| **ordinary rate change, actual** | 11 | **15.0%** | 16.0% | **5** | 10 | **165.5** |
+| AGI-inclusive surtax, before → actual | 4 | 7.2% → **7.2%** | 5.2% → 5.1% | 3 → 3 | 4 → 4 | 28.8 → 28.7 |
+| **44-row cohort, before** | 44 | 15.2% | 12.3% | 26 | 36 | 668.6 |
+| **44-row cohort, actual** | 44 | **15.1%** | **12.1%** | **26** | **36** | **665.2** |
+
+Within-15 for the class came in at 5, the bottom of its band and one below the
+point prediction: `cbo2019_opt1_top4` left (12.5 → 16.0) and `cbo2021_opt1_all`
+(15.0 → 13.2) does not offset it, because the class table counted the unrounded
+15.0 as inside before. The class median rose 15.0% → 16.0% while the mean fell:
+three of the rows that improved were already above the median.
+
+### Byte-identical (§3.5): held
+
+Every one of the other 29 out-of-sample rows, all 15 fitted rows and all 38
+reconstruction rows return the same `model_10yr_billions` as at `529efc1`.
+Fitted tier 1.6% and reconstruction tier 42.3% unchanged.
+
+### Public numbers (§3.4): as predicted
+
+Re-exported with `scripts/export_static.py`: seven presets move, each by the
+factor registered. Taxable-income presets **+2.49%** (Flat Tax Reform 6,424.9 →
+6,585.0; Middle Class Tax Cut 1,437.4 → 1,473.2; top rate 39.6% −302.2 → −309.8;
+top rate 45% −1,011.5 → −1,036.7; High-Earner Medicare Surcharge −439.3 →
+−450.3; Progressive Millionaire Tax −904.9 → −927.5), and the AGI preset
+**+3.02%** (Warren Ultra-Millionaire Surtax −469.6 → −483.7). The registered
+1.0249 / 1.0302 held to the fourth digit, and none of them re-indexes its
+threshold, so none was amplified. The classroom's Laffer exercise moves
+−265.7 → −272.3 for the same reason.
+
+### What this lane says for the next one
+
+Base error is not where the ordinary-rate error lives. §4's decomposition puts
+the model's static base within ±5% of CBO's own bracket-income base on every
+bracket row; the top-bracket rows' remaining error is the response (Option 45's
+top-four row implies a 28% offset where the model applies 12.5%). That points
+at the top-bracket behavioural response, not at another base series.
