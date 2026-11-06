@@ -244,9 +244,8 @@ upper half of their bands. The row now rates Poor and its reason is in
 | **44-row cohort, actual** | 44 | **15.1%** | **12.1%** | **26** | **36** | **665.2** |
 
 Within-15 for the class came in at 5, the bottom of its band and one below the
-point prediction: `cbo2019_opt1_top4` left (12.5 → 16.0) and `cbo2021_opt1_all`
-(15.0 → 13.2) does not offset it, because the class table counted the unrounded
-15.0 as inside before. The class median rose 15.0% → 16.0% while the mean fell:
+point prediction: `cbo2019_opt1_top4` (12.5 → 16.0) and `illustrative_1pp_all`
+(14.3 → 16.9) left, and only `cbo_opt45_top4` (17.9 → 7.9) came in. The class median rose 15.0% → 16.0% while the mean fell:
 three of the rows that improved were already above the median.
 
 ### Byte-identical (§3.5): held
