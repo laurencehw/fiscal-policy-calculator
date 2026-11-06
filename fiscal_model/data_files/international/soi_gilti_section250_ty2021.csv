@@ -1,0 +1,40 @@
+# Corporate GILTI and its section 250 deduction, tax year 2021 — the sourced
+# GILTI base for lane B5 (planning/lanes/B5_corporate_anchor_scope.md).
+#
+# Sources (IRS, Statistics of Income Division, International TCJA studies,
+# https://www.irs.gov/statistics/soi-tax-stats-international-tcja-studies):
+#   p6075  "Global Intangible Low-Taxed Income, Tax Year 2021", Publication 6075
+#          (Rev. 3-2025), Highlights of the Data. Form 8992 filers in SOI's
+#          TY2021 corporate sample (parent corporations).
+#   p6076  "Section 250 Deduction for Foreign-Derived Intangible Income and
+#          Global Intangible Low-Taxed Income, Tax Year 2021", Publication 6076
+#          (Rev. 3-2025), Highlights of the Data. Form 8993 filers.
+#   GB25   Treasury, General Explanations of the Administration's FY2025 Revenue
+#          Proposals (March 2024), printed pages as cited.
+# Read: 2026-11-06.
+#
+# These are the publications' printed HEADLINE figures ("over $311 billion",
+# "$607 billion"), which is the precision this file can claim. The line-item
+# tables (21it01gilti.xlsx, 21it01sec250.xlsx) were not readable from the
+# environment that transcribed this file; a reader with them should replace
+# these rows with the table totals and keep the tests' bounds.
+#
+# WHY IT MATTERS. SOI Table 11's "income subject to tax", the base the derived
+# corporate rate channel prices (fiscal_model/corporate.py), is taxable income:
+# it includes the GILTI inclusion and its section 78 gross-up and subtracts the
+# section 250 deduction. So the net GILTI below is already inside that base, and
+# a statutory-rate change already moves the effective GILTI rate with it.
+#
+# Columns
+#   key        read by fiscal_model.international.soi_gilti_base()
+#   value      as published
+#   units      what the number counts
+#   data_year  period the figure describes
+#   source     publication and location
+key,value,units,data_year,source
+gilti_inclusion_billions,607.0,billions of dollars,TY2021,"p6075, Highlights: 'The total amount of GILTI reported was $607 billion for tax year 2021.'"
+net_cfc_tested_income_billions,614.0,billions of dollars,TY2021,"p6075, Highlights: 'total tested income of $725 billion and total tested losses of $111 billion' (725 - 111)."
+section_250_gilti_deduction_billions,311.0,billions of dollars,TY2021,"p6076, Highlights: 'over $311 billion in GILTI deductions in tax year 2021'."
+section_250_fdii_deduction_billions,111.0,billions of dollars,TY2021,"p6076, Highlights: 'over $111 billion in FDII deductions'."
+section_250_gilti_deduction_rate,0.50,share of GILTI plus gross-up deducted,TY2018-2025,"GB25 p. 23: 'a 50 percent deduction ... scheduled to be reduced to 37.5 percent starting in 2026'."
+section_250_gilti_deduction_rate_post_2025,0.375,share deducted,TY2026 onward,"GB25 p. 25 (current law before P.L. 119-21)."
