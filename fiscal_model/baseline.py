@@ -474,6 +474,11 @@ class BaselineProjection:
     #: object carried no vintage at all, so every real ``/score`` response
     #: said ``"baseline_vintage": "unknown"``.
     baseline_vintage_date: str = ""
+    #: The :class:`BaselineVintage` value this projection was generated from
+    #: (``"cbo_feb_2026"``), the key :mod:`fiscal_model.cbo_income_detail`
+    #: reads CBO's own income-base projection by. Empty on a hand-built
+    #: projection, which makes :meth:`income_base_index` return 0.0.
+    baseline_vintage_key: str = ""
 
     @property
     def total_revenues(self) -> np.ndarray:
@@ -574,6 +579,41 @@ class BaselineProjection:
         if growth <= -1.0:
             return base
         return base / (1.0 + growth) ** (first_year - 1 - year)
+
+    def income_base_index(self, year: int, series: str) -> float:
+        """CBO's own projection of an income-tax base for ``year``, or 0.0.
+
+        Lane B2a (``planning/lanes/B2a_cbo_income_path.md``). ``series`` is a
+        :mod:`fiscal_model.cbo_income_detail` variable - ``rev_iit_taxable_income``
+        or ``rev_iit_agi`` - read on the CBO edition this projection's vintage
+        maps to. Like :meth:`nominal_income_index` it is used only as a ratio
+        between two years, so its level cancels.
+
+        A year the edition does not publish (the 2018 Options window reaches
+        CY2019-2020; the 2024-06 edition starts at CY2021) is chain-linked to
+        the nearest published year with this vintage's own nominal-income
+        growth: ``index(first) * gdp(year) / gdp(first)``.
+
+        Returns ``0.0`` - the signal to fall back to :meth:`nominal_income_index`
+        - when the projection has no vintage, the vintage has no transcribed
+        edition or series, or the chain link has no GDP path to use.
+        """
+        from . import cbo_income_detail
+
+        if not self.baseline_vintage_key:
+            return 0.0
+        path = cbo_income_detail.series(self.baseline_vintage_key, series)
+        if not path:
+            return 0.0
+        year = int(year)
+        if year in path:
+            return float(path[year])
+        edge = min(path) if year < min(path) else max(path)
+        gdp_year = self.nominal_income_index(year)
+        gdp_edge = self.nominal_income_index(edge)
+        if gdp_year <= 0 or gdp_edge <= 0:
+            return 0.0
+        return float(path[edge]) * gdp_year / gdp_edge
 
     def get_year_index(self, year: int) -> int:
         """Get array index for a given year."""
@@ -901,6 +941,7 @@ class CBOBaseline:
             start_year=self.start_year,
             years=self.years.copy(),
             baseline_vintage_date=self.baseline_vintage_date,
+            baseline_vintage_key=_vintage_key(self.baseline_vintage),
         )
 
         # Generate GDP path. Where CBO publishes this vintage's own fiscal-year
@@ -1277,6 +1318,7 @@ class CBOBaseline:
             base_nominal_gdp=baseline.base_nominal_gdp,
             published_nominal_gdp=dict(baseline.published_nominal_gdp),
             baseline_vintage_date=baseline.baseline_vintage_date,
+            baseline_vintage_key=baseline.baseline_vintage_key,
         )
 
         # Apply changes

@@ -1,0 +1,689 @@
+date,variable,value,section,estimate_type
+CY2021,rev_iit_child_tax_credit,223.8,Addendum,actual
+CY2022,rev_iit_child_tax_credit,121.9,Addendum,projected
+CY2023,rev_iit_child_tax_credit,124.2,Addendum,projected
+CY2024,rev_iit_child_tax_credit,125.2,Addendum,projected
+CY2025,rev_iit_child_tax_credit,126.6,Addendum,projected
+CY2026,rev_iit_child_tax_credit,45.2,Addendum,projected
+CY2027,rev_iit_child_tax_credit,44.8,Addendum,projected
+CY2028,rev_iit_child_tax_credit,44.3,Addendum,projected
+CY2029,rev_iit_child_tax_credit,43.8,Addendum,projected
+CY2030,rev_iit_child_tax_credit,43.3,Addendum,projected
+CY2031,rev_iit_child_tax_credit,42.6,Addendum,projected
+CY2032,rev_iit_child_tax_credit,42.0,Addendum,projected
+CY2033,rev_iit_child_tax_credit,41.3,Addendum,projected
+CY2034,rev_iit_child_tax_credit,40.7,Addendum,projected
+CY2021,rev_iit_eitc,64.0,Addendum,actual
+CY2022,rev_iit_eitc,54.2,Addendum,projected
+CY2023,rev_iit_eitc,60.9,Addendum,projected
+CY2024,rev_iit_eitc,64.5,Addendum,projected
+CY2025,rev_iit_eitc,67.3,Addendum,projected
+CY2026,rev_iit_eitc,69.3,Addendum,projected
+CY2027,rev_iit_eitc,70.7,Addendum,projected
+CY2028,rev_iit_eitc,71.7,Addendum,projected
+CY2029,rev_iit_eitc,72.6,Addendum,projected
+CY2030,rev_iit_eitc,73.5,Addendum,projected
+CY2031,rev_iit_eitc,74.6,Addendum,projected
+CY2032,rev_iit_eitc,75.4,Addendum,projected
+CY2033,rev_iit_eitc,76.3,Addendum,projected
+CY2034,rev_iit_eitc,77.3,Addendum,projected
+CY2021,rev_iit_receipts_fy,2044.3760000000002,Addendum,actual
+CY2022,rev_iit_receipts_fy,2632.1440000000002,Addendum,projected
+CY2023,rev_iit_receipts_fy,2176.48,Addendum,projected
+CY2024,rev_iit_receipts_fy,2446.664,Addendum,projected
+CY2025,rev_iit_receipts_fy,2549.865,Addendum,projected
+CY2026,rev_iit_receipts_fy,2841.002,Addendum,projected
+CY2027,rev_iit_receipts_fy,3121.953,Addendum,projected
+CY2028,rev_iit_receipts_fy,3224.15,Addendum,projected
+CY2029,rev_iit_receipts_fy,3326.854,Addendum,projected
+CY2030,rev_iit_receipts_fy,3455.086,Addendum,projected
+CY2031,rev_iit_receipts_fy,3583.02,Addendum,projected
+CY2032,rev_iit_receipts_fy,3710.438,Addendum,projected
+CY2033,rev_iit_receipts_fy,3858.924,Addendum,projected
+CY2034,rev_iit_receipts_fy,4020.648,Addendum,projected
+CY2021,rev_iit_recovery_rebates,445.0,Addendum,actual
+CY2022,rev_iit_recovery_rebates,433.0,Addendum,projected
+CY2021,rev_iit_returns_amt,0.368,Addendum,actual
+CY2022,rev_iit_returns_amt,0.317,Addendum,projected
+CY2023,rev_iit_returns_amt,0.319,Addendum,projected
+CY2024,rev_iit_returns_amt,0.317,Addendum,projected
+CY2025,rev_iit_returns_amt,0.312,Addendum,projected
+CY2026,rev_iit_returns_amt,7.22,Addendum,projected
+CY2027,rev_iit_returns_amt,7.173,Addendum,projected
+CY2028,rev_iit_returns_amt,7.354,Addendum,projected
+CY2029,rev_iit_returns_amt,7.567,Addendum,projected
+CY2030,rev_iit_returns_amt,7.748,Addendum,projected
+CY2031,rev_iit_returns_amt,7.917,Addendum,projected
+CY2032,rev_iit_returns_amt,8.148,Addendum,projected
+CY2033,rev_iit_returns_amt,8.356,Addendum,projected
+CY2034,rev_iit_returns_amt,8.603,Addendum,projected
+CY2021,rev_iit_returns_itemized,14.6,Addendum,actual
+CY2022,rev_iit_returns_itemized,15.1,Addendum,projected
+CY2023,rev_iit_returns_itemized,15.3,Addendum,projected
+CY2024,rev_iit_returns_itemized,16.1,Addendum,projected
+CY2025,rev_iit_returns_itemized,17.6,Addendum,projected
+CY2026,rev_iit_returns_itemized,57.8,Addendum,projected
+CY2027,rev_iit_returns_itemized,60.3,Addendum,projected
+CY2028,rev_iit_returns_itemized,62.2,Addendum,projected
+CY2029,rev_iit_returns_itemized,63.7,Addendum,projected
+CY2030,rev_iit_returns_itemized,65.0,Addendum,projected
+CY2031,rev_iit_returns_itemized,66.2,Addendum,projected
+CY2032,rev_iit_returns_itemized,67.4,Addendum,projected
+CY2033,rev_iit_returns_itemized,68.4,Addendum,projected
+CY2034,rev_iit_returns_itemized,69.4,Addendum,projected
+CY2021,rev_iit_returns_total,160.8,Addendum,actual
+CY2022,rev_iit_returns_total,165.5,Addendum,projected
+CY2023,rev_iit_returns_total,168.4,Addendum,projected
+CY2024,rev_iit_returns_total,169.7,Addendum,projected
+CY2025,rev_iit_returns_total,172.1,Addendum,projected
+CY2026,rev_iit_returns_total,174.1,Addendum,projected
+CY2027,rev_iit_returns_total,175.5,Addendum,projected
+CY2028,rev_iit_returns_total,176.7,Addendum,projected
+CY2029,rev_iit_returns_total,177.8,Addendum,projected
+CY2030,rev_iit_returns_total,178.8,Addendum,projected
+CY2031,rev_iit_returns_total,179.9,Addendum,projected
+CY2032,rev_iit_returns_total,180.8,Addendum,projected
+CY2033,rev_iit_returns_total,181.7,Addendum,projected
+CY2034,rev_iit_returns_total,182.6,Addendum,projected
+CY2021,rev_iit_agi,14791.339,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_agi,14614.252,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_agi,15604.798,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_agi,16626.359,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_agi,17326.481,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_agi,17908.425,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_agi,18556.657,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_agi,19174.991,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_agi,19790.818,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_agi,20506.362,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_agi,21251.852,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_agi,22027.907,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_agi,22836.546,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_agi,23692.875,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_business_income,1472.9,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_business_income,1557.5000000000002,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_business_income,1611.9,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_business_income,1737.4999999999998,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_business_income,1827.6,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_business_income,1883.1,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_business_income,1936.5,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_business_income,1956.7,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_business_income,1989.6,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_business_income,2033.1,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_business_income,2083.8,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_business_income,2136.4,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_business_income,2189.1,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_business_income,2269.5,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_capital_gain_loss,2107.1,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_capital_gain_loss,1287.2,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_capital_gain_loss,1398.0,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_capital_gain_loss,1472.0,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_capital_gain_loss,1430.4,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_capital_gain_loss,1377.6000000000001,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_capital_gain_loss,1364.9,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_capital_gain_loss,1376.6,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_capital_gain_loss,1406.3999999999999,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_capital_gain_loss,1448.0,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_capital_gain_loss,1495.5,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_capital_gain_loss,1548.6,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_capital_gain_loss,1605.3,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_capital_gain_loss,1665.0,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_interest_dividends,194.6,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_interest_dividends,216.4,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_interest_dividends,237.4,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_interest_dividends,279.1,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_interest_dividends,323.6,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_interest_dividends,346.0,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_interest_dividends,356.4,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_interest_dividends,372.8,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_interest_dividends,389.2,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_interest_dividends,397.8,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_interest_dividends,408.1,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_interest_dividends,421.1,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_interest_dividends,430.9,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_interest_dividends,442.3,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_other_income,155.9,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_other_income,-34.49999999999999,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_other_income,-43.7,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_other_income,-42.000000000000014,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_other_income,-46.1,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_other_income,-50.29999999999998,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_other_income,-6.1,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_other_income,-9.699999999999996,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_other_income,-72.8,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_other_income,-76.19999999999999,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_other_income,-80.0,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_other_income,-83.69999999999999,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_other_income,-88.49999999999999,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_other_income,-94.2,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_pensions,1267.9,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_pensions,1248.6999999999998,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_pensions,1380.3,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_pensions,1514.4,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_pensions,1574.3000000000002,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_pensions,1620.7,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_pensions,1668.0,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_pensions,1713.7,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_pensions,1758.7,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_pensions,1805.3,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_pensions,1857.4,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_pensions,1915.0,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_pensions,1985.9,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_pensions,2056.8,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_qualified_dividends,295.9,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_qualified_dividends,314.3,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_qualified_dividends,320.5,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_qualified_dividends,334.8,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_qualified_dividends,351.6,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_qualified_dividends,364.8,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_qualified_dividends,375.4,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_qualified_dividends,387.2,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_qualified_dividends,402.2,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_qualified_dividends,428.1,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_qualified_dividends,453.9,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_qualified_dividends,479.0,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_qualified_dividends,503.4,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_qualified_dividends,527.2,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_ss_benefits,413.7,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_ss_benefits,441.1,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_ss_benefits,509.0,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_ss_benefits,570.7,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_ss_benefits,618.6,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_ss_benefits,656.9,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_ss_benefits,693.9,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_ss_benefits,735.5,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_ss_benefits,782.3,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_ss_benefits,831.0,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_ss_benefits,876.8,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_ss_benefits,927.9,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_ss_benefits,985.1,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_ss_benefits,1040.7,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_statutory_adjustments,139.0,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_statutory_adjustments,147.0,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_statutory_adjustments,156.0,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_statutory_adjustments,167.0,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_statutory_adjustments,176.0,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_statutory_adjustments,185.0,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_statutory_adjustments,192.0,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_statutory_adjustments,198.0,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_statutory_adjustments,206.0,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_statutory_adjustments,214.0,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_statutory_adjustments,223.0,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_statutory_adjustments,232.0,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_statutory_adjustments,241.0,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_statutory_adjustments,250.0,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_total_income,14930.0,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_total_income,14761.0,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_total_income,15761.0,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_total_income,16793.0,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_total_income,17502.0,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_total_income,18093.0,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_total_income,18748.0,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_total_income,19373.0,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_total_income,19997.0,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_total_income,20721.0,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_total_income,21475.0,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_total_income,22260.0,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_total_income,23078.0,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_total_income,23943.0,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_wages,9022.4,Calculation of Adjusted Gross Income,actual
+CY2022,rev_iit_wages,9730.4,Calculation of Adjusted Gross Income,projected
+CY2023,rev_iit_wages,10347.7,Calculation of Adjusted Gross Income,projected
+CY2024,rev_iit_wages,10926.9,Calculation of Adjusted Gross Income,projected
+CY2025,rev_iit_wages,11422.2,Calculation of Adjusted Gross Income,projected
+CY2026,rev_iit_wages,11894.4,Calculation of Adjusted Gross Income,projected
+CY2027,rev_iit_wages,12359.2,Calculation of Adjusted Gross Income,projected
+CY2028,rev_iit_wages,12840.5,Calculation of Adjusted Gross Income,projected
+CY2029,rev_iit_wages,13341.3,Calculation of Adjusted Gross Income,projected
+CY2030,rev_iit_wages,13853.9,Calculation of Adjusted Gross Income,projected
+CY2031,rev_iit_wages,14379.2,Calculation of Adjusted Gross Income,projected
+CY2032,rev_iit_wages,14915.6,Calculation of Adjusted Gross Income,projected
+CY2033,rev_iit_wages,15466.5,Calculation of Adjusted Gross Income,projected
+CY2034,rev_iit_wages,16035.9,Calculation of Adjusted Gross Income,projected
+CY2021,rev_iit_liability,2173.6,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_liability,2091.9,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_liability,2222.0,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_liability,2385.7,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_liability,2490.7,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_liability,2860.2,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_liability,2964.8,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_liability,3055.4,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_liability,3156.4,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_liability,3270.9,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_liability,3393.0,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_liability,3521.4,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_liability,3658.5,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_liability,3810.0,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_niit,59.6,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_niit,41.1,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_niit,44.8,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_niit,48.8,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_niit,49.8,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_niit,49.7,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_niit,50.3,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_niit,51.5,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_niit,53.3,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_niit,55.6,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_niit,58.2,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_niit,61.0,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_niit,63.8,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_niit,66.8,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_after_credits,2114.0,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_after_credits,2050.8,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_after_credits,2177.2,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_after_credits,2336.9,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_after_credits,2441.0,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_after_credits,2810.5,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_after_credits,2914.5,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_after_credits,3003.9,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_after_credits,3103.1,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_after_credits,3215.3,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_after_credits,3334.8,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_after_credits,3460.4,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_after_credits,3594.7,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_after_credits,3743.2,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_amt,6.2,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_amt,5.8,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_amt,6.2,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_amt,6.5,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_amt,6.7,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_amt,83.0,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_amt,82.2,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_amt,85.9,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_amt,89.7,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_amt,94.0,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_amt,98.1,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_amt,102.8,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_amt,107.2,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_amt,111.9,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_before_credits,2279.7,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_before_credits,2189.1,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_before_credits,2318.4,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_before_credits,2481.2,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_before_credits,2588.5,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_before_credits,2892.4,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_before_credits,2997.4,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_before_credits,3087.9,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_before_credits,3188.0,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_before_credits,3301.7,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_before_credits,3422.4,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_before_credits,3549.2,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_before_credits,3685.0,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_before_credits,3834.9,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_bracket_1,164.11,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_bracket_1,173.42000000000002,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_bracket_1,187.93,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_bracket_1,199.78,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_bracket_1,208.49,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_bracket_1,213.60000000000002,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_bracket_1,220.11,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_bracket_1,226.70000000000002,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_bracket_1,232.92,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_bracket_1,240.04000000000002,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_bracket_1,246.67,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_bracket_1,253.78000000000003,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_bracket_1,261.23,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_bracket_1,268.41,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_bracket_2,389.508,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_bracket_2,416.016,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_bracket_2,445.536,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_bracket_2,472.188,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_bracket_2,492.696,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_bracket_2,616.095,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_bracket_2,635.145,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_bracket_2,655.41,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_bracket_2,676.9499999999999,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_bracket_2,698.3549999999999,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_bracket_2,720.6,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_bracket_2,743.25,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_bracket_2,767.925,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_bracket_2,792.75,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_bracket_3,409.442,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_bracket_3,441.18800000000005,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_bracket_3,462.924,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_bracket_3,489.80800000000005,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_bracket_3,510.62,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_bracket_3,557.2,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_bracket_3,578.35,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_bracket_3,601.525,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_bracket_3,625.05,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_bracket_3,649.15,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_bracket_3,674.675,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_bracket_3,700.8,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_bracket_3,730.55,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_bracket_3,760.6,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_bracket_4,243.432,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_bracket_4,257.664,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_bracket_4,269.23199999999997,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_bracket_4,288.38399999999996,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_bracket_4,303.456,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_bracket_4,253.82000000000002,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_bracket_4,266.61600000000004,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_bracket_4,278.18,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_bracket_4,290.668,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_bracket_4,303.576,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_bracket_4,317.184,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_bracket_4,331.24,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_bracket_4,346.92,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_bracket_4,363.86,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_bracket_5,83.80799999999999,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_bracket_5,83.42399999999999,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_bracket_5,87.84,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_bracket_5,95.008,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_bracket_5,100.64,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_bracket_5,245.223,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_bracket_5,259.11600000000004,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_bracket_5,269.577,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_bracket_5,281.19300000000004,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_bracket_5,293.93100000000004,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_bracket_5,307.49399999999997,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_bracket_5,321.882,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_bracket_5,337.392,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_bracket_5,354.915,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_bracket_6,147.91,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_bracket_6,139.93,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_bracket_6,148.085,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_bracket_6,161.76999999999998,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_bracket_6,172.02499999999998,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_bracket_6,35.0,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_bracket_6,36.925,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_bracket_6,38.045,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_bracket_6,39.41,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_bracket_6,40.949999999999996,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_bracket_6,42.525,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_bracket_6,44.275,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_bracket_6,46.09499999999999,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_bracket_6,48.265,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_bracket_7,479.26099999999997,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_bracket_7,448.662,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_bracket_7,470.936,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_bracket_7,516.15,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_bracket_7,548.414,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_bracket_7,663.577,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_bracket_7,695.732,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_bracket_7,707.216,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_bracket_7,722.898,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_bracket_7,744.361,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_bracket_7,768.478,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_bracket_7,794.693,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_bracket_7,820.75,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_bracket_7,856.508,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_tax_ordinary,1917.4,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_tax_ordinary,1960.3,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_tax_ordinary,2072.5,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_tax_ordinary,2223.1,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_tax_ordinary,2336.4,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_tax_ordinary,2584.5,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_tax_ordinary,2692.0,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_tax_ordinary,2776.7,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_tax_ordinary,2869.1,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_tax_ordinary,2970.4,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_tax_ordinary,3077.7,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_tax_ordinary,3189.9,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_tax_ordinary,3310.9,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_tax_ordinary,3445.3,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_total_credits,349.0,Calculation of Income Tax Liability,actual
+CY2022,rev_iit_total_credits,230.1,Calculation of Income Tax Liability,projected
+CY2023,rev_iit_total_credits,241.4,Calculation of Income Tax Liability,projected
+CY2024,rev_iit_total_credits,248.6,Calculation of Income Tax Liability,projected
+CY2025,rev_iit_total_credits,255.1,Calculation of Income Tax Liability,projected
+CY2026,rev_iit_total_credits,175.7,Calculation of Income Tax Liability,projected
+CY2027,rev_iit_total_credits,178.2,Calculation of Income Tax Liability,projected
+CY2028,rev_iit_total_credits,180.2,Calculation of Income Tax Liability,projected
+CY2029,rev_iit_total_credits,182.1,Calculation of Income Tax Liability,projected
+CY2030,rev_iit_total_credits,184.3,Calculation of Income Tax Liability,projected
+CY2031,rev_iit_total_credits,186.4,Calculation of Income Tax Liability,projected
+CY2032,rev_iit_total_credits,188.4,Calculation of Income Tax Liability,projected
+CY2033,rev_iit_total_credits,190.6,Calculation of Income Tax Liability,projected
+CY2034,rev_iit_total_credits,192.9,Calculation of Income Tax Liability,projected
+CY2021,rev_iit_bracket_1,1641.1,Calculation of Taxable Income,actual
+CY2022,rev_iit_bracket_1,1734.2,Calculation of Taxable Income,projected
+CY2023,rev_iit_bracket_1,1879.3,Calculation of Taxable Income,projected
+CY2024,rev_iit_bracket_1,1997.8,Calculation of Taxable Income,projected
+CY2025,rev_iit_bracket_1,2084.9,Calculation of Taxable Income,projected
+CY2026,rev_iit_bracket_1,2136.0,Calculation of Taxable Income,projected
+CY2027,rev_iit_bracket_1,2201.1,Calculation of Taxable Income,projected
+CY2028,rev_iit_bracket_1,2267.0,Calculation of Taxable Income,projected
+CY2029,rev_iit_bracket_1,2329.2,Calculation of Taxable Income,projected
+CY2030,rev_iit_bracket_1,2400.4,Calculation of Taxable Income,projected
+CY2031,rev_iit_bracket_1,2466.7,Calculation of Taxable Income,projected
+CY2032,rev_iit_bracket_1,2537.8,Calculation of Taxable Income,projected
+CY2033,rev_iit_bracket_1,2612.3,Calculation of Taxable Income,projected
+CY2034,rev_iit_bracket_1,2684.1,Calculation of Taxable Income,projected
+CY2021,rev_iit_bracket_2,3245.9,Calculation of Taxable Income,actual
+CY2022,rev_iit_bracket_2,3466.8,Calculation of Taxable Income,projected
+CY2023,rev_iit_bracket_2,3712.8,Calculation of Taxable Income,projected
+CY2024,rev_iit_bracket_2,3934.9,Calculation of Taxable Income,projected
+CY2025,rev_iit_bracket_2,4105.8,Calculation of Taxable Income,projected
+CY2026,rev_iit_bracket_2,4107.3,Calculation of Taxable Income,projected
+CY2027,rev_iit_bracket_2,4234.3,Calculation of Taxable Income,projected
+CY2028,rev_iit_bracket_2,4369.4,Calculation of Taxable Income,projected
+CY2029,rev_iit_bracket_2,4513.0,Calculation of Taxable Income,projected
+CY2030,rev_iit_bracket_2,4655.7,Calculation of Taxable Income,projected
+CY2031,rev_iit_bracket_2,4804.0,Calculation of Taxable Income,projected
+CY2032,rev_iit_bracket_2,4955.0,Calculation of Taxable Income,projected
+CY2033,rev_iit_bracket_2,5119.5,Calculation of Taxable Income,projected
+CY2034,rev_iit_bracket_2,5285.0,Calculation of Taxable Income,projected
+CY2021,rev_iit_bracket_3,1861.1,Calculation of Taxable Income,actual
+CY2022,rev_iit_bracket_3,2005.4,Calculation of Taxable Income,projected
+CY2023,rev_iit_bracket_3,2104.2,Calculation of Taxable Income,projected
+CY2024,rev_iit_bracket_3,2226.4,Calculation of Taxable Income,projected
+CY2025,rev_iit_bracket_3,2321.0,Calculation of Taxable Income,projected
+CY2026,rev_iit_bracket_3,2228.8,Calculation of Taxable Income,projected
+CY2027,rev_iit_bracket_3,2313.4,Calculation of Taxable Income,projected
+CY2028,rev_iit_bracket_3,2406.1,Calculation of Taxable Income,projected
+CY2029,rev_iit_bracket_3,2500.2,Calculation of Taxable Income,projected
+CY2030,rev_iit_bracket_3,2596.6,Calculation of Taxable Income,projected
+CY2031,rev_iit_bracket_3,2698.7,Calculation of Taxable Income,projected
+CY2032,rev_iit_bracket_3,2803.2,Calculation of Taxable Income,projected
+CY2033,rev_iit_bracket_3,2922.2,Calculation of Taxable Income,projected
+CY2034,rev_iit_bracket_3,3042.4,Calculation of Taxable Income,projected
+CY2021,rev_iit_bracket_4,1014.3,Calculation of Taxable Income,actual
+CY2022,rev_iit_bracket_4,1073.6,Calculation of Taxable Income,projected
+CY2023,rev_iit_bracket_4,1121.8,Calculation of Taxable Income,projected
+CY2024,rev_iit_bracket_4,1201.6,Calculation of Taxable Income,projected
+CY2025,rev_iit_bracket_4,1264.4,Calculation of Taxable Income,projected
+CY2026,rev_iit_bracket_4,906.5,Calculation of Taxable Income,projected
+CY2027,rev_iit_bracket_4,952.2,Calculation of Taxable Income,projected
+CY2028,rev_iit_bracket_4,993.5,Calculation of Taxable Income,projected
+CY2029,rev_iit_bracket_4,1038.1,Calculation of Taxable Income,projected
+CY2030,rev_iit_bracket_4,1084.2,Calculation of Taxable Income,projected
+CY2031,rev_iit_bracket_4,1132.8,Calculation of Taxable Income,projected
+CY2032,rev_iit_bracket_4,1183.0,Calculation of Taxable Income,projected
+CY2033,rev_iit_bracket_4,1239.0,Calculation of Taxable Income,projected
+CY2034,rev_iit_bracket_4,1299.5,Calculation of Taxable Income,projected
+CY2021,rev_iit_bracket_5,261.9,Calculation of Taxable Income,actual
+CY2022,rev_iit_bracket_5,260.7,Calculation of Taxable Income,projected
+CY2023,rev_iit_bracket_5,274.5,Calculation of Taxable Income,projected
+CY2024,rev_iit_bracket_5,296.9,Calculation of Taxable Income,projected
+CY2025,rev_iit_bracket_5,314.5,Calculation of Taxable Income,projected
+CY2026,rev_iit_bracket_5,743.1,Calculation of Taxable Income,projected
+CY2027,rev_iit_bracket_5,785.2,Calculation of Taxable Income,projected
+CY2028,rev_iit_bracket_5,816.9,Calculation of Taxable Income,projected
+CY2029,rev_iit_bracket_5,852.1,Calculation of Taxable Income,projected
+CY2030,rev_iit_bracket_5,890.7,Calculation of Taxable Income,projected
+CY2031,rev_iit_bracket_5,931.8,Calculation of Taxable Income,projected
+CY2032,rev_iit_bracket_5,975.4,Calculation of Taxable Income,projected
+CY2033,rev_iit_bracket_5,1022.4,Calculation of Taxable Income,projected
+CY2034,rev_iit_bracket_5,1075.5,Calculation of Taxable Income,projected
+CY2021,rev_iit_bracket_6,422.6,Calculation of Taxable Income,actual
+CY2022,rev_iit_bracket_6,399.8,Calculation of Taxable Income,projected
+CY2023,rev_iit_bracket_6,423.1,Calculation of Taxable Income,projected
+CY2024,rev_iit_bracket_6,462.2,Calculation of Taxable Income,projected
+CY2025,rev_iit_bracket_6,491.5,Calculation of Taxable Income,projected
+CY2026,rev_iit_bracket_6,100.0,Calculation of Taxable Income,projected
+CY2027,rev_iit_bracket_6,105.5,Calculation of Taxable Income,projected
+CY2028,rev_iit_bracket_6,108.7,Calculation of Taxable Income,projected
+CY2029,rev_iit_bracket_6,112.6,Calculation of Taxable Income,projected
+CY2030,rev_iit_bracket_6,117.0,Calculation of Taxable Income,projected
+CY2031,rev_iit_bracket_6,121.5,Calculation of Taxable Income,projected
+CY2032,rev_iit_bracket_6,126.5,Calculation of Taxable Income,projected
+CY2033,rev_iit_bracket_6,131.7,Calculation of Taxable Income,projected
+CY2034,rev_iit_bracket_6,137.9,Calculation of Taxable Income,projected
+CY2021,rev_iit_bracket_7,1295.3,Calculation of Taxable Income,actual
+CY2022,rev_iit_bracket_7,1212.6,Calculation of Taxable Income,projected
+CY2023,rev_iit_bracket_7,1272.8,Calculation of Taxable Income,projected
+CY2024,rev_iit_bracket_7,1395.0,Calculation of Taxable Income,projected
+CY2025,rev_iit_bracket_7,1482.2,Calculation of Taxable Income,projected
+CY2026,rev_iit_bracket_7,1675.7,Calculation of Taxable Income,projected
+CY2027,rev_iit_bracket_7,1756.9,Calculation of Taxable Income,projected
+CY2028,rev_iit_bracket_7,1785.9,Calculation of Taxable Income,projected
+CY2029,rev_iit_bracket_7,1825.5,Calculation of Taxable Income,projected
+CY2030,rev_iit_bracket_7,1879.7,Calculation of Taxable Income,projected
+CY2031,rev_iit_bracket_7,1940.6,Calculation of Taxable Income,projected
+CY2032,rev_iit_bracket_7,2006.8,Calculation of Taxable Income,projected
+CY2033,rev_iit_bracket_7,2072.6,Calculation of Taxable Income,projected
+CY2034,rev_iit_bracket_7,2162.9,Calculation of Taxable Income,projected
+CY2021,rev_iit_itemized_deductions,656.1,Calculation of Taxable Income,actual
+CY2022,rev_iit_itemized_deductions,698.0,Calculation of Taxable Income,projected
+CY2023,rev_iit_itemized_deductions,748.7,Calculation of Taxable Income,projected
+CY2024,rev_iit_itemized_deductions,835.0,Calculation of Taxable Income,projected
+CY2025,rev_iit_itemized_deductions,931.4,Calculation of Taxable Income,projected
+CY2026,rev_iit_itemized_deductions,2430.8,Calculation of Taxable Income,projected
+CY2027,rev_iit_itemized_deductions,2591.0,Calculation of Taxable Income,projected
+CY2028,rev_iit_itemized_deductions,2759.3,Calculation of Taxable Income,projected
+CY2029,rev_iit_itemized_deductions,2932.5,Calculation of Taxable Income,projected
+CY2030,rev_iit_itemized_deductions,3108.7,Calculation of Taxable Income,projected
+CY2031,rev_iit_itemized_deductions,3284.4,Calculation of Taxable Income,projected
+CY2032,rev_iit_itemized_deductions,3462.5,Calculation of Taxable Income,projected
+CY2033,rev_iit_itemized_deductions,3634.3,Calculation of Taxable Income,projected
+CY2034,rev_iit_itemized_deductions,3807.0,Calculation of Taxable Income,projected
+CY2021,rev_iit_personal_exemption,0.0,Calculation of Taxable Income,actual
+CY2022,rev_iit_personal_exemption,0.0,Calculation of Taxable Income,projected
+CY2023,rev_iit_personal_exemption,0.0,Calculation of Taxable Income,projected
+CY2024,rev_iit_personal_exemption,0.0,Calculation of Taxable Income,projected
+CY2025,rev_iit_personal_exemption,0.0,Calculation of Taxable Income,projected
+CY2026,rev_iit_personal_exemption,1606.0,Calculation of Taxable Income,projected
+CY2027,rev_iit_personal_exemption,1662.7,Calculation of Taxable Income,projected
+CY2028,rev_iit_personal_exemption,1703.2,Calculation of Taxable Income,projected
+CY2029,rev_iit_personal_exemption,1744.4,Calculation of Taxable Income,projected
+CY2030,rev_iit_personal_exemption,1785.2,Calculation of Taxable Income,projected
+CY2031,rev_iit_personal_exemption,1824.3,Calculation of Taxable Income,projected
+CY2032,rev_iit_personal_exemption,1879.2,Calculation of Taxable Income,projected
+CY2033,rev_iit_personal_exemption,1918.4,Calculation of Taxable Income,projected
+CY2034,rev_iit_personal_exemption,1972.9,Calculation of Taxable Income,projected
+CY2021,rev_iit_qbi_deduction,205.1,Calculation of Taxable Income,actual
+CY2022,rev_iit_qbi_deduction,213.6,Calculation of Taxable Income,projected
+CY2023,rev_iit_qbi_deduction,220.0,Calculation of Taxable Income,projected
+CY2024,rev_iit_qbi_deduction,237.7,Calculation of Taxable Income,projected
+CY2025,rev_iit_qbi_deduction,250.0,Calculation of Taxable Income,projected
+CY2026,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2027,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2028,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2029,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2030,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2031,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2032,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2033,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2034,rev_iit_qbi_deduction,0.0,Calculation of Taxable Income,projected
+CY2021,rev_iit_standard_deduction,2577.3,Calculation of Taxable Income,actual
+CY2022,rev_iit_standard_deduction,2723.6,Calculation of Taxable Income,projected
+CY2023,rev_iit_standard_deduction,2961.4,Calculation of Taxable Income,projected
+CY2024,rev_iit_standard_deduction,3131.2,Calculation of Taxable Income,projected
+CY2025,rev_iit_standard_deduction,3243.6,Calculation of Taxable Income,projected
+CY2026,rev_iit_standard_deduction,1309.8,Calculation of Taxable Income,projected
+CY2027,rev_iit_standard_deduction,1319.9,Calculation of Taxable Income,projected
+CY2028,rev_iit_standard_deduction,1335.1,Calculation of Taxable Income,projected
+CY2029,rev_iit_standard_deduction,1361.5,Calculation of Taxable Income,projected
+CY2030,rev_iit_standard_deduction,1381.5,Calculation of Taxable Income,projected
+CY2031,rev_iit_standard_deduction,1409.3,Calculation of Taxable Income,projected
+CY2032,rev_iit_standard_deduction,1429.5,Calculation of Taxable Income,projected
+CY2033,rev_iit_standard_deduction,1458.8,Calculation of Taxable Income,projected
+CY2034,rev_iit_standard_deduction,1489.0,Calculation of Taxable Income,projected
+CY2021,rev_iit_taxable_income,11767.363,Calculation of Taxable Income,actual
+CY2022,rev_iit_taxable_income,11460.104,Calculation of Taxable Income,projected
+CY2023,rev_iit_taxable_income,12194.937,Calculation of Taxable Income,projected
+CY2024,rev_iit_taxable_income,12987.913,Calculation of Taxable Income,projected
+CY2025,rev_iit_taxable_income,13506.803,Calculation of Taxable Income,projected
+CY2026,rev_iit_taxable_income,13247.113,Calculation of Taxable Income,projected
+CY2027,rev_iit_taxable_income,13692.699,Calculation of Taxable Income,projected
+CY2028,rev_iit_taxable_income,14107.345,Calculation of Taxable Income,projected
+CY2029,rev_iit_taxable_income,14557.07,Calculation of Taxable Income,projected
+CY2030,rev_iit_taxable_income,15061.113,Calculation of Taxable Income,projected
+CY2031,rev_iit_taxable_income,15589.819,Calculation of Taxable Income,projected
+CY2032,rev_iit_taxable_income,16140.688,Calculation of Taxable Income,projected
+CY2033,rev_iit_taxable_income,16734.848,Calculation of Taxable Income,projected
+CY2034,rev_iit_taxable_income,17365.915,Calculation of Taxable Income,projected
+CY2021,rev_iit_total_exemptions_deductions,3438.5,Calculation of Taxable Income,actual
+CY2022,rev_iit_total_exemptions_deductions,3635.2,Calculation of Taxable Income,projected
+CY2023,rev_iit_total_exemptions_deductions,3930.1000000000004,Calculation of Taxable Income,projected
+CY2024,rev_iit_total_exemptions_deductions,4203.9,Calculation of Taxable Income,projected
+CY2025,rev_iit_total_exemptions_deductions,4425.0,Calculation of Taxable Income,projected
+CY2026,rev_iit_total_exemptions_deductions,5346.6,Calculation of Taxable Income,projected
+CY2027,rev_iit_total_exemptions_deductions,5573.6,Calculation of Taxable Income,projected
+CY2028,rev_iit_total_exemptions_deductions,5797.6,Calculation of Taxable Income,projected
+CY2029,rev_iit_total_exemptions_deductions,6038.4,Calculation of Taxable Income,projected
+CY2030,rev_iit_total_exemptions_deductions,6275.4,Calculation of Taxable Income,projected
+CY2031,rev_iit_total_exemptions_deductions,6518.0,Calculation of Taxable Income,projected
+CY2032,rev_iit_total_exemptions_deductions,6771.2,Calculation of Taxable Income,projected
+CY2033,rev_iit_total_exemptions_deductions,7011.5,Calculation of Taxable Income,projected
+CY2034,rev_iit_total_exemptions_deductions,7268.9,Calculation of Taxable Income,projected
+CY2021,rev_iit_agi_share_top10_pct,53.4,Shares of AGI,actual
+CY2022,rev_iit_agi_share_top10_pct,50.4,Shares of AGI,projected
+CY2023,rev_iit_agi_share_top10_pct,50.4,Shares of AGI,projected
+CY2024,rev_iit_agi_share_top10_pct,50.7,Shares of AGI,projected
+CY2025,rev_iit_agi_share_top10_pct,50.7,Shares of AGI,projected
+CY2026,rev_iit_agi_share_top10_pct,50.5,Shares of AGI,projected
+CY2027,rev_iit_agi_share_top10_pct,50.5,Shares of AGI,projected
+CY2028,rev_iit_agi_share_top10_pct,50.3,Shares of AGI,projected
+CY2029,rev_iit_agi_share_top10_pct,50.2,Shares of AGI,projected
+CY2030,rev_iit_agi_share_top10_pct,50.1,Shares of AGI,projected
+CY2031,rev_iit_agi_share_top10_pct,50.1,Shares of AGI,projected
+CY2032,rev_iit_agi_share_top10_pct,50.1,Shares of AGI,projected
+CY2033,rev_iit_agi_share_top10_pct,50.0,Shares of AGI,projected
+CY2034,rev_iit_agi_share_top10_pct,50.1,Shares of AGI,projected
+CY2021,rev_iit_agi_share_top1_pct,27.3,Shares of AGI,actual
+CY2022,rev_iit_agi_share_top1_pct,24.0,Shares of AGI,projected
+CY2023,rev_iit_agi_share_top1_pct,23.9,Shares of AGI,projected
+CY2024,rev_iit_agi_share_top1_pct,24.2,Shares of AGI,projected
+CY2025,rev_iit_agi_share_top1_pct,24.1,Shares of AGI,projected
+CY2026,rev_iit_agi_share_top1_pct,23.8,Shares of AGI,projected
+CY2027,rev_iit_agi_share_top1_pct,23.7,Shares of AGI,projected
+CY2028,rev_iit_agi_share_top1_pct,23.4,Shares of AGI,projected
+CY2029,rev_iit_agi_share_top1_pct,23.3,Shares of AGI,projected
+CY2030,rev_iit_agi_share_top1_pct,23.2,Shares of AGI,projected
+CY2031,rev_iit_agi_share_top1_pct,23.2,Shares of AGI,projected
+CY2032,rev_iit_agi_share_top1_pct,23.2,Shares of AGI,projected
+CY2033,rev_iit_agi_share_top1_pct,23.1,Shares of AGI,projected
+CY2034,rev_iit_agi_share_top1_pct,23.2,Shares of AGI,projected
+CY2021,rev_iit_agi_share_top25_pct,73.0,Shares of AGI,actual
+CY2022,rev_iit_agi_share_top25_pct,71.2,Shares of AGI,projected
+CY2023,rev_iit_agi_share_top25_pct,71.2,Shares of AGI,projected
+CY2024,rev_iit_agi_share_top25_pct,71.4,Shares of AGI,projected
+CY2025,rev_iit_agi_share_top25_pct,71.4,Shares of AGI,projected
+CY2026,rev_iit_agi_share_top25_pct,71.3,Shares of AGI,projected
+CY2027,rev_iit_agi_share_top25_pct,71.3,Shares of AGI,projected
+CY2028,rev_iit_agi_share_top25_pct,71.1,Shares of AGI,projected
+CY2029,rev_iit_agi_share_top25_pct,71.1,Shares of AGI,projected
+CY2030,rev_iit_agi_share_top25_pct,71.0,Shares of AGI,projected
+CY2031,rev_iit_agi_share_top25_pct,71.0,Shares of AGI,projected
+CY2032,rev_iit_agi_share_top25_pct,71.0,Shares of AGI,projected
+CY2033,rev_iit_agi_share_top25_pct,70.9,Shares of AGI,projected
+CY2034,rev_iit_agi_share_top25_pct,70.9,Shares of AGI,projected
+CY2021,rev_iit_agi_share_top50_pct,90.3,Shares of AGI,actual
+CY2022,rev_iit_agi_share_top50_pct,89.8,Shares of AGI,projected
+CY2023,rev_iit_agi_share_top50_pct,89.7,Shares of AGI,projected
+CY2024,rev_iit_agi_share_top50_pct,89.8,Shares of AGI,projected
+CY2025,rev_iit_agi_share_top50_pct,89.8,Shares of AGI,projected
+CY2026,rev_iit_agi_share_top50_pct,89.8,Shares of AGI,projected
+CY2027,rev_iit_agi_share_top50_pct,89.8,Shares of AGI,projected
+CY2028,rev_iit_agi_share_top50_pct,89.7,Shares of AGI,projected
+CY2029,rev_iit_agi_share_top50_pct,89.8,Shares of AGI,projected
+CY2030,rev_iit_agi_share_top50_pct,89.8,Shares of AGI,projected
+CY2031,rev_iit_agi_share_top50_pct,89.7,Shares of AGI,projected
+CY2032,rev_iit_agi_share_top50_pct,89.7,Shares of AGI,projected
+CY2033,rev_iit_agi_share_top50_pct,89.6,Shares of AGI,projected
+CY2034,rev_iit_agi_share_top50_pct,89.6,Shares of AGI,projected
+CY2021,rev_iit_agi_share_top5_pct,42.7,Shares of AGI,actual
+CY2022,rev_iit_agi_share_top5_pct,39.2,Shares of AGI,projected
+CY2023,rev_iit_agi_share_top5_pct,39.2,Shares of AGI,projected
+CY2024,rev_iit_agi_share_top5_pct,39.5,Shares of AGI,projected
+CY2025,rev_iit_agi_share_top5_pct,39.5,Shares of AGI,projected
+CY2026,rev_iit_agi_share_top5_pct,39.3,Shares of AGI,projected
+CY2027,rev_iit_agi_share_top5_pct,39.2,Shares of AGI,projected
+CY2028,rev_iit_agi_share_top5_pct,38.9,Shares of AGI,projected
+CY2029,rev_iit_agi_share_top5_pct,38.8,Shares of AGI,projected
+CY2030,rev_iit_agi_share_top5_pct,38.7,Shares of AGI,projected
+CY2031,rev_iit_agi_share_top5_pct,38.7,Shares of AGI,projected
+CY2032,rev_iit_agi_share_top5_pct,38.7,Shares of AGI,projected
+CY2033,rev_iit_agi_share_top5_pct,38.6,Shares of AGI,projected
+CY2034,rev_iit_agi_share_top5_pct,38.7,Shares of AGI,projected

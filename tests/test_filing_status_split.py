@@ -247,9 +247,15 @@ def test_split_policy_carries_year_ones_answer_across_the_window(scorer):
     annual = np.asarray(result.final_deficit_effect, dtype=float)
     assert annual[0] != 0.0
 
-    anchor = scorer.baseline.nominal_income_index(int(policy.soi_base_tax_year))
+    # Each year's own factor is the scorer's base-growth ratio (CBO's own
+    # taxable-income path since lane B2a, planning/lanes/B2a_cbo_income_path.md).
     factors = np.array(
-        [scorer.baseline.nominal_income_index(int(year)) / anchor for year in result.years]
+        [
+            scorer._nominal_income_ratio(
+                int(policy.soi_base_tax_year), int(year), policy.income_measure
+            )
+            for year in result.years
+        ]
     )
     unprojected = annual / factors
     assert unprojected.max() == pytest.approx(unprojected.min(), abs=1e-9)

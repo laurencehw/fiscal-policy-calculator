@@ -150,10 +150,12 @@ def test_each_year_carries_its_own_factor_off_the_scored_baseline():
     result = scorer.score_policy(policy, dynamic=False)
     assert policy.soi_base_tax_year == SOI_TAX_YEAR
 
-    baseline = scorer.baseline
-    anchor = baseline.nominal_income_index(SOI_TAX_YEAR)
+    # The ratio the scorer applied (CBO's own income path since lane B2a).
     factors = np.array(
-        [baseline.nominal_income_index(int(year)) / anchor for year in result.years]
+        [
+            scorer._nominal_income_ratio(SOI_TAX_YEAR, int(year), policy.income_measure)
+            for year in result.years
+        ]
     )
     # Dividing each year's factor back out leaves ten identical annuals - the
     # flat path the lane replaced, reconstructed from the run itself.
@@ -304,10 +306,12 @@ def test_the_caption_reconstructs_the_figure_the_app_used_to_print():
 
     assert caption
     assert f"tax year {SOI_TAX_YEAR}" in caption
-    baseline = scorer.baseline
-    anchor = baseline.nominal_income_index(SOI_TAX_YEAR)
+    # The ratio the scorer applied (CBO's own income path since lane B2a).
     factors = np.array(
-        [baseline.nominal_income_index(int(year)) / anchor for year in result.years]
+        [
+            scorer._nominal_income_ratio(SOI_TAX_YEAR, int(year), policy.income_measure)
+            for year in result.years
+        ]
     )
     previous = float(
         np.sum(np.asarray(result.final_deficit_effect, dtype=float) / factors)
@@ -349,10 +353,12 @@ def test_the_caption_quotes_the_conventional_score_on_a_dynamic_run():
     caption = income_base_projection_caption(policy, dynamic)
     assert caption
 
-    baseline = scorer.baseline
-    anchor = baseline.nominal_income_index(SOI_TAX_YEAR)
+    # The ratio the scorer applied (CBO's own income path since lane B2a).
     factors = np.array(
-        [baseline.nominal_income_index(int(year)) / anchor for year in dynamic.years]
+        [
+            scorer._nominal_income_ratio(SOI_TAX_YEAR, int(year), policy.income_measure)
+            for year in dynamic.years
+        ]
     )
     assert format_money(float(conventional.sum()), escape=True) in caption
     assert format_money(float(np.sum(conventional / factors)), escape=True) in caption
@@ -415,9 +421,13 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     column_ratio = _agi_marginal_ratio(policy)
     assert column_ratio is not None and column_ratio > 1.0
     pref = policy.preferential_share_of_base(base_dollars=policy.marginal_income_dollars())
-    anchor = scorer.baseline.nominal_income_index(int(policy.soi_base_tax_year))
     factors = np.array(
-        [scorer.baseline.nominal_income_index(int(y)) / anchor for y in result.years]
+        [
+            scorer._nominal_income_ratio(
+                int(policy.soi_base_tax_year), int(y), policy.income_measure
+            )
+            for y in result.years
+        ]
     )
     path = np.asarray(result.static_deficit_effect, dtype=float) + np.asarray(
         result.behavioral_offset, dtype=float
@@ -430,10 +440,13 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     ordinary_projected = agi_projected * (1.0 - pref)
     ordinary_flat = ordinary_projected * (agi_flat / agi_projected)
 
-    assert shipped == pytest.approx(-469.5700, abs=5e-4)
-    assert agi_projected == pytest.approx(-395.80370, abs=5e-4)
+    # The projected corners moved +3.02% in lane B2a (the base is aged on CBO's
+    # own AGI path, planning/lanes/B2a_cbo_income_path.md); the flat corners do
+    # not depend on the projection and did not move.
+    assert shipped == pytest.approx(-483.7381, abs=5e-4)
+    assert agi_projected == pytest.approx(-407.74600, abs=5e-4)
     assert agi_flat == pytest.approx(-283.4695, abs=5e-4)
-    assert ordinary_projected == pytest.approx(-187.95727, abs=5e-4)
+    assert ordinary_projected == pytest.approx(-193.62837, abs=5e-4)
     assert ordinary_flat == pytest.approx(-134.6126, abs=5e-4)
 
     # The flat/projected ratio is exactly this lane's window-mean index inverted.
@@ -447,7 +460,21 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     assert format_money(agi_projected, escape=True) in base_caption
     assert format_money(flat_agi_column, escape=True) in proj_caption
     assert format_money(shipped, escape=True) in proj_caption
-    assert format_money(agi_projected, escape=True) in column_caption
+    # Since lane B2a the column also selects the projection series, so the
+    # column caption's corner is the taxable column aged on CBO's taxable-income
+    # path - one step off agi_projected by exactly the series ratio.
+    swap = np.array(
+        [
+            scorer._nominal_income_ratio(int(policy.soi_base_tax_year), int(y), "taxable_income")
+            / scorer._nominal_income_ratio(int(policy.soi_base_tax_year), int(y), "agi")
+            for y in result.years
+        ]
+    )
+    taxable_column = float(np.sum(path * swap)) / column_ratio
+    assert agi_projected / taxable_column == pytest.approx(
+        float(np.sum(path)) / float(np.sum(path * swap)), rel=1e-9
+    )
+    assert format_money(taxable_column, escape=True) in column_caption
     assert format_money(shipped, escape=True) in column_caption
     for caption in (base_caption, proj_caption, column_caption):
         assert format_money(ordinary_flat, escape=True) not in caption

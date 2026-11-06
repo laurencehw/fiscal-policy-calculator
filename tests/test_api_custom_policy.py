@@ -62,7 +62,8 @@ def test_corporate_tax_is_scored_by_the_corporate_module():
 
     # ...and not the individual income-tax answer it used to give.
     individual = _score(policy_type="income_tax").json()
-    assert individual["ten_year_deficit_impact"] == pytest.approx(-1284.99, abs=1.0)
+    # -1284.99 before lane B2a aged the base on CBO's taxable-income path.
+    assert individual["ten_year_deficit_impact"] == pytest.approx(-1317.00, abs=1.0)
     assert abs(corporate["ten_year_deficit_impact"]) < 0.25 * abs(
         individual["ten_year_deficit_impact"]
     )

@@ -382,10 +382,17 @@ jobs:
       # under it is one quantity read four times -- the module reaches about
       # 80.8% of the statutory base its receipts path implies where JCT reaches
       # 53-57% -- and no vintage fix touches it.
+      #
+      # Lane B2a (CBO's own income path, planning/lanes/B2a_cbo_income_path.md)
+      # moved ordinary_rate_change 15.3% -> 15.0% (mass 168.8 -> 165.5, median
+      # 15.0% -> 16.0%, within-15 6 -> 5, within-25 10 unchanged):
+      #   ordinary_rate_change  ceil(15.05 x 1.25) = 19, lowered 20 -> 19.
+      # Forced by the one-sided invariant, not chosen. agi_inclusive_surtax
+      # re-derives to 9 and is unchanged.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
-            agi_inclusive_surtax=9 ordinary_rate_change=20 \
+            agi_inclusive_surtax=9 ordinary_rate_change=19 \
             capital_gains=18 corporate=51 \
             enacted_law_spending=10 discretionary_spending=6 \
             payroll=24 tax_expenditure=9
