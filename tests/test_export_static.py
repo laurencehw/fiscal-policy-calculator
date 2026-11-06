@@ -256,3 +256,60 @@ def test_the_scores_date_moves_only_when_the_figures_do(exported: Path):
     assert export_static.scores_date(fp, previous, "2026-11-05") == "2026-11-01"
     assert export_static.scores_date("other", previous, "2026-11-05") == "2026-11-05"
     assert export_static.scores_date(fp, None, "2026-11-05") == "2026-11-05"
+
+
+def _snapshot(presets: dict, cbo: dict | None = None, vintages: tuple = ("February 2026",)) -> dict:
+    return {
+        "presets": {
+            k: {"name": k.upper(), "conventional": v[0], "dynamic": v[1]} for k, v in presets.items()
+        },
+        "cbo": cbo or {},
+        "vintages": list(vintages),
+    }
+
+
+def test_one_moved_preset_and_one_new_cbo_estimate_are_exactly_two_changes():
+    before = _snapshot(
+        {"a": (-100.0, -90.0), "b": (500.0, 520.0)},
+        {"hr-1-119": {"title": "Old", "ten_year": 3.0, "url": ""}},
+    )
+    after = _snapshot(
+        {"a": (-102.0, -90.0), "b": (500.0, 520.0)},
+        {
+            "hr-1-119": {"title": "Old", "ten_year": 3.0, "url": ""},
+            "s-2-119": {"title": "New bill", "ten_year": -40.0, "url": "https://congress.gov/x"},
+        },
+    )
+    items = export_static.changes_between(before, after, "2026-11-06")
+    assert len(items) == 2
+    moved, estimate = items
+    assert (moved["category"], moved["kind"], moved["id"]) == ("score", "preset", "a")
+    assert (moved["old"], moved["new"]) == (-100.0, -102.0)
+    assert moved["href"] == "/explore/a"
+    assert (estimate["category"], estimate["kind"], estimate["id"]) == ("data", "cbo_estimate", "s-2-119")
+    assert estimate["href"] == "https://congress.gov/x"
+
+
+def test_float_jitter_and_sub_threshold_moves_are_not_changes():
+    before = _snapshot({"a": (-1234.5678901, -1100.0), "b": (0.0, 0.0), "c": (1000.0, None)})
+    after = _snapshot({"a": (-1234.5678904, -1100.0000001), "b": (0.04, 0.0), "c": (1004.9, None)})
+    assert export_static.changes_between(before, after, "2026-11-06") == []
+    # No earlier export: nothing to compare, so nothing is listed.
+    assert export_static.changes_between(None, after, "2026-11-06") == []
+
+
+def test_a_baseline_change_is_a_data_refresh_and_old_items_age_out():
+    before = _snapshot({}, vintages=("January 2025",))
+    after = _snapshot({})
+    (item,) = export_static.changes_between(before, after, "2026-11-06")
+    assert (item["category"], item["kind"]) == ("data", "baseline")
+    old = {"date": "2025-01-01", "id": "x"}
+    kept = {"date": "2026-10-01", "id": "y"}
+    merged = export_static.merged_changes([kept, old], [item], "2026-11-06")
+    assert [m["id"] for m in merged] == ["baseline", "y"]
+
+
+def test_the_export_writes_a_changes_file(exported: Path):
+    data = _read(exported / "changes.json")
+    assert data["threshold"] == export_static.CHANGE_THRESHOLD
+    assert isinstance(data["items"], list)

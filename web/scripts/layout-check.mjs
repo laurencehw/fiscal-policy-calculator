@@ -37,6 +37,7 @@ export const PAGES = [
   "/about",
   "/contact",
   "/privacy",
+  "/changes",
 ];
 
 const VIEWPORTS = [

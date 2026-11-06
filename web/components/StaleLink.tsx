@@ -13,7 +13,7 @@ export function StaleLink({ scoresDate }: { scoresDate: string }) {
   if (!text) return null;
   return (
     <p className="note stalelink" role="status">
-      {text}
+      {text} <a href="/changes">See what changed</a>.
     </p>
   );
 }
