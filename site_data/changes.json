@@ -2,6 +2,16 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-10",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-1903-119",
+      "title": "Congressional Trade Authority Act of 2025",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/1903"
+    },
+    {
       "date": "2026-11-06",
       "category": "score",
       "kind": "preset",
