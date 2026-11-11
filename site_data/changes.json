@@ -2,6 +2,16 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-11",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-2869-119",
+      "title": "EBSA Investigations Transparency Act",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/2869"
+    },
+    {
       "date": "2026-11-10",
       "category": "data",
       "kind": "cbo_estimate",

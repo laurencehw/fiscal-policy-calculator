@@ -8,9 +8,9 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": -111.14495655645862,
+        "total_tax_change_billions": -111.14495655645864,
         "pct_with_increase": 0.0,
-        "pct_with_decrease": 18.630200063243613,
+        "pct_with_decrease": 18.630200063243617,
         "groups": [
           {
             "name": "Lowest Quintile",
@@ -23,7 +23,7 @@
             "pct_with_increase": 0.0,
             "pct_with_decrease": 1.2824864150146287,
             "baseline_etr": -0.035458169502710114,
-            "new_etr": -0.03553017397999792
+            "new_etr": -0.03553017397999793
           },
           {
             "name": "Second Quintile",
@@ -32,22 +32,22 @@
             "returns_millions": 37.830494,
             "avg_tax_change": -10.713875372492861,
             "pct_of_income": -0.023436488330726712,
-            "share_of_total": 0.003646689968155307,
+            "share_of_total": 0.0036466899681553066,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 4.598455294868111,
-            "baseline_etr": 0.034765359749534964,
-            "new_etr": 0.03453914264570853
+            "baseline_etr": 0.03476535974953495,
+            "new_etr": 0.03453914264570852
           },
           {
             "name": "Middle Quintile",
             "floor": 65000.0,
             "ceiling": 105000.0,
             "returns_millions": 28.447505,
-            "avg_tax_change": -52.325830547086866,
-            "pct_of_income": -0.06835478824151274,
-            "share_of_total": 0.013392774674664485,
+            "avg_tax_change": -52.32583054708686,
+            "pct_of_income": -0.06835478824151273,
+            "share_of_total": 0.013392774674664484,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 7.71113846834958,
+            "pct_with_decrease": 7.711138468349578,
             "baseline_etr": 0.07383475663470229,
             "new_etr": 0.07320167834383347
           },
@@ -58,10 +58,10 @@
             "returns_millions": 19.531087,
             "avg_tax_change": -381.24391578777494,
             "pct_of_income": -0.3171191667478036,
-            "share_of_total": 0.0669945682494548,
+            "share_of_total": 0.06699456824945478,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 47.00761785248216,
-            "baseline_etr": 0.09863288962190417,
+            "pct_with_decrease": 47.00761785248217,
+            "baseline_etr": 0.09863288962190418,
             "new_etr": 0.0957744817521344
           },
           {
@@ -69,8 +69,8 @@
             "floor": 170000.0,
             "ceiling": null,
             "returns_millions": 18.346013,
-            "avg_tax_change": -5545.599370503106,
-            "pct_of_income": -1.642654211483063,
+            "avg_tax_change": -5545.599370503107,
+            "pct_of_income": -1.6426542114830633,
             "share_of_total": 0.9153779306150421,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 87.66059885584384,
@@ -83,9 +83,9 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": -111.14495655645862,
+        "total_tax_change_billions": -111.14495655645864,
         "pct_with_increase": 0.0,
-        "pct_with_decrease": 18.63019980501622,
+        "pct_with_decrease": 18.630199805016215,
         "groups": [
           {
             "name": "1st Decile",
@@ -106,8 +106,8 @@
             "ceiling": 28000.0,
             "returns_millions": 20.019829,
             "avg_tax_change": -1.1434616084137246,
-            "pct_of_income": -0.00524982565456978,
-            "share_of_total": 0.0002059644155410028,
+            "pct_of_income": -0.005249825654569781,
+            "share_of_total": 0.00020596441554100278,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 1.975899450527905,
             "baseline_etr": -0.042529328076624504,
@@ -120,11 +120,11 @@
             "returns_millions": 22.29526,
             "avg_tax_change": -6.430120673631305,
             "pct_of_income": -0.018661749398100533,
-            "share_of_total": 0.0012898580138723586,
+            "share_of_total": 0.0012898580138723584,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 4.690709246399234,
-            "baseline_etr": 0.0005939159222174335,
-            "new_etr": 0.00040740926333746784
+            "baseline_etr": 0.0005939159222174334,
+            "new_etr": 0.0004074092633374677
           },
           {
             "name": "4th Decile",
@@ -133,7 +133,7 @@
             "returns_millions": 15.91485,
             "avg_tax_change": -10.477240192705843,
             "pct_of_income": -0.02276725535898934,
-            "share_of_total": 0.0015002364503354574,
+            "share_of_total": 0.0015002364503354571,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 3.990695100017081,
             "baseline_etr": 0.03761692883734842,
@@ -146,11 +146,11 @@
             "returns_millions": 16.571556,
             "avg_tax_change": -20.381762429104615,
             "pct_of_income": -0.03420042410446506,
-            "share_of_total": 0.0030388920511311562,
+            "share_of_total": 0.003038892051131156,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 4.375377691356668,
             "baseline_etr": 0.057036825959406845,
-            "new_etr": 0.05671432855473603
+            "new_etr": 0.056714328554736036
           },
           {
             "name": "6th Decile",
@@ -159,11 +159,11 @@
             "returns_millions": 13.791999,
             "avg_tax_change": -55.22364528257317,
             "pct_of_income": -0.07307853111188076,
-            "share_of_total": 0.0068527127854499945,
+            "share_of_total": 0.006852712785449994,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 7.275834196772492,
             "baseline_etr": 0.07394528791436493,
-            "new_etr": 0.07326854073348041
+            "new_etr": 0.0732685407334804
           },
           {
             "name": "7th Decile",
@@ -172,11 +172,11 @@
             "returns_millions": 12.679026,
             "avg_tax_change": -72.46777852258424,
             "pct_of_income": -0.07652462360796719,
-            "share_of_total": 0.008266869982329584,
+            "share_of_total": 0.008266869982329582,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 13.380251038919477,
             "baseline_etr": 0.08366121252939976,
-            "new_etr": 0.08295998772131406
+            "new_etr": 0.08295998772131409
           },
           {
             "name": "8th Decile",
@@ -187,22 +187,22 @@
             "pct_of_income": -0.27792981480485657,
             "share_of_total": 0.034024308832777746,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 49.66770342374716,
+            "pct_with_decrease": 49.66770342374715,
             "baseline_etr": 0.09840521118747465,
-            "new_etr": 0.09589941046063777
+            "new_etr": 0.09589941046063775
           },
           {
             "name": "9th Decile",
             "floor": 155000.0,
             "ceiling": 220000.0,
             "returns_millions": 10.309594,
-            "avg_tax_change": -1286.9842254563684,
+            "avg_tax_change": -1286.9842254563682,
             "pct_of_income": -0.8069727164822824,
-            "share_of_total": 0.11937820494201988,
+            "share_of_total": 0.11937820494201991,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 86.37600904800851,
+            "pct_with_decrease": 86.3760090480085,
             "baseline_etr": 0.12401745923615994,
-            "new_etr": 0.11694851913104744
+            "new_etr": 0.11694851913104747
           },
           {
             "name": "10th Decile",
@@ -211,7 +211,7 @@
             "returns_millions": 11.276004,
             "avg_tax_change": -8136.199060499598,
             "pct_of_income": -1.8294610071722843,
-            "share_of_total": 0.8254429525265429,
+            "share_of_total": 0.8254429525265428,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 88.50556681890022,
             "baseline_etr": 0.21904874724978754,
@@ -223,9 +223,9 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": -111.14495655645862,
+        "total_tax_change_billions": -111.14495655645864,
         "pct_with_increase": 0.0,
-        "pct_with_decrease": 18.630200297898565,
+        "pct_with_decrease": 18.63020029789857,
         "groups": [
           {
             "name": "Less than $10K",
@@ -245,11 +245,11 @@
             "floor": 10000.0,
             "ceiling": 20000.0,
             "returns_millions": 17.688099,
-            "avg_tax_change": -0.08189872324441799,
-            "pct_of_income": -0.0005148004710345563,
-            "share_of_total": 1.3033724333826275e-05,
+            "avg_tax_change": -0.081898723244418,
+            "pct_of_income": -0.0005148004710345565,
+            "share_of_total": 1.3033724333826277e-05,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 0.36277003708850614,
+            "pct_with_decrease": 0.3627700370885062,
             "baseline_etr": -0.06516225267787312,
             "new_etr": -0.06516773613816718
           },
@@ -260,11 +260,11 @@
             "returns_millions": 15.520156,
             "avg_tax_change": -2.4113187879832436,
             "pct_of_income": -0.009418995873183147,
-            "share_of_total": 0.00033671382775871513,
+            "share_of_total": 0.0003367138277587151,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 2.7829593696108432,
-            "baseline_etr": -0.02689196814042297,
-            "new_etr": -0.026988691052524164
+            "baseline_etr": -0.026891968140422964,
+            "new_etr": -0.02698869105252416
           },
           {
             "name": "$30K-$40K",
@@ -273,11 +273,11 @@
             "returns_millions": 15.210266,
             "avg_tax_change": -7.032297951841544,
             "pct_of_income": -0.02014337051611201,
-            "share_of_total": 0.000962374953888223,
+            "share_of_total": 0.0009623749538882229,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 5.252508567136468,
-            "baseline_etr": 0.001454175630983771,
-            "new_etr": 0.0012530348458079548
+            "baseline_etr": 0.00145417563098377,
+            "new_etr": 0.001253034845807954
           },
           {
             "name": "$40K-$50K",
@@ -286,10 +286,10 @@
             "returns_millions": 13.519034,
             "avg_tax_change": -10.244575199584068,
             "pct_of_income": -0.02357132226852505,
-            "share_of_total": 0.0012460912733267876,
+            "share_of_total": 0.0012460912733267874,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 4.106947619025004,
-            "baseline_etr": 0.030809883358346574,
+            "baseline_etr": 0.030809883358346567,
             "new_etr": 0.03058143243255827
           },
           {
@@ -299,7 +299,7 @@
             "returns_millions": 24.135884,
             "avg_tax_change": -19.47624715886607,
             "pct_of_income": -0.03350260158859687,
-            "share_of_total": 0.004229399666398537,
+            "share_of_total": 0.004229399666398536,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 4.602950475429892,
             "baseline_etr": 0.05547329131159074,
@@ -312,7 +312,7 @@
             "returns_millions": 15.775468,
             "avg_tax_change": -66.12868260214442,
             "pct_of_income": -0.0827010060917106,
-            "share_of_total": 0.00938603917686678,
+            "share_of_total": 0.009386039176866779,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 9.043565312875423,
             "baseline_etr": 0.07697238877605632,
@@ -324,12 +324,12 @@
             "ceiling": 200000.0,
             "returns_millions": 27.602755,
             "avg_tax_change": -528.2440819555394,
-            "pct_of_income": -0.4257061210922582,
+            "pct_of_income": -0.425706121092258,
             "share_of_total": 0.1311889664407607,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 49.168951104055694,
-            "baseline_etr": 0.10296852608261947,
-            "new_etr": 0.0991498081900291
+            "pct_with_decrease": 49.16895110405571,
+            "baseline_etr": 0.10296852608261944,
+            "new_etr": 0.09914980819002907
           },
           {
             "name": "$200K-$500K",
@@ -351,7 +351,7 @@
             "returns_millions": 1.77972,
             "avg_tax_change": -12987.53200079876,
             "pct_of_income": -2.524949802819707,
-            "share_of_total": 0.2079641863078294,
+            "share_of_total": 0.20796418630782937,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 96.79751762875804,
             "baseline_etr": 0.23390735133763504,
@@ -364,9 +364,9 @@
             "returns_millions": 0.799094,
             "avg_tax_change": -46367.585396383576,
             "pct_of_income": -1.9891491971794355,
-            "share_of_total": 0.33336698698725403,
+            "share_of_total": 0.3333669869872541,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 88.81505787290342,
+            "pct_with_decrease": 88.81505787290341,
             "baseline_etr": 0.26738292189547,
             "new_etr": 0.25281007516795434
           }
