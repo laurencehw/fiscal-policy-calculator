@@ -2,6 +2,36 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-13",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-866-119",
+      "title": "ROUTERS Act",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/866"
+    },
+    {
+      "date": "2026-11-13",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "s-38-119",
+      "title": "Preserving Safe Communities by Ending Swatting Act of 2025",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/senate-bill/38"
+    },
+    {
+      "date": "2026-11-13",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "s-428-119",
+      "title": "SAFE Orbit Act",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/senate-bill/428"
+    },
+    {
       "date": "2026-11-11",
       "category": "data",
       "kind": "cbo_estimate",
