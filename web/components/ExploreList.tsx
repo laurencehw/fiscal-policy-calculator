@@ -7,7 +7,7 @@ import { MAX_COMPARE, compareHref, toggleId } from "@/lib/compare";
 import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow, type ExploreShow, type ExploreSort } from "@/lib/explore";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
-import { chipWorthy, currentLawLine } from "@/lib/lawStatus";
+import { ARCHIVED_AREA, ARCHIVED_NOTE, chipWorthy, currentLawLine } from "@/lib/lawStatus";
 import { LawChip } from "@/components/LawStatus";
 
 function Bar({ value, scale, published }: { value: number; scale: number; published?: boolean }) {
@@ -104,6 +104,7 @@ export function ExploreList({
           group.area ? (
             <li key={group.area} className="exploresection">
               <h2>{group.area}</h2>
+              {group.area === ARCHIVED_AREA ? <p className="note">{ARCHIVED_NOTE}</p> : null}
             </li>
           ) : null,
           ...group.rows.map((row) => (

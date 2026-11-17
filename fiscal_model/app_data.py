@@ -246,7 +246,7 @@ CBO_SCORE_MAP = {
         "notes": "Repeal 15% corporate book minimum tax (CAMT)",
     },
     # Premium Tax Credits
-    "🏥 Extend ACA Enhanced PTCs ($335B)": {
+    "🏥 Restore ACA Enhanced PTCs ($335B)": {
         # Wave 4 target revision (extend_enhanced_ptc.v2): CBO/JCT, pub. 60437
         # (June 2024) — "making the policy permanent would increase the budget
         # deficit by $335 billion over the 2025-2034 period". The superseded
@@ -255,7 +255,7 @@ CBO_SCORE_MAP = {
         "official_score": 335.0,
         "source": "CBO/JCT (pub. 60437)",
         "source_date": "2024-06",
-        "notes": "Extend ACA enhanced premium subsidies beyond 2025",
+        "notes": "Restore the ACA enhanced premium subsidies, which lapsed after 2025",
     },
     "🏥 Repeal ACA Premium Credits (-$1.1T)": {
         "official_score": -1100.0,
@@ -858,10 +858,10 @@ PRESET_POLICIES = {
         "is_amt": True,
         "amt_type": "repeal_corporate",
     },
-    "🏥 Extend ACA Enhanced PTCs ($335B)": {
+    "🏥 Restore ACA Enhanced PTCs ($335B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~\\$335B over FY2025-2034 (CBO/JCT pub. 60437).",
+        "description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put making them permanent at \\$335B over FY2025-2034 (pub. 60437), scored before they lapsed.",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,
@@ -893,6 +893,15 @@ PRESET_POLICIES = {
         "is_corporate": False,
         "is_expenditure": True,
         "expenditure_type": "repeal_salt_cap",
+    },
+    "📋 Keep the $40K SALT Cap After 2029": {
+        "rate_change": 0.0,
+        "threshold": 0,
+        "description": "The July 2025 law raised the cap on the state and local tax deduction to \\$40,000, rising 1% a year through 2029 and phased down above \\$500K of income, then drops it back to \\$10,000 in 2030. This keeps the higher cap and its phasedown going after 2029 at the same 1% a year. It costs nothing until 2030. No published score is on file.",
+        "is_tcja": False,
+        "is_corporate": False,
+        "is_expenditure": True,
+        "expenditure_type": "keep_raised_salt_cap",
     },
     "📋 Eliminate Step-Up Basis (-$500B)": {
         "rate_change": 0.0,

@@ -7,6 +7,7 @@ import type { HouseStripData } from "./houses";
 import type { SSData } from "./socialSecurity";
 import type { BaselineFile } from "./baseline";
 import type { ChangesFile } from "./changes";
+import { ARCHIVED_AREA, isArchived } from "./lawStatus";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
@@ -59,8 +60,11 @@ export function statesData(): StatesData {
   return read<StatesData>("states.json");
 }
 
+/** The Build catalog, with presets scored against pre-2025 law moved into the archived group. */
 export function buildCatalog(): BuildRow[] {
-  return read<BuildRow[]>("build-catalog.json");
+  return read<BuildRow[]>("build-catalog.json").map((row) =>
+    isArchived(row.status) ? { ...row, area: ARCHIVED_AREA } : row,
+  );
 }
 
 export function evidence(): Evidence {
@@ -103,13 +107,20 @@ export function presetsByArea(): { area: string; presets: PresetInfo[] }[] {
   const areaOf = new Map(buildCatalog().map((row) => [row.build_id, row.area]));
   const groups = new Map<string, PresetInfo[]>();
   for (const info of presets()) {
-    const area = areaOf.get(info.id) ?? "Other";
+    const area = isArchived(info.status) ? ARCHIVED_AREA : (areaOf.get(info.id) ?? "Other");
     groups.set(area, [...(groups.get(area) ?? []), info]);
   }
-  // The illustrative group (unfitted reconstructions) always comes last, as in the app.
-  const illustrative = new Set(buildCatalog().filter((row) => row.illustrative).map((row) => row.area));
-  const areas = [...new Set(buildCatalog().map((row) => row.area))];
-  const order = [...areas.filter((a) => !illustrative.has(a)), "Other", ...areas.filter((a) => illustrative.has(a))];
+  // The illustrative group (unfitted reconstructions) comes after the live areas, as in
+  // the app, and the archived pre-2025-law group comes last of all.
+  const catalog = buildCatalog();
+  const illustrative = new Set(catalog.filter((row) => row.illustrative).map((row) => row.area));
+  const areas = [...new Set(catalog.map((row) => row.area))].filter((a) => a !== ARCHIVED_AREA);
+  const order = [
+    ...areas.filter((a) => !illustrative.has(a)),
+    "Other",
+    ...areas.filter((a) => illustrative.has(a)),
+    ARCHIVED_AREA,
+  ];
   return order.filter((area) => groups.has(area)).map((area) => ({ area, presets: groups.get(area)! }));
 }
 

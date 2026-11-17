@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { PackageSummary, type SecondTotal } from "@/components/PackageSummary";
 import { EstimateTag } from "@/components/EstimateTag";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
-import { chipWorthy } from "@/lib/lawStatus";
+import { ARCHIVED_AREA, ARCHIVED_NOTE, chipWorthy } from "@/lib/lawStatus";
 import { LawChip } from "@/components/LawStatus";
 import type { EstimateIdentity } from "@/lib/identity";
 import { addToPackage, calculatorGap, covered, fromQuery, total, towardTarget, undoReplacement, type Replacement } from "@/lib/package";
@@ -213,6 +213,7 @@ export function PackageBuilder({
         {areas.map((area) => (
           <fieldset key={area}>
             <legend>{area}</legend>
+            {area === ARCHIVED_AREA ? <p className="note">{ARCHIVED_NOTE}</p> : null}
             {rows
               .filter((r) => r.area === area)
               .map((r) => {

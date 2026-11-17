@@ -37,7 +37,10 @@ test("grouping keeps every preset once", () => {
   assert.deepEqual([...grouped].sort(), presets().map((p) => p.id).sort());
   assert.ok(buildCatalog().length > 0);
   const areas = presetsByArea().map((group) => group.area);
-  assert.match(areas[areas.length - 1], /^Illustrative/);
+  // Illustrative reconstructions come after the live areas; the archived pre-2025-law
+  // group comes last of all.
+  assert.match(areas[areas.length - 2], /^Illustrative/);
+  assert.match(areas[areas.length - 1], /^Archived/);
 });
 
 test("the CSV has a row per year and sums to the headline", () => {

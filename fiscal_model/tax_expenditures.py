@@ -30,6 +30,7 @@ from .tax_expenditures_core import (
     TaxExpenditureType,
     estimate_expenditure_revenue,
     get_all_expenditure_estimates,
+    raised_cap_schedule,
     salt_cap_at,
     salt_cap_schedule,
     salt_expenditure_billions,
@@ -44,6 +45,7 @@ from .tax_expenditures_factory import (
     create_eliminate_mortgage_deduction,
     create_eliminate_salt_deduction,
     create_eliminate_step_up_basis,
+    create_keep_raised_salt_cap,
     create_repeal_salt_cap,
 )
 
@@ -76,9 +78,11 @@ __all__ = [
     "create_eliminate_mortgage_deduction",
     "create_eliminate_salt_deduction",
     "create_eliminate_step_up_basis",
+    "create_keep_raised_salt_cap",
     "create_repeal_salt_cap",
     "estimate_expenditure_revenue",
     "get_all_expenditure_estimates",
+    "raised_cap_schedule",
     "salt_cap_at",
     "salt_cap_schedule",
     "salt_expenditure_billions",

@@ -130,6 +130,41 @@ def create_repeal_salt_cap(
     )
 
 
+def create_keep_raised_salt_cap(
+    start_year: int = 2026,
+    duration_years: int = 10,
+    mode: str = EXPENDITURE_APP_MODE,
+    salt_baseline: SaltCapBaseline = SaltCapBaseline.CURRENT_LAW,
+) -> TaxExpenditurePolicy:
+    """
+    Create policy to keep P.L. 119-21's raised SALT cap after 2029.
+
+    Current law reverts the cap to $10,000 from 2030. This reform carries the
+    2029 limitation and threshold forward at the statute's own 101 percent a
+    year, phasedown included (``SaltCapBaseline.RAISED_CAP_PERMANENT``), so it
+    costs nothing through 2029 and the gap between the two cap paths after.
+    Priced on the SOI capped-deduction distribution with no fitted annual:
+    no published score is attached (lane BET3).
+    """
+    return TaxExpenditurePolicy(
+        name="Keep the $40K SALT Cap After 2029",
+        description=(
+            "Keep the raised state and local tax deduction cap past 2029 "
+            "instead of letting it fall back to $10,000"
+        ),
+        policy_type=PolicyType.TAX_DEDUCTION,
+        expenditure_type=TaxExpenditureType.SALT,
+        action="expand",
+        behavioral_elasticity=0.0,
+        annual_revenue_change_billions=None,
+        salt_baseline=salt_baseline,
+        salt_reform_path=SaltCapBaseline.RAISED_CAP_PERMANENT,
+        start_year=start_year,
+        duration_years=duration_years,
+        mode=mode,
+    )
+
+
 def create_eliminate_salt_deduction(
     start_year: int = 2026,
     duration_years: int = 10,
