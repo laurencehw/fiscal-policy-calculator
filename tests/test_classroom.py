@@ -1042,3 +1042,23 @@ class TestFullAssignmentCycle:
             # Track progress
             tracker.mark_complete(ex.id, result)
             assert tracker.is_complete(ex.id)
+
+
+def test_the_values_exercises_accept_what_the_composer_returns():
+    import dataclasses
+
+    from fiscal_model.composer.archetypes import load_archetypes
+    from fiscal_model.composer.composer import compose_values_package
+
+    exercises = {e.id: e for e in AssignmentLoader().load("values_to_budget").exercises}
+    vector = load_archetypes()["deficit-hawk"].vector
+    package = compose_values_package(vector)
+    count = exercises["values_ug_ex1"].validation
+    assert count.min_acceptable <= len(package.picks) <= count.max_acceptable
+
+    unprotected = dataclasses.replace(
+        vector, protected=tuple(p for p in vector.protected if p != "middle_class_rates")
+    )
+    gain_pp = (compose_values_package(unprotected).coverage - package.coverage) * 100
+    gain = exercises["values_ug_ex2"].validation
+    assert gain.min_acceptable <= gain_pp <= gain.max_acceptable
