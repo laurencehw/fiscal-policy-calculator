@@ -56,3 +56,21 @@ def test_status_dataclass_is_frozen():
     status = PolicyStatus("proposed", "note")
     with pytest.raises(FrozenInstanceError):
         status.status = "enacted"  # type: ignore[misc]
+
+
+def test_pre_2025_law_scores_are_flagged():
+    """Presets whose score answers the pre-2025 question carry the flag the site reads."""
+    flagged = {name for name, status in POLICY_STATUS_MAP.items() if status.pre_2025_law}
+    assert "🏛️ TCJA Full Extension (CBO: $4.6T)" in flagged
+    assert "🌱 Repeal EV Credits (-$182B)" in flagged
+    assert "🌱 Repeal IRA Clean Energy Credits (-$851B)" in flagged
+    # Scored against the current-law cap path since PR #161, so not pre-2025.
+    assert "📋 Repeal SALT Cap ($1.17T)" not in flagged
+    for name in flagged:
+        assert POLICY_STATUS_MAP[name].status in {"superseded", "partially"}, name
+
+
+def test_ev_credit_repeal_is_superseded():
+    status = get_policy_status("🌱 Repeal EV Credits (-$182B)")
+    assert status is not None and status.status == "superseded"
+    assert "30 September 2025" in status.note

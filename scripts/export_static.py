@@ -11,10 +11,13 @@ once a night, and written as JSON under ``site_data/``:
   per preset: whether its ``cbo_score`` is a published figure. It is false when
   the scorecard row behind it is this repository's own estimate
   (``model_estimate`` provenance) or a retired target, so the site never labels
-  either one "published".
+  either one "published"; and ``status``, the preset's curated legal status
+  (``fiscal_model.policy_status``) or null, with ``pre_2025_law`` true when the
+  score is measured against law before P.L. 119-21.
 - ``presets/<id>.json``: one preset, ``{"conventional": …, "dynamic": …}``,
   each the API's ``/score/preset`` answer for that id.
-- ``build-catalog.json``: the Build page's checkable rows, in catalog order.
+- ``build-catalog.json``: the Build page's checkable rows, in catalog order,
+  each with the same ``cbo_published`` and ``status`` fields.
 - ``validation/scorecard.json``: the API's ``/validation/scorecard`` answer.
 - ``validation/evidence.json``: the generated validation figures the app's About
   and Methodology pages quote (``current_evidence.json``), copied as is.
@@ -223,30 +226,36 @@ def preset_views_payload(preset_id: str, comparison_models: dict[bool, Any] | No
     }
 
 
+def law_status_payload(label: str) -> dict[str, Any] | None:
+    """The curated legal status of a preset (``fiscal_model.policy_status``), or None."""
+    from fiscal_model.policy_status import STATUS_AS_OF, get_policy_status
+
+    status = get_policy_status(label)
+    if status is None:
+        return None
+    return {
+        "status": status.status,
+        "label": status.label,
+        "note": status.note.replace("\\$", "$"),
+        "pre_2025_law": status.pre_2025_law,
+        "as_of": STATUS_AS_OF,
+    }
+
+
 def preset_index_payload() -> dict[str, Any]:
     import api
-    from fiscal_model.ui.preset_validation import (
-        PRESET_ID_TO_SCORECARD_ID,
-        get_validation_badge,
-    )
-    from fiscal_model.validation.provenance import MODEL_ESTIMATE
-    from fiscal_model.validation.target_revisions import RETIRED_POLICY_IDS
+    from fiscal_model.ui.preset_validation import is_published_figure
 
     payload = api.list_presets().model_dump(mode="json")
     for info in payload["presets"]:
-        published = info["cbo_score"] is not None
-        if published and PRESET_ID_TO_SCORECARD_ID.get(info["id"]) in RETIRED_POLICY_IDS:
-            published = False
-        if published:
-            badge = get_validation_badge(info["id"])
-            if badge is not None and badge.get("provenance") == MODEL_ESTIMATE:
-                published = False
-        info["cbo_published"] = published
+        info["cbo_published"] = is_published_figure(info["id"], info["cbo_score"])
+        info["status"] = law_status_payload(info["name"])
     return payload
 
 
 def build_catalog_payload() -> list[dict[str, Any]]:
     from fiscal_model.app_data import CBO_SCORE_MAP
+    from fiscal_model.ui.preset_validation import is_published_figure
     from fiscal_model.ui.tabs.deficit_target import build_catalog
 
     rows = []
@@ -255,6 +264,8 @@ def build_catalog_payload() -> list[dict[str, Any]]:
         row["exclusive_groups"] = list(option.exclusive_groups)
         row["subsumes"] = list(option.subsumes)
         row["tags"] = dict(option.tags)
+        row["cbo_published"] = is_published_figure(option.build_id, option.score)
+        row["status"] = law_status_payload(option.label)
         rows.append(row)
     return rows
 

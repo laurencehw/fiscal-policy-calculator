@@ -1106,3 +1106,22 @@ def test_the_incidence_exercises_check_the_number_they_ask_for():
     # $135B a year at the 75/25 split the prompt states.
     assert capital.min_acceptable <= 135 * 0.75 <= capital.max_acceptable
     assert not capital.min_acceptable <= 135 * 0.25 <= capital.max_acceptable
+
+def test_the_values_exercises_accept_what_the_composer_returns():
+    import dataclasses
+
+    from fiscal_model.composer.archetypes import load_archetypes
+    from fiscal_model.composer.composer import compose_values_package
+
+    exercises = {e.id: e for e in AssignmentLoader().load("values_to_budget").exercises}
+    vector = load_archetypes()["deficit-hawk"].vector
+    package = compose_values_package(vector)
+    count = exercises["values_ug_ex1"].validation
+    assert count.min_acceptable <= len(package.picks) <= count.max_acceptable
+
+    unprotected = dataclasses.replace(
+        vector, protected=tuple(p for p in vector.protected if p != "middle_class_rates")
+    )
+    gain_pp = (compose_values_package(unprotected).coverage - package.coverage) * 100
+    gain = exercises["values_ug_ex2"].validation
+    assert gain.min_acceptable <= gain_pp <= gain.max_acceptable

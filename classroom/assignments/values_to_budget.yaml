@@ -54,15 +54,17 @@ exercises:
         min: 1.0
         max: 20.0
         step: 1.0
-        default: 12.0
+        default: 4.0
         unit: "policies"
     hints:
       - level: 1
         text: >
           The panel's coverage line reads "N policies, X% of target". The
           selector is capped at 12 policies (MAX_VALUES_POLICIES) and floored
-          at 4 (MIN_VALUES_POLICIES), and against a 3%-of-GDP target it hits
-          the cap.
+          at 4 (MIN_VALUES_POLICIES). A starting package only uses published
+          figures for proposals that are not already law, so against a
+          3%-of-GDP target the deficit hawk runs out of eligible policies
+          before it reaches the cap.
       - level: 2
         text: >
           The five archetypes reach different shares of *different* targets.
@@ -73,8 +75,8 @@ exercises:
     validation:
       answer_unit: "policies"
       method: range_check
-      min_acceptable: 10.0
-      max_acceptable: 12.0
+      min_acceptable: 8.0
+      max_acceptable: 10.0
     expected_insight: >
       The same catalog of ~47 scored policies produces five visibly different
       packages, and none of them is a strawman. The differences come entirely
@@ -112,12 +114,13 @@ exercises:
         text: >
           The protection is worth roughly what the excluded raisers are worth.
           The universal 10% tariff alone scores -$2,000B and the $50/ton carbon
-          tax -$1,700B against a gap near $17,900B.
+          tax -$1,700B against a gap of about $11,700B.
       - level: 2
         text: >
           Coverage is (deficit reduction) / (gap to target). Adding ~$3.7T of
-          newly-eligible raisers to a ~$17.9T gap is worth on the order of 10-20
-          percentage points, depending on what they displace at the 12-policy cap.
+          newly-eligible raisers to a gap of about $11.7T is worth on the order
+          of 20-30 percentage points, since the package now has room for them
+          below the 12-policy cap.
     validation:
       answer_unit: "pp"
       method: range_check

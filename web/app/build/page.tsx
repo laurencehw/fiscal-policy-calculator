@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PackageBuilder } from "@/components/PackageBuilder";
 import { buildCatalog, manifest, preset, valuesArchetypes } from "@/lib/data";
-import { estimateIdentity, type EstimateIdentity } from "@/lib/identity";
+import { againstPre2025Law, estimateIdentity, type EstimateIdentity } from "@/lib/identity";
 import { siteUrl } from "@/lib/site";
 import { StaleLink } from "@/components/StaleLink";
 
@@ -25,9 +25,12 @@ export default function Build() {
   for (const row of ordered) {
     const scored = preset(row.build_id)?.conventional ?? null;
     if (scored && typeof scored.ten_year_deficit_impact === "number") calculator[row.build_id] = scored.ten_year_deficit_impact;
+    // "Published" only when someone outside this repository published the figure.
+    const kind = row.cbo_published === false ? "unpublished" : "published";
+    const model = scored ? estimateIdentity(scored, "model") : null;
     identities[row.build_id] = {
-      published: estimateIdentity(scored ? { ...scored, cbo_source: row.source } : { ...site, credibility: null, cbo_source: row.source }, "published"),
-      model: scored ? estimateIdentity(scored, "model") : null,
+      published: estimateIdentity(scored ? { ...scored, cbo_source: row.source } : { ...site, credibility: null, cbo_source: row.source }, kind),
+      model: model && row.status?.pre_2025_law ? againstPre2025Law(model) : model,
     };
   }
   return (
@@ -36,8 +39,8 @@ export default function Build() {
         <span className="eyebrow">Build</span>
         <h1>Build a package</h1>
         <p className="sentence">
-          Each row is a published ten-year list price, and where I also score the policy I show that conventional
-          estimate under the name.
+          Each row is a ten-year list price, published unless it is tagged otherwise, and where I also score the
+          policy I show that conventional estimate under the name.
         </p>
         <p className="note">
           A tick that conflicts with one already ticked swaps them. A positive figure adds to the deficit and a

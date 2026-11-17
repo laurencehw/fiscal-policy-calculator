@@ -7,6 +7,8 @@ import { MAX_COMPARE, compareHref, toggleId } from "@/lib/compare";
 import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow, type ExploreShow, type ExploreSort } from "@/lib/explore";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
+import { chipWorthy } from "@/lib/lawStatus";
+import { LawChip } from "@/components/LawStatus";
 
 function Bar({ value, scale, published }: { value: number; scale: number; published?: boolean }) {
   const width = `${Math.max(1, (Math.abs(value) / scale) * 100)}%`;
@@ -116,6 +118,12 @@ export function ExploreList({
                   onChange={() => setPicked((ids) => toggleId(ids, row.id))}
                 />
                 <Link href={`/explore/${row.id}`}>{row.name}</Link>
+                {chipWorthy(row.status) ? (
+                  <>
+                    {" "}
+                    <LawChip status={row.status} />
+                  </>
+                ) : null}
               </span>
               <span className="figcell">
                 {row.conventional === null ? null : (

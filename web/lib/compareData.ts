@@ -3,7 +3,7 @@
 import type { CompareCard } from "@/components/Compare";
 import { preset, presets } from "./data";
 import { shortLabel } from "./format";
-import { estimateIdentity } from "./identity";
+import { againstPre2025Law, estimateIdentity } from "./identity";
 
 export function compareCards(ids: string[]): CompareCard[] {
   const index = presets();
@@ -30,7 +30,8 @@ export function compareCards(ids: string[]): CompareCard[] {
           tenYear: c.ten_year_deficit_impact,
           years: c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect })),
         },
-        calculator: estimateIdentity(c, "model"),
+        status: info?.status ?? null,
+        calculator: info?.status?.pre_2025_law ? againstPre2025Law(estimateIdentity(c, "model")) : estimateIdentity(c, "model"),
         published,
       },
     ];

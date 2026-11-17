@@ -1,4 +1,5 @@
 // Explore's list as plain data, so the page can filter and sort it in the browser.
+import type { LawStatus } from "./types";
 
 export type ExploreRow = {
   id: string;
@@ -6,6 +7,7 @@ export type ExploreRow = {
   area: string;
   conventional: number | null;
   published: number | null;
+  status?: LawStatus | null;
 };
 
 export type ExploreSort = "topic" | "size";

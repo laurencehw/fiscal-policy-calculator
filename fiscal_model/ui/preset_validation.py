@@ -559,6 +559,25 @@ def presets_without_a_row() -> tuple[str, ...]:
     )
 
 
+def is_published_figure(preset_id: str, score: float | None) -> bool:
+    """Whether ``score`` (a preset's or Build row's figure) is a published estimate.
+
+    False when there is no figure, when the scorecard row behind it is a retired
+    target, or when its provenance is this repository's own estimate
+    (``model_estimate``). Surfaces use this so a figure is never labelled
+    "published" unless someone outside this repository published it.
+    """
+    if score is None:
+        return False
+    from fiscal_model.validation.provenance import MODEL_ESTIMATE
+    from fiscal_model.validation.target_revisions import RETIRED_POLICY_IDS
+
+    if PRESET_ID_TO_SCORECARD_ID.get(preset_id) in RETIRED_POLICY_IDS:
+        return False
+    badge = get_validation_badge(preset_id)
+    return not (badge is not None and badge.get("provenance") == MODEL_ESTIMATE)
+
+
 __all__ = [
     "BADGE_SCORECARD_ID_BY_LABEL",
     "HEADLINE_ROW_DIVERGENCE",
@@ -577,6 +596,7 @@ __all__ = [
     "get_validation_badge",
     "illustrative_note",
     "is_calibrated_reference",
+    "is_published_figure",
     "presets_without_a_row",
     "reset_scorecard_cache",
     "tier_for_entry",
