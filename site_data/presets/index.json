@@ -163,7 +163,7 @@
     {
       "id": "estate-repeal",
       "name": "🏠 Eliminate Estate Tax ($407B)",
-      "description": "Repeal federal estate tax entirely. Tax Foundation's *Options 3.0* Option 83 puts it at \\$407B over CY2027-2036 -- a row that repeals the estate **and gift** taxes, so it is the broader of the two.",
+      "description": "Repeal the federal estate tax. Published estimate: about \\$407B over CY2027-2036 (Tax Foundation, Options 3.0, Option 83), which repeals the gift tax too, so it is the broader of the two.",
       "cbo_score": 407.2,
       "cbo_source": "Tax Foundation (Options 3.0, Option 83)",
       "cbo_date": "2026-07",
@@ -189,7 +189,7 @@
     {
       "id": "ss-donut-250k",
       "name": "💰 SS Donut Hole $250K (-$1.43T)",
-      "description": "Apply SS tax to wages above \\$250K (donut hole). CBO's *Options for Reducing the Deficit: 2025 to 2034* Option 62 alternative 2 scores the same design at \\$1,427B over FY2025-2034. The model still returns \\$2,700B, because its covered-wage band was set from the superseded target and retuning it would hide the miss.",
+      "description": "Apply the Social Security payroll tax to wages above \\$250K (a donut hole). Published estimate: \\$1,427B over FY2025-2034 (CBO, Options for Reducing the Deficit: 2025 to 2034, Option 62 alternative 2). This calculator's estimate is much larger because of how it sets the taxed wage band, a known miss.",
       "cbo_score": -1426.8,
       "cbo_source": "CBO, Options 2025-2034, Option 62 alternative 2",
       "cbo_date": "2024-12",
@@ -237,7 +237,7 @@
     {
       "id": "amt-extend-tcja-relief",
       "name": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
-      "description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. CRS/CBO put the 10-year cost at ~\\$1.36T.",
+      "description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K married filing jointly) past 2025. Published estimate: about \\$1.36T over ten years (CRS R48286 Table 1, transcribing CBO).",
       "cbo_score": 1357.1,
       "cbo_source": "CRS R48286 Table 1 (transcribing CBO 60114/60271)",
       "cbo_date": "November 2024",
@@ -263,7 +263,7 @@
     {
       "id": "amt-repeal-corporate",
       "name": "⚖️ Repeal Corporate AMT (+$220B)",
-      "description": "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA 2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that revenue.",
+      "description": "Repeal the 15% corporate book minimum tax (CAMT) enacted in the IRA in 2022. Published estimate: JCT scored enacting the CAMT as raising \\$222.2B (JCX-18-22), so repeal costs about that much over ten years.",
       "cbo_score": 220.0,
       "cbo_source": "JCT (JCX-18-22)",
       "cbo_date": "August 2022",
@@ -289,7 +289,7 @@
     {
       "id": "aca-ptc-repeal",
       "name": "🏥 Repeal ACA Premium Credits (-$1.1T)",
-      "description": "Repeal all ACA premium subsidies. Saves ~\\$1.1T but ~19M lose subsidized coverage.",
+      "description": "Repeal all ACA premium tax credits. Published estimate: saves about \\$1.1T over ten years (CBO, 2024), with roughly 19 million people losing subsidized coverage.",
       "cbo_score": -1100.0,
       "cbo_source": "CBO",
       "cbo_date": "2024",
@@ -373,7 +373,7 @@
     {
       "id": "millionaire-surtax-5pp",
       "name": "Progressive Millionaire Tax",
-      "description": "5pp surtax on income above \\$1M, scored on the AGI-inclusive base — capital gains and qualified dividends included. **No official score**: nothing published scores this reform, so the model's own estimate is the only number shown, and the AGI-inclusive base is a design choice of the preset by analogy with the Warren and Medicare surtaxes rather than a reading of a source document.",
+      "description": "A 5pp surtax on income above \\$1M, scored on the AGI-inclusive base, with capital gains and qualified dividends included. No official score: nothing published scores this reform, so the figure shown is this calculator's own estimate. The AGI-inclusive base is a design choice, by analogy with the Warren and Medicare surtaxes, not something read from a source.",
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
@@ -403,7 +403,7 @@
     {
       "id": "ultra-millionaire-surtax-3pp",
       "name": "Warren Ultra-Millionaire Surtax",
-      "description": "3pp surtax on **AGI** above \\$2M, Warren-style, scored on the AGI-inclusive base its TPC source uses — realized capital gains and qualified dividends included. Raises roughly \\$300-400B over 10 years depending on behavioral response.",
+      "description": "A 3pp surtax on AGI above \\$2M, Warren-style, scored on the AGI-inclusive base, with realized capital gains and qualified dividends included.",
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
@@ -419,7 +419,7 @@
     {
       "id": "top-rate-45",
       "name": "Top Rate to 45%",
-      "description": "Raise the top marginal rate from 37% to 45% on income above the current 37% bracket floor (\\$609,350 single, 2025). Illustrative of the upper end of progressive proposals. **No official score**: the \\$420B figure this preset used to quote could not be traced to any TPC, CBO or JCT publication and was withdrawn in the Phase E provenance pass, so the model's own estimate is the only number shown.",
+      "description": "Raise the top marginal rate from 37% to 45% on income above the 37% bracket floor (\\$609,350 single, 2025). It sits at the upper end of progressive proposals. No official score exists for it, so the figure shown is this calculator's own estimate.",
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
@@ -429,7 +429,7 @@
     {
       "id": "medicare-surcharge-2pp",
       "name": "High-Earner Medicare Surcharge 2pp",
-      "description": "+2pp Medicare surcharge on wage **and investment** income above \\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green Book row uses. Extends the NIIT's 3.8% surtax logic to a broader base. Similar in structure to the Biden 2025 Medicare surtax proposal.",
+      "description": "A 2pp Medicare surcharge on wage and investment income above \\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green Book row uses. It extends the logic of the NIIT's 3.8% surtax to a broader base, and is similar in structure to the Biden 2025 Medicare surtax proposal.",
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
@@ -439,7 +439,7 @@
     {
       "id": "gilti-reform",
       "name": "🌍 Biden GILTI Reform (-$374B)",
-      "description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~\\$374B over 10 years (Treasury FY2025 Green Book).",
+      "description": "Country-by-country GILTI at 21% and no QBAI exemption. Published estimate: raises about \\$374B over ten years (Treasury, FY2025 Green Book).",
       "cbo_score": -373.9,
       "cbo_source": "Treasury (FY2025 Green Book)",
       "cbo_date": "2024-03",
@@ -455,7 +455,7 @@
     {
       "id": "fdii-repeal",
       "name": "🌍 Repeal FDII (-$158B)",
-      "description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~\\$158B over 10 years (Treasury FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
+      "description": "Repeal the deduction for foreign-derived intangible income (FDII). Published estimate: raises about \\$158B over ten years (Treasury, FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
       "cbo_score": -158.0,
       "cbo_source": "Treasury (FY2025 Green Book)",
       "cbo_date": "2024-03",
@@ -471,7 +471,7 @@
     {
       "id": "pillar-two-adoption",
       "name": "🌍 Pillar Two Adoption (-$80B)",
-      "description": "Adopt OECD Pillar Two 15% global minimum tax. JCT estimate: raises ~\\$80B.",
+      "description": "Adopt the OECD Pillar Two 15% global minimum tax. Published estimate: raises about \\$80B (JCT).",
       "cbo_score": -80.0,
       "cbo_source": "JCT",
       "cbo_date": "2023",
@@ -481,7 +481,7 @@
     {
       "id": "international-package",
       "name": "🌍 Biden International Package (-$632B)",
-      "description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~\\$632B (Treasury FY2025 Green Book subtotal).",
+      "description": "The full Biden international package: per-country GILTI at 21%, FDII repeal and the UTPR. Published estimate: raises about \\$632B over ten years (Treasury, FY2025 Green Book subtotal).",
       "cbo_score": -632.2,
       "cbo_source": "Treasury (FY2025 Green Book)",
       "cbo_date": "2024-03",
@@ -513,7 +513,7 @@
     {
       "id": "irs-enforcement-double",
       "name": "🔍 Double IRS Enforcement (-$340B)",
-      "description": "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises ~\\$340B with diminishing returns. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+      "description": "Double IRS enforcement funding beyond IRA levels (about \\$16B a year). Published estimate: about \\$340B over ten years (Treasury and Sarin-Summers, 2021), with diminishing returns. Illustrative: an unfitted reconstruction a long way from that figure, shown for the shape of the policy rather than as an estimate of it.",
       "cbo_score": -340.0,
       "cbo_source": "Treasury/Sarin-Summers",
       "cbo_date": "2021",
@@ -523,7 +523,7 @@
     {
       "id": "irs-enforcement-high-income",
       "name": "🔍 High-Income Enforcement",
-      "description": "Targeted enforcement for >\\$400K returns and large partnerships. \\$5B/year, high ROI. **No official score**: nothing published scores a *targeted* high-income enforcement increase. CBO scores *untargeted* appropriations only — \\$20B of funding for −\\$41B of deficit and \\$40B for −\\$63B (publication 59972, FY2024-2034). The model's own estimate is the only number shown.",
+      "description": "Targeted enforcement on returns above \\$400K and large partnerships, at \\$5B a year. No official score: nothing published scores a targeted increase. CBO scores untargeted funding only, \\$20B of funding for -\\$41B of deficit and \\$40B for -\\$63B (publication 59972, FY2024-2034). The figure shown is this calculator's own estimate.",
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
@@ -533,7 +533,7 @@
     {
       "id": "drug-negotiation-expand",
       "name": "💊 Expand Drug Negotiation (-$500B)",
-      "description": "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity delays. Saves ~\\$500B. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+      "description": "Negotiate prices for 50 Medicare drugs (against the IRA's 20) and remove exclusivity delays. No published score of this design exists. Illustrative: an unfitted reconstruction, shown for the shape of the policy rather than as an estimate of it.",
       "cbo_score": -500.0,
       "cbo_source": "CBO/Estimate",
       "cbo_date": "2023",
@@ -543,7 +543,7 @@
     {
       "id": "insulin-cap-universal",
       "name": "💊 Universal Insulin Cap ($11B)",
-      "description": "\\$35/month insulin cap for Medicare and private insurance. A cost-sharing cap shifts liability onto plans, so CBO scores it as adding ~\\$11B to the deficit over 10 years. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+      "description": "A \\$35 a month insulin cap for Medicare and private insurance. A cost-sharing cap shifts costs onto plans, so CBO scores it as adding about \\$11B to the deficit over ten years. Illustrative: an unfitted reconstruction a long way from that published figure, shown for the shape of the policy rather than as an estimate of it.",
       "cbo_score": 11.4,
       "cbo_source": "CBO (publication 57957, H.R. 6833)",
       "cbo_date": "March 2022",
@@ -553,7 +553,7 @@
     {
       "id": "drug-reference-pricing",
       "name": "💊 International Reference Pricing (-$100B)",
-      "description": "Cap Medicare drug prices at 120% of OECD international average. Saves ~\\$100B. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+      "description": "Cap Medicare drug prices at 120% of the OECD average. No published budget score of this design exists; the figure it used to be compared with came from a price index, not a cost estimate. Illustrative: an unfitted reconstruction, shown for the shape of the policy rather than as an estimate of it.",
       "cbo_score": -100.0,
       "cbo_source": "RAND/Estimate",
       "cbo_date": "2021",
@@ -563,7 +563,7 @@
     {
       "id": "drug-reform-comprehensive",
       "name": "💊 Comprehensive Drug Reform",
-      "description": "Expanded negotiation + insulin cap + manufacturer discounts. **No official score**: nothing published scores a *combined* package of these three, and the nearest published figures are components an order of magnitude smaller (CBO put the IRA's own negotiation at \\$98.5B over FY2022-2031). The model's own estimate is the only number shown, and it is a 🟡 reconstruction of a channel nobody has scored. **Illustrative**: shown for the shape of the policy rather than as an estimate of it.",
+      "description": "Expanded negotiation, a universal insulin cap and manufacturer discounts together. No official score: nothing published scores the three combined, and the nearest published figures are much smaller components (CBO put the IRA's own negotiation at \\$98.5B over FY2022-2031). The figure shown is this calculator's own estimate. Illustrative: shown for the shape of the policy rather than as an estimate of it.",
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
@@ -573,7 +573,7 @@
     {
       "id": "tariff-universal-10pct",
       "name": "🏭 Trump Universal 10% Tariff (-$2.17T)",
-      "description": "10% tariff on all imports. Raises ~\\$2.17T conventionally (Tax Foundation FF861) but costs ~\\$1,700/household in higher prices.",
+      "description": "A 10% tariff on all imports. Published estimate: raises about \\$2.17T over ten years, conventional (Tax Foundation, FF861).",
       "cbo_score": -2171.1,
       "cbo_source": "Tax Foundation (FF861)",
       "cbo_date": "2025-04",
@@ -605,7 +605,7 @@
     {
       "id": "tariff-auto-25pct",
       "name": "🏭 25% Auto Tariff (-$386B)",
-      "description": "25% tariff on imported vehicles and parts (~\\$380B base). Raises ~\\$386B conventionally (Tax Foundation tariff tracker).",
+      "description": "A 25% tariff on imported vehicles and parts (about \\$380B of imports). Published estimate: raises about \\$386B over ten years, conventional (Tax Foundation tariff tracker).",
       "cbo_score": -386.2,
       "cbo_source": "Tax Foundation (tariff tracker)",
       "cbo_date": "2026-08",
@@ -641,7 +641,7 @@
     {
       "id": "ira-clean-energy-repeal",
       "name": "🌱 Repeal IRA Clean Energy Credits (-$851B)",
-      "description": "Full repeal of IRA clean energy tax credits. Tax Foundation (McBride, House Oversight testimony, May 2025) puts it at \\$851B over FY2025-2034. The \\$783B this used to cite to a March 2024 CBO publication was the model's own output: no CBO or JCT document carries it.",
+      "description": "Full repeal of the IRA clean energy tax credits. Published estimate: about \\$851B over FY2025-2034 (Tax Foundation, McBride, House Oversight testimony, May 2025).",
       "cbo_score": -851.0,
       "cbo_source": "Tax Foundation (McBride, House Oversight testimony)",
       "cbo_date": "2025-05",
@@ -657,7 +657,7 @@
     {
       "id": "carbon-tax-50",
       "name": "🌱 Carbon Tax \\$50/ton (-$1.7T)",
-      "description": "\\$50/ton CO2 tax with 5% annual escalator. Raises ~\\$1.7T over 10 years.",
+      "description": "A \\$50 per ton CO2 tax rising 5% a year. No published score of this design exists. The \\$1.7T on the Build list is a CBO-style estimate, not a CBO or JCT figure, and the figure shown here is this calculator's own estimate.",
       "cbo_score": -1700.0,
       "cbo_source": "CBO-style estimate",
       "cbo_date": "2024",
@@ -673,7 +673,7 @@
     {
       "id": "carbon-tax-25",
       "name": "🌱 Carbon Tax \\$25/ton",
-      "description": "\\$25/ton CO2 starter tax with 5% annual escalator. **No official score is quoted**: a real document does exist, on a different decade — CBO and JCT's *Options for Reducing the Deficit: 2023 to 2032* scores \\$25/tonne rising 5% plus inflation at −\\$865B over FY2023-2032 — but this repository has no scorecard row for it, so the model's own estimate is the only number shown.",
+      "description": "A \\$25 per ton CO2 tax rising 5% a year. No official score of this design covers this window. CBO and JCT's Options for Reducing the Deficit: 2023 to 2032 scores a \\$25 per tonne tax rising 5% plus inflation at -\\$865B over FY2023-2032, a different decade, so the figure shown is this calculator's own estimate.",
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
@@ -689,7 +689,7 @@
     {
       "id": "ev-credit-repeal",
       "name": "🌱 Repeal EV Credits (-$182B)",
-      "description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Saves ~\\$182B over FY2025-2034 (JCT JCX-35-25).",
+      "description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Published estimate: JCT put ending these credits at about \\$182B over FY2025-2034 (JCX-35-25), in its score of P.L. 119-21.",
       "cbo_score": -182.3,
       "cbo_source": "JCT (JCX-35-25)",
       "cbo_date": "July 2025",
@@ -705,7 +705,7 @@
     {
       "id": "ira-clean-energy-extend",
       "name": "🌱 Extend IRA Credits Beyond 2032",
-      "description": "Extend IRA clean energy credits 5 years beyond the 2032 sunset. **No official score**: every published figure scores the credits *as enacted* or their *repeal*, never an incremental five-year extension. The model's own estimate is the only number shown.",
+      "description": "Extend the IRA clean energy credits five years beyond the 2032 sunset. No official score: published figures cover the credits as enacted or their repeal, never a five-year extension. The figure shown is this calculator's own estimate.",
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,

@@ -2,7 +2,7 @@
   "id": "ira-clean-energy-repeal",
   "conventional": {
     "policy_name": "🌱 Repeal IRA Clean Energy Credits (-$851B)",
-    "policy_description": "Full repeal of IRA clean energy tax credits. Tax Foundation (McBride, House Oversight testimony, May 2025) puts it at \\$851B over FY2025-2034. The \\$783B this used to cite to a March 2024 CBO publication was the model's own output: no CBO or JCT document carries it.",
+    "policy_description": "Full repeal of the IRA clean energy tax credits. Published estimate: about \\$851B over FY2025-2034 (Tax Foundation, McBride, House Oversight testimony, May 2025).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -782.9999999999999,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌱 Repeal IRA Clean Energy Credits (-$851B)",
-    "policy_description": "Full repeal of IRA clean energy tax credits. Tax Foundation (McBride, House Oversight testimony, May 2025) puts it at \\$851B over FY2025-2034. The \\$783B this used to cite to a March 2024 CBO publication was the model's own output: no CBO or JCT document carries it.",
+    "policy_description": "Full repeal of the IRA clean energy tax credits. Published estimate: about \\$851B over FY2025-2034 (Tax Foundation, McBride, House Oversight testimony, May 2025).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -782.9999999999999,

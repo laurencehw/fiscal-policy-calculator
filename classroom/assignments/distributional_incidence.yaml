@@ -31,11 +31,11 @@ exercises:
       The distribution tab shows the average tax change per household by
       income quintile and the share of total tax change going to each group.
 
-      Run a 2pp income tax increase on income above $400,000.
-      Then answer: what share of the total tax increase is borne by the
-      top 1% vs. the bottom 60% combined?
+      Run a 2pp income tax increase on income above $400,000 and look at
+      the "Share of Total" column. Compare the top quintile with the bottom
+      three quintiles combined.
 
-      Enter your estimate of the top-quintile (top 20%) share of the tax change.
+      Enter the top quintile's (top 20%) share of the total tax change, in percent.
     parameters:
       - name: rate_change
         label: "Rate change (decimal)"
@@ -67,7 +67,7 @@ exercises:
     validation:
       answer_unit: "%"
       method: range_check
-      min_acceptable: 85.0
+      min_acceptable: 95.0
       max_acceptable: 100.0
     expected_insight: >
       Income taxes with high thresholds are highly concentrated at the top.
@@ -91,11 +91,13 @@ exercises:
       CBO and JCT split the burden 75% capital / 25% labor.
 
       Consider a 7pp corporate rate increase (21% → 28%). The model scores
-      this at approximately −$1.35T over 10 years.
+      this at about −$1.3T over 10 years, or roughly $135B a year.
 
-      Given the 75/25 split, estimate: if annual corporate tax revenue
-      increases by $135B, how much falls on (a) capital income earners
-      and (b) workers?
+      Using the 75/25 split, work out how much of that $135B a year falls on
+      capital income earners and how much on workers.
+
+      Enter the amount that falls on capital income earners, in billions of
+      dollars a year (a positive number).
     parameters:
       - name: rate_change
         label: "Corporate rate change (decimal)"
@@ -126,9 +128,10 @@ exercises:
           reductions. The open-economy view (Gravelle 2010) suggests workers
           bear even more. This matters enormously for distributional analysis.
     validation:
+      answer_unit: "$B"
       method: range_check
-      min_acceptable: 60.0
-      max_acceptable: 120.0
+      min_acceptable: 96.0
+      max_acceptable: 106.0
     expected_insight: >
       Corporate tax incidence is contested because it depends on capital mobility
       and wage determination in general equilibrium. The distributional profile of

@@ -2,7 +2,7 @@
   "id": "insulin-cap-universal",
   "conventional": {
     "policy_name": "💊 Universal Insulin Cap ($11B)",
-    "policy_description": "\\$35/month insulin cap for Medicare and private insurance. A cost-sharing cap shifts liability onto plans, so CBO scores it as adding ~\\$11B to the deficit over 10 years. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "A \\$35 a month insulin cap for Medicare and private insurance. A cost-sharing cap shifts costs onto plans, so CBO scores it as adding about \\$11B to the deficit over ten years. Illustrative: an unfitted reconstruction a long way from that published figure, shown for the shape of the policy rather than as an estimate of it.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 6.958884615384616,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "💊 Universal Insulin Cap ($11B)",
-    "policy_description": "\\$35/month insulin cap for Medicare and private insurance. A cost-sharing cap shifts liability onto plans, so CBO scores it as adding ~\\$11B to the deficit over 10 years. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "A \\$35 a month insulin cap for Medicare and private insurance. A cost-sharing cap shifts costs onto plans, so CBO scores it as adding about \\$11B to the deficit over ten years. Illustrative: an unfitted reconstruction a long way from that published figure, shown for the shape of the policy rather than as an estimate of it.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 6.958884615384616,

@@ -10,8 +10,9 @@ test("answers print in their own units, as the engine prints them", () => {
   assert.equal(formatAnswer(3.5, "pp"), "3.5 pp");
 });
 
-test("dollar answers carry the sign convention", () => {
-  assert.match(answerLabel("$B"), /negative = revenue gain/);
+test("dollar answers point to the sign the question states", () => {
+  assert.match(answerLabel("$B"), /sign the question asks for/);
+  assert.doesNotMatch(answerLabel("$B"), /negative = revenue gain/);
   assert.doesNotMatch(answerLabel("%"), /revenue/);
 });
 

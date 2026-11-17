@@ -8,7 +8,7 @@ import { baseline, houseStrip, manifest, preset, presets, views } from "@/lib/da
 import { ResultSections } from "@/components/ResultSections";
 import { EstimateTag } from "@/components/EstimateTag";
 import { Checked, YearTable } from "@/components/ScoreParts";
-import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
+import { direction, money, plainDescription, shortLabel } from "@/lib/format";
 import { adjustable, tailorHref } from "@/lib/adjust";
 import { againstPre2025Law, estimateIdentity, identityLine, type EstimateIdentity } from "@/lib/identity";
 import { baselineEyebrow } from "@/lib/lawStatus";
@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const against = presets().find((row) => row.id === id)?.status?.pre_2025_law ? " against pre-2025 law" : "";
   return {
     title: shortLabel(c.policy_name),
-    description: `${money(c.ten_year_deficit_impact)} over ${c.budget_window}${against}: ${direction(c.ten_year_deficit_impact)}. ${cleanLabel(c.policy_description)}`.slice(0, 199),
+    description: `${money(c.ten_year_deficit_impact)} over ${c.budget_window}${against}: ${direction(c.ten_year_deficit_impact)}. ${plainDescription(c.policy_description)}`.slice(0, 199),
     alternates: { canonical: `/explore/${id}` },
   };
 }
@@ -64,7 +64,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         <span className="eyebrow">{baselineEyebrow(c.budget_window, c.baseline_vintage, status)}</span>
         <h1>{name}</h1>
         {status ? <LawStatusNote status={status} /> : null}
-        <p className="sentence">{cleanLabel(c.policy_description)}</p>
+        <p className="sentence">{plainDescription(c.policy_description)}</p>
         <StaleLink scoresDate={scoresDate} />
       </header>
 

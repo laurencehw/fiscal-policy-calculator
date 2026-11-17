@@ -2,7 +2,7 @@
   "id": "drug-negotiation-expand",
   "conventional": {
     "policy_name": "💊 Expand Drug Negotiation (-$500B)",
-    "policy_description": "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity delays. Saves ~\\$500B. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "Negotiate prices for 50 Medicare drugs (against the IRA's 20) and remove exclusivity delays. No published score of this design exists. Illustrative: an unfitted reconstruction, shown for the shape of the policy rather than as an estimate of it.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -41.80680570708753,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "💊 Expand Drug Negotiation (-$500B)",
-    "policy_description": "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity delays. Saves ~\\$500B. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "Negotiate prices for 50 Medicare drugs (against the IRA's 20) and remove exclusivity delays. No published score of this design exists. Illustrative: an unfitted reconstruction, shown for the shape of the policy rather than as an estimate of it.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -41.80680570708753,

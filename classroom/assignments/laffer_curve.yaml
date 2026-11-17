@@ -35,7 +35,10 @@ exercises:
         ΔRevenue = ΔRate × (Avg_Income − Threshold) × Num_Filers × 10 years
 
       Set the rate change to 2 percentage points (0.02) and estimate the
-      10-year static revenue gain in billions. Enter your answer below.
+      10-year static revenue gain in billions.
+
+      Enter the 10-year static effect in billions of dollars (negative =
+      revenue gain, deficit falls).
     parameters:
       - name: rate_change
         label: "Rate change (decimal, e.g. 0.02 = 2pp)"
@@ -96,7 +99,10 @@ exercises:
         Offset = −ETI × 0.5 × Static_Revenue
 
       Given your static estimate from Exercise 1, calculate the behavioral offset
-      and the net revenue effect. Enter the final (net) 10-year revenue change.
+      and the net revenue effect.
+
+      Enter the final (net) 10-year revenue change in billions of dollars
+      (negative = revenue gain, deficit falls).
     parameters:
       - name: rate_change
         label: "Rate change (decimal)"
@@ -161,6 +167,9 @@ exercises:
 
       Find the rate change at which the net 10-year revenue is maximized
       (hint: it is around +35pp to +40pp above the current 37% rate).
+
+      Enter the net 10-year revenue effect at the rate change you settle on,
+      in billions of dollars (negative = revenue gain, deficit falls).
     parameters:
       - name: rate_change
         label: "Rate change from 37% baseline (decimal)"

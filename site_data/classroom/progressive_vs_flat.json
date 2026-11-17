@@ -27,7 +27,7 @@
       "title": "What Does the Current System Look Like?",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "The US federal income tax has seven brackets from 10% to 37%. The effective (average) tax rate rises with income but is always below the marginal rate due to bracket structure.\nUsing the model, estimate the 10-year revenue effect of: (a) Raising the top rate from 37% to 39.6% (+2.6pp) on income above $400K (b) Cutting the bottom rate from 10% to 8% (−2pp) on income below $50K\nCompare the two effects. Which has a larger revenue impact? Why?",
+      "prompt": "The US federal income tax has seven brackets from 10% to 37%. The effective (average) tax rate rises with income but is always below the marginal rate due to bracket structure.\nUsing the model, estimate the 10-year revenue effect of: (a) Raising the top rate from 37% to 39.6% (+2.6pp) on income above $400K (b) Cutting the bottom rate from 10% to 8% (−2pp) on income below $50K\nCompare the two effects. Which has a larger revenue impact? Why?\nEnter the 10-year revenue effect of change (a), in billions of dollars (negative = revenue gain, deficit falls).",
       "parameters": [
         {
           "name": "rate_change_top",

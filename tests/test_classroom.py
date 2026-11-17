@@ -1044,6 +1044,69 @@ class TestFullAssignmentCycle:
             assert tracker.is_complete(ex.id)
 
 
+# ---------------------------------------------------------------------------
+# Every checked exercise says what number to type, in the unit it checks
+# ---------------------------------------------------------------------------
+
+_UNIT_WORDS = {
+    "$B": ("billion",),
+    "%": ("percent", "%"),
+    "pp": ("percentage point", "pp"),
+    "pp of GDP": ("pp of GDP", "percentage point"),
+    "policies": ("number of policies",),
+}
+
+
+def _checked_exercises():
+    loader = AssignmentLoader()
+    for assignment_id in loader.list_assignments():
+        for exercise in loader.load(assignment_id).exercises:
+            spec = exercise.validation
+            if spec is None or spec.method.value not in ("range_check", "relative_to_model"):
+                continue
+            yield assignment_id, exercise
+
+
+def _ask(prompt: str) -> str:
+    """The sentence that tells the student what to type."""
+    text = " ".join(prompt.split())
+    for marker in ("Enter ", "answer with "):
+        at = text.rfind(marker)
+        if at >= 0:
+            return text[at:]
+    return ""
+
+
+@pytest.mark.parametrize(
+    "assignment_id,exercise",
+    [pytest.param(a, e, id=e.id) for a, e in _checked_exercises()],
+)
+def test_a_checked_exercise_asks_for_one_number_in_its_unit(assignment_id, exercise):
+    ask = _ask(exercise.prompt)
+    assert ask, f"{exercise.id} never says what to enter"
+    unit = exercise.validation.answer_unit
+    assert unit in _UNIT_WORDS, f"{exercise.id}: no wording registered for unit {unit!r}"
+    assert any(word in ask for word in _UNIT_WORDS[unit]), (
+        f"{exercise.id} checks {unit} but its ask does not name that unit: {ask!r}"
+    )
+    if unit == "$B":
+        assert "negative" in ask or "positive" in ask, (
+            f"{exercise.id} asks for dollars without saying which sign: {ask!r}"
+        )
+
+
+def test_the_incidence_exercises_check_the_number_they_ask_for():
+    loader = AssignmentLoader()
+    exercises = {e.id: e for e in loader.load("distributional_incidence").exercises}
+    share = exercises["dist_ug_ex1"].validation
+    assert share.answer_unit == "%"
+    assert share.min_acceptable <= 100.0 <= share.max_acceptable
+    capital = exercises["dist_ug_ex2"].validation
+    assert capital.answer_unit == "$B"
+    # $135B a year at the 75/25 split the prompt states.
+    assert capital.min_acceptable <= 135 * 0.75 <= capital.max_acceptable
+    assert not capital.min_acceptable <= 135 * 0.25 <= capital.max_acceptable
+
 def test_the_values_exercises_accept_what_the_composer_returns():
     import dataclasses
 

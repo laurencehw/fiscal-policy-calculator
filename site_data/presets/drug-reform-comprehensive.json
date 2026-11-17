@@ -2,7 +2,7 @@
   "id": "drug-reform-comprehensive",
   "conventional": {
     "policy_name": "💊 Comprehensive Drug Reform",
-    "policy_description": "Expanded negotiation + insulin cap + manufacturer discounts. **No official score**: nothing published scores a *combined* package of these three, and the nearest published figures are components an order of magnitude smaller (CBO put the IRA's own negotiation at \\$98.5B over FY2022-2031). The model's own estimate is the only number shown, and it is a 🟡 reconstruction of a channel nobody has scored. **Illustrative**: shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "Expanded negotiation, a universal insulin cap and manufacturer discounts together. No official score: nothing published scores the three combined, and the nearest published figures are much smaller components (CBO put the IRA's own negotiation at \\$98.5B over FY2022-2031). The figure shown is this calculator's own estimate. Illustrative: shown for the shape of the policy rather than as an estimate of it.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -158.85779626897514,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "💊 Comprehensive Drug Reform",
-    "policy_description": "Expanded negotiation + insulin cap + manufacturer discounts. **No official score**: nothing published scores a *combined* package of these three, and the nearest published figures are components an order of magnitude smaller (CBO put the IRA's own negotiation at \\$98.5B over FY2022-2031). The model's own estimate is the only number shown, and it is a 🟡 reconstruction of a channel nobody has scored. **Illustrative**: shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "Expanded negotiation, a universal insulin cap and manufacturer discounts together. No official score: nothing published scores the three combined, and the nearest published figures are much smaller components (CBO put the IRA's own negotiation at \\$98.5B over FY2022-2031). The figure shown is this calculator's own estimate. Illustrative: shown for the shape of the policy rather than as an estimate of it.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -158.85779626897514,
