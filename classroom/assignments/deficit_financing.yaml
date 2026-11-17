@@ -40,6 +40,10 @@ exercises:
 
       Estimate the year-1 GDP boost and the 10-year cumulative boost
       from a $100B/year spending increase using a multiplier of 1.4.
+
+      The answer box checks the conventional score, not the GDP boost. Enter
+      the package's 10-year cost to the deficit, in billions of dollars (a
+      positive number, since the deficit rises).
     parameters:
       - name: annual_change_billions
         label: "Annual spending change ($B, positive = increase)"
@@ -102,6 +106,9 @@ exercises:
 
       Estimate: how much private investment is displaced by the new $200B/year
       borrowing (using the $0.33 coefficient)?
+
+      Enter the displaced private investment, in billions of dollars a year
+      (a positive number).
     parameters:
       - name: new_borrowing_billions
         label: "New annual deficit ($B)"

@@ -27,7 +27,7 @@
       "title": "Universal 10% Tariff: Revenue and Consumer Cost",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "The US imported approximately $3.2 trillion in goods in 2024. A universal 10% tariff on all imports would generate revenue, but some is offset by: (a) reduced import volumes, (b) consumer price increases, and (c) retaliation against US exports.\nPass-through assumptions: - 60% of tariff is passed to consumers as higher prices - Import price elasticity = −0.50 (a 10% price rise reduces imports 5%) - Only 70% of imports are effectively covered (exemptions, existing tariffs)\nUsing these assumptions, estimate the annual tariff revenue. Formula: Revenue = Tariff Rate × Import Base × Coverage × (1 − Volume Reduction)\nEnter your estimate of 10-year tariff revenue (in $B).",
+      "prompt": "The US imported approximately $3.2 trillion in goods in 2024. A universal 10% tariff on all imports would generate revenue, but some is offset by: (a) reduced import volumes, (b) consumer price increases, and (c) retaliation against US exports.\nPass-through assumptions: - 60% of tariff is passed to consumers as higher prices - Import price elasticity = −0.50 (a 10% price rise reduces imports 5%) - Only 70% of imports are effectively covered (exemptions, existing tariffs)\nUsing these assumptions, estimate the annual tariff revenue. Formula: Revenue = Tariff Rate × Import Base × Coverage × (1 − Volume Reduction)\nEnter your estimate of 10-year tariff revenue in billions of dollars (negative = revenue gain, deficit falls).",
       "parameters": [
         {
           "name": "tariff_rate",
@@ -70,7 +70,7 @@
       "title": "Who Pays? Consumer Price Impact by Quintile",
       "type": "comparison",
       "level": "undergraduate",
-      "prompt": "A universal 10% tariff raises consumer prices by roughly 6% on imported goods. Since lower-income households spend a larger share of their income on traded goods, the per-household cost as a share of income is regressive.\nEstimated per-household annual cost by quintile: - Bottom: ~$900/year (8% of $11K income) - Second: ~$1,200/year (4.7% of $26K) - Middle: ~$1,500/year (3.2% of $47K) - Fourth: ~$1,700/year (2.2% of $79K) - Top: ~$2,200/year (1.2% of $183K)\nThe US has ~130 million households. The total annual consumer cost is: (900 + 1200 + 1500 + 1700 + 2200)/5 × 130M = ?\nEnter the total annual consumer burden in billions.",
+      "prompt": "A universal 10% tariff raises consumer prices by roughly 6% on imported goods. Since lower-income households spend a larger share of their income on traded goods, the per-household cost as a share of income is regressive.\nEstimated per-household annual cost by quintile: - Bottom: ~$900/year (8% of $11K income) - Second: ~$1,200/year (4.7% of $26K) - Middle: ~$1,500/year (3.2% of $47K) - Fourth: ~$1,700/year (2.2% of $79K) - Top: ~$2,200/year (1.2% of $183K)\nThe US has ~130 million households. The total annual consumer cost is: (900 + 1200 + 1500 + 1700 + 2200)/5 × 130M = ?\nEnter the total annual consumer burden in billions of dollars (a positive number).",
       "parameters": [
         {
           "name": "tariff_rate",
@@ -109,7 +109,7 @@
       "title": "China Tariffs: Revenue vs. Retaliation",
       "type": "comparison",
       "level": "graduate",
-      "prompt": "The 2025 tariff package on Chinese goods imposes 145% tariffs on ~$430B of Chinese imports. China has retaliated with 125% tariffs on US exports.\nModel the net fiscal effect: (a) US tariff revenue from China goods (at 145%, with substitution) (b) Loss of US export revenue from Chinese retaliation (~$150B/yr exports) (c) Consumer price increases for China-specific goods (electronics, etc.) (d) Net 10-year fiscal position\nKey: at very high tariff rates (>30%), substitution accelerates — businesses rapidly find non-China suppliers. Use the high_tariff_elasticity_multiplier of 2.0 from the model.\nEstimate the net 10-year revenue effect of the China-specific tariff package.",
+      "prompt": "The 2025 tariff package on Chinese goods imposes 145% tariffs on ~$430B of Chinese imports. China has retaliated with 125% tariffs on US exports.\nModel the net fiscal effect: (a) US tariff revenue from China goods (at 145%, with substitution) (b) Loss of US export revenue from Chinese retaliation (~$150B/yr exports) (c) Consumer price increases for China-specific goods (electronics, etc.) (d) Net 10-year fiscal position\nKey: at very high tariff rates (>30%), substitution accelerates — businesses rapidly find non-China suppliers. Use the high_tariff_elasticity_multiplier of 2.0 from the model.\nEstimate the net 10-year revenue effect of the China-specific tariff package.\nEnter the net revenue raised over 10 years, in billions of dollars (a positive number).",
       "parameters": [
         {
           "name": "tariff_rate",

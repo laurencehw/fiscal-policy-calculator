@@ -27,7 +27,7 @@
       "title": "Spending Multiplier: $100B Infrastructure Package",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "The government proposes a $100 billion per year infrastructure investment package, deficit-financed (no offsetting tax increases).\nThe spending multiplier measures the total GDP boost per dollar of spending:\n  ΔGDP = Multiplier × ΔSpending\n\nStandard estimates: - CBO: spending multiplier ~1.0 in normal times - FRB/US calibrated: ~1.4 in year 1, decaying over time - At zero lower bound (recession): 1.5-2.0\nEstimate the year-1 GDP boost and the 10-year cumulative boost from a $100B/year spending increase using a multiplier of 1.4.",
+      "prompt": "The government proposes a $100 billion per year infrastructure investment package, deficit-financed (no offsetting tax increases).\nThe spending multiplier measures the total GDP boost per dollar of spending:\n  ΔGDP = Multiplier × ΔSpending\n\nStandard estimates: - CBO: spending multiplier ~1.0 in normal times - FRB/US calibrated: ~1.4 in year 1, decaying over time - At zero lower bound (recession): 1.5-2.0\nEstimate the year-1 GDP boost and the 10-year cumulative boost from a $100B/year spending increase using a multiplier of 1.4.\nThe answer box checks the conventional score, not the GDP boost. Enter the package's 10-year cost to the deficit, in billions of dollars (a positive number, since the deficit rises).",
       "parameters": [
         {
           "name": "annual_change_billions",
@@ -70,7 +70,7 @@
       "title": "Crowding Out: Does Government Borrowing Displace Investment?",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "When the government borrows, it competes with private borrowers for loanable funds, potentially \"crowding out\" private investment.\nCBO assumes a \"crowding out coefficient\" of ~$0.33: each dollar of deficit reduces private capital by $0.33 in the long run.\nGiven: - US private investment is ~$4.5T/year - Current deficit is ~$1.8T/year (6% of $30T GDP) - Proposed policy adds $200B/year in new borrowing\nEstimate: how much private investment is displaced by the new $200B/year borrowing (using the $0.33 coefficient)?",
+      "prompt": "When the government borrows, it competes with private borrowers for loanable funds, potentially \"crowding out\" private investment.\nCBO assumes a \"crowding out coefficient\" of ~$0.33: each dollar of deficit reduces private capital by $0.33 in the long run.\nGiven: - US private investment is ~$4.5T/year - Current deficit is ~$1.8T/year (6% of $30T GDP) - Proposed policy adds $200B/year in new borrowing\nEstimate: how much private investment is displaced by the new $200B/year borrowing (using the $0.33 coefficient)?\nEnter the displaced private investment, in billions of dollars a year (a positive number).",
       "parameters": [
         {
           "name": "new_borrowing_billions",
