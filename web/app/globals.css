@@ -549,4 +549,4 @@ details.numbers table { margin-top: 8px; }
 .currentlawanswer .stage { border-right: 0; padding-right: 0; }
 .currentlawanswer .sentence { margin: 0; }
 .currentlawanswer .note { margin: 0; color: var(--muted); font-size: 14px; }
-.figcell .currentlaw { font-family: var(--label); font-size: 12px; color: var(--muted); white-space: nowrap; }
+.rowname .currentlaw { font-family: var(--label); font-size: 13px; color: var(--muted); }

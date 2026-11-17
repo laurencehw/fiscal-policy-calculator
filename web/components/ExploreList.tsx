@@ -122,6 +122,9 @@ export function ExploreList({
                   <>
                     {" "}
                     <LawChip status={row.status} />
+                    {currentLawLine(row.status, row.currentLaw ?? null) ? (
+                      <span className="currentlaw"> {currentLawLine(row.status, row.currentLaw ?? null)}</span>
+                    ) : null}
                   </>
                 ) : null}
               </span>
@@ -133,9 +136,6 @@ export function ExploreList({
                       {money(row.conventional)}
                     </span>
                     <Bar value={row.conventional} scale={scale} />
-                    {currentLawLine(row.status, row.currentLaw ?? null) ? (
-                      <span className="currentlaw">{currentLawLine(row.status, row.currentLaw ?? null)}</span>
-                    ) : null}
                   </>
                 )}
               </span>
