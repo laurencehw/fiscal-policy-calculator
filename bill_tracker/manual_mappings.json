@@ -1,6 +1,6 @@
 {
   "_comment": "Manual provision overrides for bills where LLM auto-extraction needs correction.",
-  "_format": "bill_id → {description, policies: [...], override_reason, mapped_by, mapped_date}",
+  "_format": "bill_id → {description, policies: [...], coverage ('full' | 'partial', default full), override_reason, mapped_by, mapped_date}",
   "hr-7024-118": {
     "description": "Tax Relief for American Families and Workers Act of 2024",
     "policies": [
@@ -20,7 +20,7 @@
     "mapped_date": "2026-04-01"
   },
   "hr-1-119": {
-    "description": "One Big Beautiful Bill (Reconciliation 2025) — placeholder until CBO scores",
+    "description": "One Big Beautiful Bill Act (P.L. 119-21)",
     "policies": [
       {
         "policy_type": "tcja_extension",
@@ -30,19 +30,12 @@
           "extension_years": 10
         },
         "confidence": "high",
-        "provision_text": "Extends all TCJA provisions permanently"
-      },
-      {
-        "policy_type": "corporate",
-        "parameters": {
-          "rate_change": -0.01
-        },
-        "confidence": "medium",
-        "provision_text": "Reduces corporate rate from 21% to 20%"
+        "provision_text": "Extends the individual TCJA provisions permanently"
       }
     ],
-    "override_reason": "Auto-extraction missed corporate rate cut; TCJA extension confirmed via bill text",
-    "mapped_by": "Laurence Wilse-Samson",
-    "mapped_date": "2026-04-01"
+    "coverage": "partial",
+    "override_reason": "Maps only the TCJA extension. The law's other tax changes and its spending cuts (Medicaid, SNAP and others) are not mapped, so the calculator reading is partial and low confidence. The earlier mapping's corporate rate cut (21% to 20%) is not in the law and was removed on 2026-11-17.",
+    "mapped_by": "Claude (site review fix)",
+    "mapped_date": "2026-11-17"
   }
 }

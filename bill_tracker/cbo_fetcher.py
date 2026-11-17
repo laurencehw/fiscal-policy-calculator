@@ -116,7 +116,7 @@ class CBOScoreFetcher:
 
         This avoids re-fetching CBO data for every bill in a pipeline run.
         """
-        if not estimates:
+        if not estimates or not carries_cost_estimate(bill_id):
             return None
 
         # Parse bill number from bill_id (e.g. "hr-1234-119" → "H.R. 1234")
@@ -299,6 +299,17 @@ def _parse_cost_billions(cost_raw: Any) -> float:
         return 0.0
 
 
+#: Bill types CBO never writes a cost estimate for: budget and other concurrent
+#: resolutions, and simple resolutions. A CBO publication that names one (P.L.
+#: 119-21 is "pursuant to title II of H. Con. Res. 14") is about another bill.
+NO_COST_ESTIMATE_TYPES = frozenset({"hconres", "sconres", "hres", "sres"})
+
+
+def carries_cost_estimate(bill_id: str) -> bool:
+    """False for bill types that never carry a CBO cost estimate."""
+    return bill_id.split("-", 1)[0].lower() not in NO_COST_ESTIMATE_TYPES
+
+
 def _bill_id_to_ref(bill_id: str) -> str:
     """Convert 'hr-1234-119' → 'H.R. 1234'."""
     parts = bill_id.split("-")
@@ -343,7 +354,7 @@ def load_fallback_estimates(path: str | Path) -> list[CBOCostEstimate]:
         if not isinstance(raw, dict):
             continue
         bill_id = str(raw.get("bill_id", "")).strip()
-        if not bill_id:
+        if not bill_id or not carries_cost_estimate(bill_id):
             continue
 
         try:

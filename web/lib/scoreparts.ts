@@ -15,7 +15,20 @@ import type { Credibility, ScoreResult } from "./types";
  */
 export type YearRow = {
   year: number;
+  /** Static revenue effect, revenue convention (positive is more revenue). */
   revenue: number;
+  /**
+   * The behavioural response, revenue convention: what taxpayers' responses
+   * take off (or add to) the static revenue. ``-(revenue + behavioural)`` is the
+   * conventional deficit for a tax policy.
+   */
+  behavioural: number;
+  /**
+   * Whatever the conventional deficit holds beyond the revenue columns, deficit
+   * convention: outlays for a spending policy, or a module that reports only its
+   * total. Zero for a tax policy.
+   */
+  other: number;
   conventional: number;
   macro: number;
   debtService: number | null;
@@ -25,15 +38,43 @@ export type YearRow = {
 export function yearRows(c: ScoreResult, d: ScoreResult): YearRow[] {
   return c.year_by_year.map((row, i) => {
     const dyn = d.year_by_year[i];
+    // The engine books the offset with the sign of the static effect it erodes,
+    // so in revenue terms the response is its negative.
+    const behavioural = -row.behavioral_offset;
+    const other = row.final_effect + row.revenue_effect + behavioural;
     return {
       year: row.year,
       revenue: row.revenue_effect,
+      behavioural,
+      other: Math.abs(other) < 1e-6 ? 0 : other,
       conventional: row.final_effect,
       macro: -(dyn?.dynamic_feedback ?? 0),
       debtService: dyn?.debt_service ?? null,
       dynamic: dyn?.dynamic_effect ?? null,
     };
   });
+}
+
+/** Whether any year has a conventional deficit beyond the revenue columns. */
+export function hasOther(rows: YearRow[]): boolean {
+  return rows.some((row) => row.other !== 0);
+}
+
+/**
+ * Why the first-year Who pays total differs from the headline's first year.
+ * The two come from different engines: the headline from the revenue engine
+ * (fiscal year, with a behavioural response), Who pays from the return-level
+ * microsimulation or bracket method (calendar year, static).
+ */
+export function whoPaysReconciliation(row: YearRow | undefined, tableYear: number, tableTotal: number): string {
+  if (!row) return "";
+  const after = row.revenue + row.behavioural;
+  return (
+    `The headline score comes from the revenue engine: for FY${row.year} its revenue effect is ${money(row.revenue)} before ` +
+    `the behavioural response and ${money(after)} after it (revenue terms; positive is more revenue). This table ` +
+    `comes from a separate household-level calculation for ${tableYear}, with no behavioural response, and totals ` +
+    `${money(tableTotal)}. Read it for who pays, not for how much.`
+  );
 }
 
 /** Gap that a reader would compute from the two figures on the page. */

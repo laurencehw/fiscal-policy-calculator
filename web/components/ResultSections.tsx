@@ -5,16 +5,20 @@ import { EstimateTag } from "@/components/EstimateTag";
 import { ScoringModels } from "@/components/ScoringModels";
 import { WhoPays } from "@/components/WhoPays";
 import { withoutTier, type EstimateIdentity } from "@/lib/identity";
+import type { YearRow } from "@/lib/scoreparts";
 import type { Views } from "@/lib/types";
 
 export function ResultSections({
   views,
   conventional,
   dynamic,
+  firstYear,
 }: {
   views: Views;
   conventional?: EstimateIdentity;
   dynamic?: EstimateIdentity;
+  /** The headline's first year, so Who pays can say why its total differs. */
+  firstYear?: YearRow;
 }) {
   return (
     <>
@@ -24,7 +28,7 @@ export function ResultSections({
           <span className="tag">first year, by income group</span>
           {conventional ? <EstimateTag identity={withoutTier(conventional)} /> : null}
         </div>
-        <WhoPays dist={views.distribution} />
+        <WhoPays dist={views.distribution} firstYear={firstYear} />
       </section>
       <section className="chart" id="economy">
         <div className="head">
