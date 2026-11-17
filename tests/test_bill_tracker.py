@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -235,6 +236,31 @@ class TestCBOScoreFetcher:
         assert result.ten_year_cost_billions == -33.5
         assert result.bill_id == "hr-7024-118"
 
+    def test_resolutions_never_carry_a_cost_estimate(self):
+        """A CBO publication naming H. Con. Res. 14 is about P.L. 119-21, not the resolution."""
+        from bill_tracker.cbo_fetcher import CBOCostEstimate, CBOScoreFetcher, carries_cost_estimate
+
+        assert not carries_cost_estimate("hconres-14-119")
+        assert not carries_cost_estimate("sres-5-119")
+        assert carries_cost_estimate("hr-1-119")
+        estimate = CBOCostEstimate(
+            bill_id="",
+            title="Public Law 119-21, to Provide for Reconciliation Pursuant to Title II of H. Con. Res. 14",
+            estimate_date=datetime(2025, 10, 28),
+            ten_year_cost_billions=84.95,
+        )
+        fetcher = CBOScoreFetcher()
+        assert fetcher.match_to_bill_from_estimates("hconres-14-119", estimate.title, [estimate]) is None
+
+    def test_fallback_file_has_no_resolution_rows(self):
+        from bill_tracker.cbo_fetcher import carries_cost_estimate, load_fallback_estimates
+
+        path = Path(__file__).resolve().parents[1] / "bill_tracker" / "cbo_manual_scores.json"
+        raw = json.loads(path.read_text())["scores"]
+        assert all(carries_cost_estimate(row["bill_id"]) for row in raw)
+        hr1 = [e for e in load_fallback_estimates(path) if e.bill_id == "hr-1-119"]
+        assert [e.ten_year_cost_billions for e in hr1] == [3400.0]
+
     def test_match_to_bill_no_match(self):
         from bill_tracker.cbo_fetcher import CBOScoreFetcher
         fetcher = CBOScoreFetcher()
@@ -370,6 +396,38 @@ class TestProvisionMapper:
         result = mapper.map_bill("hr-9876-119", "Income tax increase 2.6%. Also Medicaid work requirements.")
         assert all(p["policy_type"] != "other" for p in result.policies)
         assert len(result.unmapped_provisions) == 1
+
+
+    def test_partial_override_is_low_confidence(self, tmp_path):
+        from bill_tracker.provision_mapper import ProvisionMapper
+
+        override = {"hr-1-119": {"policies": [{"policy_type": "tcja_extension", "parameters": {}}], "coverage": "partial"}}
+        (tmp_path / "manual_mappings.json").write_text(json.dumps(override))
+        mapper = ProvisionMapper(anthropic_client=MagicMock())
+        mapper.MANUAL_OVERRIDES_PATH = tmp_path
+        result = mapper.map_bill("hr-1-119", "Some summary")
+        assert result.confidence == "low"
+        assert "only part of the bill" in result.confidence_reason
+
+    def test_omnibus_bill_with_thin_mapping_is_low_confidence(self):
+        from bill_tracker.provision_mapper import ProvisionMapper, covers_part_of_bill
+
+        summary = "TITLE I--AGRICULTURE ... TITLE II--ARMED SERVICES ... TITLE III--FINANCE ... TITLE IV--HEALTH"
+        llm_response = json.dumps([
+            {"policy_type": "income_tax", "parameters": {"rate_change": 0.01}, "confidence": "high", "provision_text": "rate"},
+        ])
+        mapper = ProvisionMapper(anthropic_client=self._make_mock_client(llm_response))
+        result = mapper.map_bill("hr-9877-119", summary + " Income tax rate up 1%.")
+        assert result.confidence == "low"
+        assert covers_part_of_bill(summary, [{}] * 4) is False
+        assert covers_part_of_bill("One provision only.", [{}]) is False
+
+    def test_hr1_mapping_has_no_corporate_rate_cut_and_is_partial(self):
+        """P.L. 119-21 left the 21% corporate rate alone (site review B2)."""
+        mappings = json.loads((Path(__file__).resolve().parents[1] / "bill_tracker" / "manual_mappings.json").read_text())
+        entry = mappings["hr-1-119"]
+        assert all(p["policy_type"] != "corporate" for p in entry["policies"])
+        assert entry["coverage"] == "partial"
 
 
 # ==================================================================
