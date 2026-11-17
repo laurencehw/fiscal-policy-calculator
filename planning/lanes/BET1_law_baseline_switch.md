@@ -86,4 +86,29 @@ against current law; that difference is named on the page and not scored.
 
 ## Outturn
 
-*(appended after implementation)*
+Every prediction landed. The current-law column of the table above is what the
+site now prints, and no stored score moved.
+
+- **Seven of eight answers are exact by construction.** Six presets are
+  `already_law` at $0, and `tcja-extension-no-salt-cap` reads
+  `salt-cap-repeal`'s stored score, +$740.3B, which a web test asserts is the
+  same number to the cent. The IRA repeal prints "Not scored on current law"
+  with JCT's $542.7B of terminations beside it.
+- **Falsification tests passed.** No file under `fiscal_model/` other than the
+  new `current_law_view.py` changed, so the holdout, dashboard and donor matrix
+  cannot have moved. The export changed exactly two files, `presets/index.json`
+  and `build-catalog.json`, each by adding `current_law` to a status (`null` for
+  every preset that is not pre-2025-law). `tests/test_current_law_view.py`
+  fails if a pre-2025-law preset lacks an answer or a live one gains one.
+- **Checks:** 5,219 Python tests pass (8 skipped), ruff and the mypy gate are
+  clean, 114 web tests pass and `tsc` is clean. The preset pages and the
+  Explore list were rendered and read.
+
+One finding the table did not predict: on current law the enacted law is
+*more* generous than three of the presets (CTC $2,200 indexed against $2,000,
+estate $15M against the TCJA exemption, SALT $40,000 through 2029 against
+$10,000), so those presets' own designs would be revenue raisers today, not
+zero. The $0 answers the question a reader asks ("what would extending this
+cost now?"), and the page says the preset's tighter version is not scored.
+That difference is the natural next lane if anyone wants it priced, and it
+would be a credits-microsim and SALT-path job, not a label.
