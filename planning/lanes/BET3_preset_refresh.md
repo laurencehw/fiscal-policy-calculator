@@ -99,7 +99,7 @@ Every prediction landed.
 |---|---|
 | FY2026-2029 contribute exactly $0 | **$0.00** each year |
 | Ten-year score in [+$105B, +$125B] | **+$119.33B** (FY2030 +$18.08B rising to FY2035 +$21.80B) |
-| Below the 2030-2035 slice of cap repeal | +$119.3B < +$443.4B < +$740.3B |
+| Below the 2030-2035 slice of cap repeal | +$119.3B < +$519.4B < +$740.3B |
 | `salt-cap-repeal` untouched | **+$740.31B**, unchanged |
 | No other preset moves | the only `site_data` score file that changed is the new preset; the PTC preset's file changed in its label and note only |
 | Validation untouched | `cold_holdout.py --json` byte-identical to main; no scorecard row, gate or evidence figure moved |
