@@ -2,7 +2,7 @@
   "id": "top-rate-45",
   "conventional": {
     "policy_name": "Top Rate to 45%",
-    "policy_description": "Raise the top marginal rate from 37% to 45% on income above the current 37% bracket floor (\\$609,350 single, 2025). Illustrative of the upper end of progressive proposals. **No official score**: the \\$420B figure this preset used to quote could not be traced to any TPC, CBO or JCT publication and was withdrawn in the Phase E provenance pass, so the model's own estimate is the only number shown.",
+    "policy_description": "Raise the top marginal rate from 37% to 45% on income above the 37% bracket floor (\\$609,350 single, 2025). It sits at the upper end of progressive proposals. No official score exists for it, so the figure shown is this calculator's own estimate.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1036.655836903812,
@@ -229,7 +229,7 @@
   },
   "dynamic": {
     "policy_name": "Top Rate to 45%",
-    "policy_description": "Raise the top marginal rate from 37% to 45% on income above the current 37% bracket floor (\\$609,350 single, 2025). Illustrative of the upper end of progressive proposals. **No official score**: the \\$420B figure this preset used to quote could not be traced to any TPC, CBO or JCT publication and was withdrawn in the Phase E provenance pass, so the model's own estimate is the only number shown.",
+    "policy_description": "Raise the top marginal rate from 37% to 45% on income above the 37% bracket floor (\\$609,350 single, 2025). It sits at the upper end of progressive proposals. No official score exists for it, so the figure shown is this calculator's own estimate.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1036.655836903812,

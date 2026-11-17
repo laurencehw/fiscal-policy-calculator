@@ -39,6 +39,9 @@ exercises:
 
       Use the slider to set the rate_change parameter that approximates the full
       individual rate cut (approximately −3.7pp average effective rate cut).
+
+      Enter the 10-year cost at your setting, in billions of dollars (a
+      positive number, since the deficit rises).
     parameters:
       - name: rate_change
         label: "Average rate cut (decimal, negative = cut)"
@@ -97,6 +100,9 @@ exercises:
 
       The difference in 10-year cost between (B) and (A) represents the revenue
       cost of removing the SALT cap. Estimate this difference.
+
+      Enter that cost in billions of dollars over 10 years (a positive number,
+      since removing the cap raises the deficit).
     parameters:
       - name: rate_change
         label: "Rate cut for comparison"
@@ -127,8 +133,8 @@ exercises:
           interactions with AMT and phase-outs make it larger.
     validation:
       method: range_check
-      min_acceptable: -2500.0
-      max_acceptable: -1000.0
+      min_acceptable: 1000.0
+      max_acceptable: 2500.0
     expected_insight: >
       The SALT cap is highly regressive in reverse: removing it primarily benefits
       upper-middle-class homeowners in high-tax states. Politically, the tension

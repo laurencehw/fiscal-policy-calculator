@@ -60,7 +60,7 @@
       "title": "Deficit Spending: Burden on Future Workers",
       "type": "comparison",
       "level": "undergraduate",
-      "prompt": "Compare two scenarios: A) Baseline: current-law deficit path (~6% GDP/year) B) Higher deficit: add 2% of GDP more borrowing each year for 10 years\nIn scenario B, the government borrows more now to finance spending (perhaps on infrastructure or social programs). Future taxpayers must service the additional debt.\nRun both scenarios and report: by how many percentage points does the average net lifetime tax rate increase for cohorts born 2025-2060 in Scenario B vs. Scenario A?",
+      "prompt": "Compare two scenarios: A) Baseline: current-law deficit path (~6% GDP/year) B) Higher deficit: add 2% of GDP more borrowing each year for 10 years\nIn scenario B, the government borrows more now to finance spending (perhaps on infrastructure or social programs). Future taxpayers must service the additional debt.\nRun both scenarios and report: by how many percentage points does the average net lifetime tax rate increase for cohorts born 2025-2060 in Scenario B vs. Scenario A?\nEnter the average net lifetime tax rate for cohorts born 2025-2060 in Scenario B, in percent (for example, enter 24.0 for 24.0%). Compare it with Scenario A yourself; the check reads the Scenario B level.",
       "parameters": [
         {
           "name": "debt_shock_pct_gdp",
@@ -81,7 +81,7 @@
       ],
       "checked": true,
       "check": "relative_to_model",
-      "answer_unit": "pp",
+      "answer_unit": "%",
       "insight": "Each percentage point of GDP in additional annual debt increases future generations' net lifetime tax rates by roughly 0.5-1.0pp, depending on the time horizon and discount rate. This is the \"generational transfer\" inherent in deficit financing — present generations receive services without paying for them; future generations pay without having received them."
     },
     {

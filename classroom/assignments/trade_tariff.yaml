@@ -40,7 +40,8 @@ exercises:
       Using these assumptions, estimate the annual tariff revenue.
       Formula: Revenue = Tariff Rate × Import Base × Coverage × (1 − Volume Reduction)
 
-      Enter your estimate of 10-year tariff revenue (in $B).
+      Enter your estimate of 10-year tariff revenue in billions of dollars
+      (negative = revenue gain, deficit falls).
     parameters:
       - name: tariff_rate
         label: "Tariff rate (decimal, e.g. 0.10 = 10%)"
@@ -108,7 +109,8 @@ exercises:
       The US has ~130 million households. The total annual consumer cost is:
       (900 + 1200 + 1500 + 1700 + 2200)/5 × 130M = ?
 
-      Enter the total annual consumer burden in billions.
+      Enter the total annual consumer burden in billions of dollars (a
+      positive number).
     parameters:
       - name: tariff_rate
         label: "Tariff rate (decimal)"
@@ -161,6 +163,9 @@ exercises:
       of 2.0 from the model.
 
       Estimate the net 10-year revenue effect of the China-specific tariff package.
+
+      Enter the net revenue raised over 10 years, in billions of dollars (a
+      positive number).
     parameters:
       - name: tariff_rate
         label: "China tariff rate (decimal)"

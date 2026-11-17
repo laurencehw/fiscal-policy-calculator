@@ -36,6 +36,9 @@ exercises:
       (b) Cutting the bottom rate from 10% to 8% (−2pp) on income below $50K
 
       Compare the two effects. Which has a larger revenue impact? Why?
+
+      Enter the 10-year revenue effect of change (a), in billions of dollars
+      (negative = revenue gain, deficit falls).
     parameters:
       - name: rate_change_top
         label: "Top rate change (decimal, e.g. 0.026)"

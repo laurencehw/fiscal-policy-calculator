@@ -2,7 +2,7 @@
   "id": "tariff-auto-25pct",
   "conventional": {
     "policy_name": "🏭 25% Auto Tariff (-$386B)",
-    "policy_description": "25% tariff on imported vehicles and parts (~\\$380B base). Raises ~\\$386B conventionally (Tax Foundation tariff tracker).",
+    "policy_description": "A 25% tariff on imported vehicles and parts (about \\$380B of imports). Published estimate: raises about \\$386B over ten years, conventional (Tax Foundation tariff tracker).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -576.5565184110008,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🏭 25% Auto Tariff (-$386B)",
-    "policy_description": "25% tariff on imported vehicles and parts (~\\$380B base). Raises ~\\$386B conventionally (Tax Foundation tariff tracker).",
+    "policy_description": "A 25% tariff on imported vehicles and parts (about \\$380B of imports). Published estimate: raises about \\$386B over ten years, conventional (Tax Foundation tariff tracker).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -576.5565184110008,

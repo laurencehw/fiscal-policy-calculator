@@ -2,7 +2,7 @@
   "id": "ira-clean-energy-extend",
   "conventional": {
     "policy_name": "🌱 Extend IRA Credits Beyond 2032",
-    "policy_description": "Extend IRA clean energy credits 5 years beyond the 2032 sunset. **No official score**: every published figure scores the credits *as enacted* or their *repeal*, never an incremental five-year extension. The model's own estimate is the only number shown.",
+    "policy_description": "Extend the IRA clean energy credits five years beyond the 2032 sunset. No official score: published figures cover the credits as enacted or their repeal, never a five-year extension. The figure shown is this calculator's own estimate.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 400.0,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌱 Extend IRA Credits Beyond 2032",
-    "policy_description": "Extend IRA clean energy credits 5 years beyond the 2032 sunset. **No official score**: every published figure scores the credits *as enacted* or their *repeal*, never an incremental five-year extension. The model's own estimate is the only number shown.",
+    "policy_description": "Extend the IRA clean energy credits five years beyond the 2032 sunset. No official score: published figures cover the credits as enacted or their repeal, never a five-year extension. The figure shown is this calculator's own estimate.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 400.0,
