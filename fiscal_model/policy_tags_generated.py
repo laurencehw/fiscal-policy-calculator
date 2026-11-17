@@ -175,6 +175,13 @@ POLICY_TAGS: dict[str, dict[str, str]] = {
         'base': 'individual',
         'generational': 'current',
     },
+    'salt-cap-40k-permanent': {
+        'direction': 'cut_revenue',
+        'progressivity': 'regressive',
+        'govt_size': 'shrink',
+        'base': 'individual',
+        'generational': 'current',
+    },
     'step-up-basis-eliminate': {
         'direction': 'raise_revenue',
         'progressivity': 'strong_progressive',
@@ -536,6 +543,13 @@ TAG_SOURCES: dict[str, dict[str, str]] = {
         'generational': 'derived:policy_module',
     },
     'salt-cap-repeal': {
+        'direction': 'derived:deficit_sign',
+        'progressivity': 'engine:microsim',
+        'govt_size': 'derived:direction',
+        'base': 'derived:policy_module',
+        'generational': 'derived:policy_module',
+    },
+    'salt-cap-40k-permanent': {
         'direction': 'derived:deficit_sign',
         'progressivity': 'engine:microsim',
         'govt_size': 'derived:direction',

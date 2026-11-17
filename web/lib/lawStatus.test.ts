@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { baselineEyebrow, chipText, chipWorthy, currentLawFigure, currentLawLine } from "./lawStatus";
-import { preset, presets } from "./data";
+import { ARCHIVED_AREA, baselineEyebrow, chipText, chipWorthy, currentLawFigure, currentLawLine, isArchived } from "./lawStatus";
+import { buildCatalog, preset, presets, presetsByArea } from "./data";
 import type { LawStatus } from "./types";
 
 const superseded: LawStatus = { status: "superseded", label: "Superseded by later law", note: "n", pre_2025_law: true, as_of: "2026-11-17" };
@@ -59,4 +59,26 @@ test("every exported pre-2025-law preset has a current-law answer, and no-SALT-c
   assert.equal(currentLawFigure(noCap?.status, read), read("salt-cap-repeal"));
   const full = presets().find((info) => info.id === "tcja-full-extension");
   assert.equal(currentLawFigure(full?.status, read), 0);
+});
+
+test("the eight pre-2025-law presets sit in the archived group, last on Explore and Build", () => {
+  const groups = presetsByArea();
+  const last = groups[groups.length - 1];
+  assert.equal(last.area, ARCHIVED_AREA);
+  const archivedIds = last.presets.map((p) => p.id).sort();
+  const flagged = presets().filter((p) => isArchived(p.status)).map((p) => p.id).sort();
+  assert.deepEqual(archivedIds, flagged);
+  assert.equal(flagged.length, 8);
+  // No archived preset appears in any other group.
+  for (const group of groups.slice(0, -1)) {
+    for (const p of group.presets) assert.equal(isArchived(p.status), false, p.id);
+  }
+  // Build: every archived catalog row carries the archived area, and nothing else does.
+  for (const row of buildCatalog()) assert.equal(row.area === ARCHIVED_AREA, isArchived(row.status), row.build_id);
+});
+
+test("archiving is presentation only: an archived preset keeps its page and its stored score", () => {
+  for (const info of presets().filter((p) => isArchived(p.status))) {
+    assert.equal(typeof preset(info.id)?.conventional.ten_year_deficit_impact, "number", info.id);
+  }
 });

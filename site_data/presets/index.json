@@ -335,8 +335,8 @@
     },
     {
       "id": "aca-ptc-extend-enhanced",
-      "name": "🏥 Extend ACA Enhanced PTCs ($335B)",
-      "description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~\\$335B over FY2025-2034 (CBO/JCT pub. 60437).",
+      "name": "🏥 Restore ACA Enhanced PTCs ($335B)",
+      "description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put making them permanent at \\$335B over FY2025-2034 (pub. 60437), scored before they lapsed.",
       "cbo_score": 335.0,
       "cbo_source": "CBO/JCT (pub. 60437)",
       "cbo_date": "2024-06",
@@ -344,7 +344,7 @@
       "status": {
         "status": "proposed",
         "label": "Proposed — not enacted",
-        "note": "Extension proposal for the enhanced credits that were scheduled to lapse after 2025; not enacted.",
+        "note": "The enhanced credits from the 2021 and 2022 laws lapsed at the end of 2025. This preset scores restoring them from 2026; not enacted.",
         "pre_2025_law": false,
         "as_of": "2026-11-17",
         "current_law": null
@@ -389,6 +389,23 @@
         "status": "partially",
         "label": "Partially overtaken by later law",
         "note": "The July 2025 reconciliation law (P.L. 119-21) raised the SALT cap to $40,000 in 2025, rising 1% a year through 2029 and reverting to $10,000 in 2030. This preset scores full repeal against that current-law path; the published figure in its label prices repeal of a permanent $10K cap.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17",
+        "current_law": null
+      }
+    },
+    {
+      "id": "salt-cap-40k-permanent",
+      "name": "📋 Keep the $40K SALT Cap After 2029",
+      "description": "The July 2025 law raised the cap on the state and local tax deduction to \\$40,000, rising 1% a year through 2029 and phased down above \\$500K of income, then drops it back to \\$10,000 in 2030. This keeps the higher cap and its phasedown going after 2029 at the same 1% a year. It costs nothing until 2030. No published score is on file.",
+      "cbo_score": null,
+      "cbo_source": null,
+      "cbo_date": null,
+      "cbo_published": false,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Under P.L. 119-21 the raised cap reverts to $10,000 in 2030. Keeping it is a proposal; not enacted.",
         "pre_2025_law": false,
         "as_of": "2026-11-17",
         "current_law": null
@@ -816,5 +833,5 @@
       }
     }
   ],
-  "count": 52
+  "count": 53
 }

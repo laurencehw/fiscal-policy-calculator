@@ -57,6 +57,7 @@ EXPECTED_PRESET_IDS = (
     "aca-ptc-repeal",
     "cap-employer-health-exclusion",
     "salt-cap-repeal",
+    "salt-cap-40k-permanent",
     "step-up-basis-eliminate",
     "charitable-deduction-cap",
     "top-rate-39-6",
@@ -91,7 +92,8 @@ EXPECTED_PRESET_IDS = (
     # Minted in ui/tabs/deficit_target._SCORE_ONLY_ENTRIES and promoted into
     # the registry in Phase 5 so share links resolve them and they can join an
     # exclusive group. They are *not* in CATALOG_PRESET_IDS (the engine cannot
-    # score them), which is why the count below stays 52.
+    # score them), which is why the count below is 53 (52 until bet 3 added
+    # salt-cap-40k-permanent).
     "mortgage-deduction-eliminate",
     "salt-deduction-eliminate",
 )
@@ -116,7 +118,7 @@ class TestPresetIds:
             label for label in PRESET_POLICIES if label not in pid.PRESET_ID_BY_LABEL
         ]
         assert not missing, f"Presets without a stable id: {missing}"
-        assert len(pid.PRESET_ID_BY_LABEL) == len(PRESET_POLICIES) == 53
+        assert len(pid.PRESET_ID_BY_LABEL) == len(PRESET_POLICIES) == 54
 
     def test_no_id_is_registered_for_a_missing_preset(self) -> None:
         orphans = [
@@ -239,6 +241,9 @@ class TestExclusiveGroups:
             "tcja-extension-no-salt-cap",
             "salt-cap-repeal",
             "salt-deduction-eliminate",
+            # Bet 3: keeping the raised cap is a fourth setting of the same
+            # instrument, so it cannot be summed with repeal either.
+            "salt-cap-40k-permanent",
         }
 
     def test_subsumption_targets_exist(self) -> None:
@@ -318,7 +323,7 @@ class TestValuesTags:
             f"Untagged catalog policies: {missing}. "
             "Run: python scripts/derive_policy_tags.py"
         )
-        assert len(pid.CATALOG_PRESET_IDS) == 52
+        assert len(pid.CATALOG_PRESET_IDS) == 53
 
     def test_custom_policy_is_not_in_the_catalog(self) -> None:
         assert pid.CUSTOM_POLICY_ID not in pid.CATALOG_PRESET_IDS
@@ -361,7 +366,7 @@ class TestValuesTags:
 
     def test_microsim_measured_policies_did_not_silently_degrade(self) -> None:
         """The distribution engine falls back to synthetic brackets on a
-        transient MemoryError, which changes the emitted tag. These eleven
+        transient MemoryError, which changes the emitted tag. These twelve
         were measured on the return-level microsim path; a regeneration that
         quietly downgraded them would land here."""
         measured = {
@@ -374,6 +379,7 @@ class TestValuesTags:
             "ctc-extension",
             "eitc-childless-expansion",
             "salt-cap-repeal",
+            "salt-cap-40k-permanent",
             "top-rate-39-6",
             "millionaire-surtax-5pp",
             "middle-class-rate-cut-2pp",
@@ -431,7 +437,7 @@ class TestScorablePolicyMap:
             label for label in PRESET_POLICIES if label != pid.CUSTOM_POLICY_LABEL
         }
         assert set(mapped) == expected
-        assert len(mapped) == 52
+        assert len(mapped) == 53
 
     def test_each_preset_lands_in_exactly_one_category(self) -> None:
         known = {category for _, category in PRESET_CATEGORY_BY_FLAG}

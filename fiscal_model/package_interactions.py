@@ -145,6 +145,7 @@ INTERACTION_CHANNELS: dict[str, frozenset[str]] = {
     # Itemised deductions and other tax expenditures
     "mortgage-deduction-eliminate": frozenset({SALT_ITEMIZATION}),
     "salt-cap-repeal": frozenset({SALT_ITEMIZATION}),
+    "salt-cap-40k-permanent": frozenset({SALT_ITEMIZATION}),
     "salt-deduction-eliminate": frozenset({SALT_ITEMIZATION}),
     "charitable-deduction-cap": frozenset({SALT_ITEMIZATION}),
     "step-up-basis-eliminate": frozenset({"capital_gains", "estate"}),

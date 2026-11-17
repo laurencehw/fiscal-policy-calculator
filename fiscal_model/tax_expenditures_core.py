@@ -252,11 +252,18 @@ class SaltCapBaseline(Enum):
         $10,000 through 2025 and **no limit at all** afterwards: CBO's
         February/June 2024 baseline, which Option 49 states as "Beginning in
         2026, deductions for state and local taxes will not be limited."
+    ``RAISED_CAP_PERMANENT``
+        Current law through 2029, then the 2029 limitation and threshold
+        carried forward at the statute's own 101 percent a year, phasedown
+        included, instead of reverting to $10,000. Not a baseline anyone
+        scores against: it is the path the "keep the $40K cap" reform moves
+        *to* (``TaxExpenditurePolicy.salt_reform_path``, lane BET3).
     """
 
     CURRENT_LAW = "current_law"
     PERMANENT_10K = "permanent_10k"
     LAPSED_CAP = "lapsed_cap"
+    RAISED_CAP_PERMANENT = "raised_cap_permanent"
 
 
 #: The floor the phasedown may not reduce the limitation below, and the amount
@@ -385,6 +392,26 @@ def salt_cap_schedule(year: int) -> SaltCapYear:
     )
 
 
+def raised_cap_schedule(year: int) -> SaltCapYear:
+    """The sec. 70120 schedule with no reversion: 2029's figures, 101%/yr after.
+
+    Identical to :func:`salt_cap_schedule` through 2029. From 2030 the 2029
+    limitation and threshold keep rising by the same 101 percent rule the
+    statute applies to 2027-2029, so the reform changes one thing -- the
+    reversion -- and borrows every other parameter from the law.
+    """
+    if year <= SALT_RAISED_CAP_LAST_YEAR:
+        return salt_cap_schedule(year)
+    last = salt_cap_schedule(SALT_RAISED_CAP_LAST_YEAR)
+    growth = (1.0 + SALT_CAP_INDEXATION) ** (year - SALT_RAISED_CAP_LAST_YEAR)
+    assert last.threshold_amount is not None
+    return SaltCapYear(
+        year=year,
+        limitation_amount=last.limitation_amount * growth,
+        threshold_amount=last.threshold_amount * growth,
+    )
+
+
 def salt_cap_at(
     baseline: SaltCapBaseline,
     year: int,
@@ -404,6 +431,8 @@ def salt_cap_at(
         if year <= 2025:
             return SALT_CAP_FLOOR * fraction
         return math.inf
+    if baseline is SaltCapBaseline.RAISED_CAP_PERMANENT:
+        return raised_cap_schedule(year).cap_at(magi, married_filing_separately)
     return salt_cap_schedule(year).cap_at(magi, married_filing_separately)
 
 
@@ -1037,6 +1066,12 @@ class TaxExpenditurePolicy(TaxPolicy):
     #: expenditure. Defaults to current law, so a caller that does not know
     #: about baselines gets the law rather than a lapsed or a hypothetical one.
     salt_baseline: SaltCapBaseline = SaltCapBaseline.CURRENT_LAW
+    #: The cap path a SALT ``expand`` reform moves **to**. ``None`` -- the
+    #: default -- is no cap at all, which is cap repeal and what every SALT
+    #: row priced before lane BET3 means. A path here prices a narrower
+    #: reform, e.g. ``RAISED_CAP_PERMANENT`` for keeping the $40K cap after
+    #: 2029, as the difference between that path and ``salt_baseline``.
+    salt_reform_path: SaltCapBaseline | None = None
     behavioral_elasticity: float = 0.2
     #: Which way the behavioural response moves this reform's revenue change.
     #: ``None`` -- the default -- resolves from :data:`OFFSET_DIRECTIONS` on the
@@ -1301,8 +1336,11 @@ class TaxExpenditurePolicy(TaxPolicy):
         capped = salt_expenditure_billions(self.salt_baseline, year, aging)
         if self.action == "eliminate":
             effect = capped
-        else:
+        elif self.salt_reform_path is None:
             effect = -(salt_uncapped_expenditure_billions(aging) - capped)
+        else:
+            reformed = salt_expenditure_billions(self.salt_reform_path, year, aging)
+            effect = -(reformed - capped)
         return effect / aging if aging else effect
 
     def offset_direction_rule(self) -> OffsetDirectionRule | None:

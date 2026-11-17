@@ -88,3 +88,44 @@ mechanism's own arithmetic, not a target:
   means the path or the engine's aging is not doing what this document says.
 * Any change to `salt-cap-repeal` or to either SALT benchmark row means the new
   field leaked into the default.
+
+---
+
+## Outturn (2026-11-17)
+
+Every prediction landed.
+
+| Prediction | Result |
+|---|---|
+| FY2026-2029 contribute exactly $0 | **$0.00** each year |
+| Ten-year score in [+$105B, +$125B] | **+$119.33B** (FY2030 +$18.08B rising to FY2035 +$21.80B) |
+| Below the 2030-2035 slice of cap repeal | +$119.3B < +$443.4B < +$740.3B |
+| `salt-cap-repeal` untouched | **+$740.31B**, unchanged |
+| No other preset moves | the only `site_data` score file that changed is the new preset; the PTC preset's file changed in its label and note only |
+| Validation untouched | `cold_holdout.py --json` byte-identical to main; no scorecard row, gate or evidence figure moved |
+
+The static figure was +$113.6B in the pre-registration and the score is
++$119.3B. The difference is the 5% magnifying offset cap repeal already uses
+(+$5.7B), as predicted.
+
+**What changed on the site**
+
+* Explore and Build put the eight pre-2025-law presets in a last group,
+  "Archived: scored against pre-2025 law", with one note under the heading.
+  The grouping lives in `web/lib/data.ts` and reads the `pre_2025_law` flag the
+  export already carries, so the Python catalog, share links, frozen links and
+  CSVs are unchanged. The retired Streamlit app does not get the group.
+* "Extend ACA Enhanced PTCs" is now "Restore ACA Enhanced PTCs" (old label in
+  `LEGACY_LABEL_ALIASES`), with a note that the credits lapsed at the end of
+  2025. **Laurence to confirm** that no law since then has restored them; I
+  cannot check congress.gov or cbo.gov from here.
+* New preset `salt-cap-40k-permanent`, in Explore under "Other" (presets with
+  no published score have no Build row, so no Build area). Its values tags
+  were derived by `scripts/derive_policy_tags.py`: cuts revenue, regressive on
+  the microsim path. Only the new preset's tags were taken from that run; on
+  this machine the script also flips three existing presets' tags (the CTC
+  presets fall back to synthetic brackets, and the insulin cap's direction
+  reads differently), which predates this lane and was left alone.
+
+**Departures**: none from the mechanism. Tests that pinned the catalog at 52
+presets now pin 53, and the README count moved with them.

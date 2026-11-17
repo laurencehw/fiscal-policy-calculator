@@ -96,6 +96,11 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "preset scores full repeal against that current-law path; the "
         "published figure in its label prices repeal of a permanent \\$10K cap.",
     ),
+    "📋 Keep the $40K SALT Cap After 2029": PolicyStatus(
+        "proposed",
+        "Under P.L. 119-21 the raised cap reverts to \\$10,000 in 2030. "
+        "Keeping it is a proposal; not enacted.",
+    ),
     # ── Biden-administration FY2025 Green Book proposals ─────────────────
     "🏢 Biden Corporate 28% (Treasury: -$1.35T)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     "👶 Biden CTC Expansion (JCT: $1.6T)": PolicyStatus(
@@ -179,10 +184,10 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "proposed", "Analytic option scored by CBO; never enacted."
     ),
     # ── ACA premium credits ──────────────────────────────────────────────
-    "🏥 Extend ACA Enhanced PTCs ($335B)": PolicyStatus(
+    "🏥 Restore ACA Enhanced PTCs ($335B)": PolicyStatus(
         "proposed",
-        "Extension proposal for the enhanced credits that were scheduled "
-        "to lapse after 2025; not enacted.",
+        "The enhanced credits from the 2021 and 2022 laws lapsed at the end "
+        "of 2025. This preset scores restoring them from 2026; not enacted.",
     ),
     "🏥 Repeal ACA Premium Credits (-$1.1T)": PolicyStatus(
         "proposed", "Legislative proposal; not enacted."

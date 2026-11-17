@@ -276,6 +276,10 @@ def _create_expenditure_policy(preset_data: dict):
         return create_cap_employer_health_exclusion()
     elif expenditure_type == "repeal_salt_cap":
         return create_repeal_salt_cap()
+    elif expenditure_type == "keep_raised_salt_cap":
+        from fiscal_model.tax_expenditures import create_keep_raised_salt_cap
+
+        return create_keep_raised_salt_cap()
     elif expenditure_type == "eliminate_step_up":
         return create_eliminate_step_up_basis()
     elif expenditure_type == "cap_charitable":

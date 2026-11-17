@@ -72,11 +72,12 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "⚖️ Repeal Individual AMT ($450B)": "amt-repeal-individual",
     "⚖️ Repeal Corporate AMT (+$220B)": "amt-repeal-corporate",
     # ACA premium tax credits
-    "🏥 Extend ACA Enhanced PTCs ($335B)": "aca-ptc-extend-enhanced",
+    "🏥 Restore ACA Enhanced PTCs ($335B)": "aca-ptc-extend-enhanced",
     "🏥 Repeal ACA Premium Credits (-$1.1T)": "aca-ptc-repeal",
     # Tax expenditures
     "📋 Cap Employer Health Exclusion (-$450B)": "cap-employer-health-exclusion",
     "📋 Repeal SALT Cap ($1.17T)": "salt-cap-repeal",
+    "📋 Keep the $40K SALT Cap After 2029": "salt-cap-40k-permanent",
     "📋 Eliminate Step-Up Basis (-$500B)": "step-up-basis-eliminate",
     "📋 Cap Charitable Deduction (-$200B)": "charitable-deduction-cap",
     # Generic individual rate presets (no is_* flag; scored as plain TaxPolicy)
@@ -205,6 +206,9 @@ LEGACY_LABEL_ALIASES: dict[str, str] = {
     # first-time reader ask why the whole FY2025 budget moved the deficit by
     # only ~$310B. The preset is one provision of it, the top rate back to 39.6%.
     "Biden 2025 Proposal": "Top Rate to 39.6% (Biden FY2025)",
+    # 2026-11-17, bet 3: the enhanced credits lapsed after 2025, so on the
+    # FY2026-2035 window the proposal is a restoration, not an extension.
+    "🏥 Extend ACA Enhanced PTCs ($335B)": "🏥 Restore ACA Enhanced PTCs ($335B)",
 }
 
 #: Scorable presets first, then the Build-local score-only ids.
@@ -257,6 +261,7 @@ EXCLUSIVE_GROUPS: dict[str, tuple[str, ...]] = {
         "tcja-extension-no-salt-cap",
         "salt-cap-repeal",
         "salt-deduction-eliminate",
+        "salt-cap-40k-permanent",
     ),
     "corporate-rate": ("corporate-28pct", "corporate-15pct"),
     # The 2021 expansion supersedes a straight extension of the $2,000 credit.

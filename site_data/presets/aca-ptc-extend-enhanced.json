@@ -1,8 +1,8 @@
 {
   "id": "aca-ptc-extend-enhanced",
   "conventional": {
-    "policy_name": "🏥 Extend ACA Enhanced PTCs ($335B)",
-    "policy_description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~\\$335B over FY2025-2034 (CBO/JCT pub. 60437).",
+    "policy_name": "🏥 Restore ACA Enhanced PTCs ($335B)",
+    "policy_description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put making them permanent at \\$335B over FY2025-2034 (pub. 60437), scored before they lapsed.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 366.18626725023734,
@@ -147,8 +147,8 @@
     "error_message": null
   },
   "dynamic": {
-    "policy_name": "🏥 Extend ACA Enhanced PTCs ($335B)",
-    "policy_description": "Extend enhanced premium tax credits (ARPA/IRA) past 2025. Costs ~\\$335B over FY2025-2034 (CBO/JCT pub. 60437).",
+    "policy_name": "🏥 Restore ACA Enhanced PTCs ($335B)",
+    "policy_description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put making them permanent at \\$335B over FY2025-2034 (pub. 60437), scored before they lapsed.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 366.18626725023734,

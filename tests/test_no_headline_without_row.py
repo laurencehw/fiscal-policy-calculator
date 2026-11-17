@@ -103,11 +103,12 @@ def test_the_two_sets_are_the_same_42_presets():
     still score; they show the model's own estimate with no official
     comparison, which is the normal case for most of the catalog. The catalog
     count is unchanged at 52, which is the point of pinning all three: the
-    presets did not go anywhere, only the claims about them did.
+    presets did not go anywhere, only the claims about them did. Bet 3 took
+    the catalog to 53 with a preset that has no published score.
     """
     assert len(_presets_with_an_official_score()) == 42
     assert len(PRESET_ID_TO_SCORECARD_ID) == 42
-    assert len(_catalog_ids()) == 52
+    assert len(_catalog_ids()) == 53
 
 
 def test_every_badge_names_its_tier():
@@ -203,6 +204,9 @@ def test_the_no_row_set_is_the_ten_the_lanes_enumerated():
         # 1.2pp, so neither carried a traceable official score.
         "ultra-millionaire-surtax-3pp",
         "medicare-surcharge-2pp",
+        # Bet 3: keeping the $40K SALT cap after 2029. No published score is
+        # on file, and its label carries the policy's cap, not a score.
+        "salt-cap-40k-permanent",
     }
 
 

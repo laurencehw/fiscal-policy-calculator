@@ -553,7 +553,7 @@
   },
   {
     "build_id": "aca-ptc-extend-enhanced",
-    "label": "🏥 Extend ACA Enhanced PTCs ($335B)",
+    "label": "🏥 Restore ACA Enhanced PTCs ($335B)",
     "score": 335.0,
     "area": "Healthcare",
     "source": "CBO/JCT (pub. 60437)",
@@ -574,7 +574,7 @@
     "status": {
       "status": "proposed",
       "label": "Proposed — not enacted",
-      "note": "Extension proposal for the enhanced credits that were scheduled to lapse after 2025; not enacted.",
+      "note": "The enhanced credits from the 2021 and 2022 laws lapsed at the end of 2025. This preset scores restoring them from 2026; not enacted.",
       "pre_2025_law": false,
       "as_of": "2026-11-17",
       "current_law": null

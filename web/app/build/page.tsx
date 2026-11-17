@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PackageBuilder } from "@/components/PackageBuilder";
 import { buildCatalog, manifest, preset, valuesArchetypes } from "@/lib/data";
+import { ARCHIVED_AREA } from "@/lib/lawStatus";
 import { againstPre2025Law, estimateIdentity, type EstimateIdentity } from "@/lib/identity";
 import { siteUrl } from "@/lib/site";
 import { StaleLink } from "@/components/StaleLink";
@@ -12,8 +13,11 @@ export const metadata: Metadata = {
 
 export default function Build() {
   const rows = buildCatalog();
-  // Illustrative reconstructions come last, as in the app.
-  const ordered = [...rows.filter((r) => !r.illustrative), ...rows.filter((r) => r.illustrative)];
+  // Illustrative reconstructions come after the live areas, as in the app, and presets
+  // scored against pre-2025 law come last, in their own archived group.
+  const archived = rows.filter((r) => r.area === ARCHIVED_AREA);
+  const live = rows.filter((r) => r.area !== ARCHIVED_AREA);
+  const ordered = [...live.filter((r) => !r.illustrative), ...live.filter((r) => r.illustrative), ...archived];
   // The calculator's own ten-year conventional score, for rows that are also Explore presets.
   const calculator: Record<string, number> = {};
   const identities: Record<string, { published: EstimateIdentity; model: EstimateIdentity | null }> = {};

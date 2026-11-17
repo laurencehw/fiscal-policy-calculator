@@ -6,7 +6,7 @@
   "budget_windows": [
     "FY2026-2035"
   ],
-  "presets": 52,
+  "presets": 53,
   "build_catalog_rows": 44,
   "scorecard_entries": 99,
   "tracker_bills": 11749,
@@ -16,6 +16,6 @@
   "states": 10,
   "classroom_assignments": 8,
   "sign_convention": "Billions of dollars over the budget window; positive increases the deficit, negative reduces it.",
-  "scores_fingerprint": "8dc87a05969f",
+  "scores_fingerprint": "01ab1661d32d",
   "scores_date": "2026-11-17"
 }

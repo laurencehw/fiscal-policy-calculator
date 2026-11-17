@@ -240,7 +240,7 @@ _REVISED_LABELS: dict[str, str] = {
     "biden_full_international": "\U0001f30d Biden International Package (-$632B)",
     "biden_gilti_reform": "\U0001f30d Biden GILTI Reform (-$374B)",
     "eliminate_salt": "\U0001f4cb Eliminate SALT Deduction (-$1.62T)",
-    "extend_enhanced_ptc": "\U0001f3e5 Extend ACA Enhanced PTCs ($335B)",
+    "extend_enhanced_ptc": "\U0001f3e5 Restore ACA Enhanced PTCs ($335B)",
     "extend_tcja_amt": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
     "fdii_repeal": "\U0001f30d Repeal FDII (-$158B)",
     "ira_enforcement": "\U0001f50d IRA Enforcement Funding (-$180B)",

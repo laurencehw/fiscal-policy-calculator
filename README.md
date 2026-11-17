@@ -19,7 +19,7 @@ The calculator scores fiscal policy proposals through a three-stage pipeline:
 2. **Behavioral adjustment** — Taxpayer response via the Elasticity of Taxable Income (ETI = 0.25, [Saez et al. 2012](https://eml.berkeley.edu/~saez/saez-slemrod-giertzJEL12.pdf))
 3. **Dynamic feedback** *(optional)* — GDP, employment, and interest rate effects using FRB/US-calibrated multipliers
 
-### 52 pre-built proposals across 13 policy areas, plus an illustrative group
+### 53 pre-built proposals across 13 policy areas, plus an illustrative group
 
 | Category | Examples | Count |
 |----------|----------|-------|

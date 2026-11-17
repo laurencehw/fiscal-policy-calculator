@@ -2,6 +2,18 @@
 import { money } from "./format";
 import type { LawStatus } from "./types";
 
+/** The last group on Explore and Build: presets scored against law before P.L. 119-21. */
+export const ARCHIVED_AREA = "Archived: scored against pre-2025 law";
+
+/** One line under that group's heading. */
+export const ARCHIVED_NOTE =
+  "These were 2024-25 proposals to extend or repeal parts of the 2017 and 2022 laws. The July 2025 law (P.L. 119-21) has since enacted or ended them, so their scores measure them against the law before it. Each page also shows what the policy scores on current law.";
+
+/** True for a preset scored against pre-2025 law, which Explore and Build archive. */
+export function isArchived(status: LawStatus | null | undefined): boolean {
+  return Boolean(status?.pre_2025_law);
+}
+
 /** Statuses worth a chip in a list. "Proposed" is the default reading, so lists leave it out. */
 export function chipWorthy(status: LawStatus | null | undefined): status is LawStatus {
   return Boolean(status && status.status !== "proposed");
