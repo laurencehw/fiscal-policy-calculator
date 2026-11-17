@@ -1,22 +1,22 @@
 {
   "total_entries": 99,
   "within_5pct": 27,
-  "within_10pct": 40,
-  "within_15pct": 52,
-  "within_20pct": 57,
+  "within_10pct": 41,
+  "within_15pct": 56,
+  "within_20pct": 61,
   "direction_match": 99,
-  "poor": 42,
-  "mean_abs_percent_difference": 31.211524020586282,
-  "median_abs_percent_difference": 13.938779896720838,
+  "poor": 38,
+  "mean_abs_percent_difference": 29.29800506167172,
+  "median_abs_percent_difference": 12.576813021348482,
   "calibrated_entries": 55,
   "generic_entries": 44,
   "holdout_entries": 10,
   "validation_note": "Scorecard entries are published-score benchmark comparisons. The post-lock holdout protocol revenue-scorecard-post-lock-2026-05-02 was locked on 2026-05-02; holdout labels are future regression checkpoints, not retroactive historical out-of-sample claims.",
   "ratings_breakdown": {
     "Excellent": 27,
-    "Acceptable": 17,
-    "Poor": 42,
-    "Good": 13
+    "Acceptable": 20,
+    "Poor": 38,
+    "Good": 14
   },
   "provenance_breakdown": {
     "line_item": 80,
@@ -53,11 +53,11 @@
     },
     "Corporate": {
       "n": 3,
-      "mean_abs_percent_difference": 61.43260200255497,
+      "mean_abs_percent_difference": 40.434256868286205,
       "within_15pct": 1,
       "ratings": {
-        "Excellent": 1,
-        "Poor": 2
+        "Poor": 2,
+        "Acceptable": 1
       }
     },
     "Credits": {
@@ -179,13 +179,13 @@
     },
     "Generic": {
       "n": 44,
-      "mean_abs_percent_difference": 15.115036375711107,
-      "within_15pct": 26,
+      "mean_abs_percent_difference": 12.241324068217125,
+      "within_15pct": 30,
       "ratings": {
-        "Poor": 13,
-        "Excellent": 11,
-        "Acceptable": 12,
-        "Good": 8
+        "Poor": 9,
+        "Excellent": 12,
+        "Acceptable": 14,
+        "Good": 9
       }
     }
   },
@@ -315,22 +315,23 @@
       "benchmark_kind": "Published administration estimate",
       "benchmark_date": "2024-03",
       "benchmark_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
-      "model_10yr_billions": -1292.6175949980088,
-      "difference_billions": 54.382405001991174,
-      "percent_difference": 4.03729806993253,
-      "abs_percent_difference": 4.03729806993253,
-      "rating": "Excellent",
+      "model_10yr_billions": -955.2899842571316,
+      "difference_billions": 391.71001574286845,
+      "percent_difference": 29.08017934245497,
+      "abs_percent_difference": 29.08017934245497,
+      "rating": "Poor",
       "direction_match": true,
       "known_limitations": [
         "Corporate base-shifting, pass-through spillovers, and international interactions are simplified relative to Treasury and JCT models.",
         "The target prices a broader reform than the model builds. Treasury's FY2025 Green Book chapter (report p. 2) states 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition since FY2023 carries that step inside the corporate-rate row, while the factory scored against it sets gilti_rate_change=0.0. The GILTI leg is never printed separately and cannot be differenced across editions, so the reported error measures a scope mismatch as well as a fit.",
-        "The target is a rate-PLUS-GILTI row scored against a rate-only shape, and the figure agrees anyway. Treasury's FY2025 Green Book chapter (report p. 2) says 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition from FY2023 carries that step, while `create_biden_corporate_rate_only` sets `gilti_rate_change=0.0`. The GILTI leg's size is never printed and cannot be recovered by differencing editions, so the 3.7% this row reports measures a scope mismatch as well as a fit and the two cannot be split. Recorded as `line_item_differs` by the 2026-09-05 provenance pass; no constant was retuned, and the target did not move because there is nothing to move it to. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` section 2.",
+        "Poor, and reclassified rather than retuned: `BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted so the `reported` path lands on this target, and the scorecard / app score `derived`. The credit-factor lane moved derived 4.04% -> 29.08%; no constant was moved to close it.",
+        "The target is a rate-PLUS-GILTI row scored against a rate-only shape. Treasury's FY2025 Green Book chapter (report p. 2) says 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition from FY2023 carries that step, while `create_biden_corporate_rate_only` sets `gilti_rate_change=0.0`. The GILTI leg's size is never printed and cannot be recovered by differencing editions, so the error measures a scope mismatch as well as a reconstruction. Recorded as `line_item_differs` by the 2026-09-05 provenance pass; no constant was retuned, and the target did not move because there is nothing to move it to. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` section 2.",
         "The only rate-only Green Book row is FY2022's, and it is now carried beside this one as `biden_corporate_28_fy2022` — same reform, same factory, a per-point yield 36% lower."
       ],
       "notes": "Core rate increase from 21% to 28% only, without international provisions.",
       "provenance": "line_item_differs",
-      "calibrated_to_target": true,
-      "declared_calibrated_to_target": true,
+      "calibrated_to_target": false,
+      "declared_calibrated_to_target": false,
       "target_revision_id": null,
       "superseded_10yr_billions": null,
       "target_revision_reason": "",
@@ -356,11 +357,11 @@
       "benchmark_kind": "Published administration estimate",
       "benchmark_date": "2021-05",
       "benchmark_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2022.pdf",
-      "model_10yr_billions": -1292.6175949980088,
-      "difference_billions": -434.8175949980089,
-      "percent_difference": -50.689857192586715,
-      "abs_percent_difference": 50.689857192586715,
-      "rating": "Poor",
+      "model_10yr_billions": -955.2899842571316,
+      "difference_billions": -97.4899842571316,
+      "percent_difference": -11.365118239348519,
+      "abs_percent_difference": 11.365118239348519,
+      "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [
         "Scored across a window offset: the target is Treasury's FY2022-2031 row on a 2021 baseline and this repository carries no 2021 vintage, so the corporate runner's own FY2025-2034 window is used. In reported mode the rate channel is a flat annual, so the model returns the same figure for either decade - which is the residual this benchmark exists to show, not an artefact of the offset.",
@@ -397,10 +398,10 @@
       "benchmark_kind": "Published external estimate",
       "benchmark_date": "2024-07",
       "benchmark_url": "https://taxfoundation.org/blog/trump-corporate-tax-cut/",
-      "model_10yr_billions": 1545.2400501655757,
-      "difference_billions": 872.1400501655756,
-      "percent_difference": 129.57065074514568,
-      "abs_percent_difference": 129.57065074514568,
+      "model_10yr_billions": 1217.351650918184,
+      "difference_billions": 544.251650918184,
+      "percent_difference": 80.85747302305512,
+      "abs_percent_difference": 80.85747302305512,
       "rating": "Poor",
       "direction_match": true,
       "known_limitations": [
@@ -422,7 +423,7 @@
       "published_range_low_billions": 595.0,
       "published_range_high_billions": 673.1,
       "within_published_range": false,
-      "distance_to_published_range_billions": 872.1400501655756,
+      "distance_to_published_range_billions": 544.251650918184,
       "benchmark_table": "Table 2, 'Revenue Effects of Reducing the Corporate Rate to 15 Percent (Billions)' — Conventional revenue effect, 2025-2034 (Table 2 (the post's only revenue table))",
       "official_10yr_billions_line_item": 595.0,
       "sourcing_note": "Until 2026-09-05 this row's target was +$1,920B, provenance `model_estimate` — this repository's own output, by the scenario's own admission. The ledger (`target_revisions.trump_corporate_15.v1` -> `.v2`) superseded it with the PUBLISHED RANGE [+$595.0B, +$673.1B], the two conventional estimates of 21% -> 15% for all corporations on this repository's own window, printed side by side in CRFB's 6 September 2024 post. The carried anchor is Tax Foundation's +$673.1B (this row's `table`), chosen because it is a standalone analysis of this one reform where PWBM's is a stacked row inside a whole-campaign package; the figure transcribed here is PWBM's +$595.0B, the range's other bound, so the spread stays visible. The module's constant was NOT retuned to the new figure and the row stays `calibrated_to_target=False`, where PR #119 put it.",
@@ -2853,16 +2854,16 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024-12",
       "benchmark_url": "https://www.cbo.gov/publication/60557",
-      "model_10yr_billions": -196.08190321766565,
-      "difference_billions": -60.381903217665666,
-      "percent_difference": -44.49661254065267,
-      "abs_percent_difference": 44.49661254065267,
-      "rating": "Poor",
+      "model_10yr_billions": -144.91144091087565,
+      "difference_billions": -9.211440910875666,
+      "percent_difference": -6.788092049281995,
+      "abs_percent_difference": 6.788092049281995,
+      "rating": "Good",
       "direction_match": true,
       "known_limitations": [
-        "Scored in the corporate module's derived mode, so the base is not the fitted profits aggregate. Since PR #121 it is CBO's own projected corporate receipts path (publication 59710 Table 1-1) converted to a statutory base at one ratio measured on completed history - IRS SOI Table 11's credit-realized TY2022 base over Treasury's actual FY2022 receipts, 4.80133, which is 1.0083 / 0.21 - and settled on IRC section 6655's estimated-payment calendar. That base is about a quarter larger than the fitted one in the window's first year, so the derived path over-predicts this row by MORE than the fitted path did, while reproducing the 21%->28% benchmark to 4.04%.",
-        "The residual is an ESTIMATOR difference and a SCOPE difference, not the 42% document gap an earlier version of this note claimed. Both halves are corrected by `planning/memos/CORPORATE_PER_POINT_YIELD.md`. (1) This option is a JCT estimate that CBO publishes - every corporate-rate option in every Options volume carries 'Data source: Staff of the Joint Committee on Taxation' - so the comparison with Treasury's Green Book row is JCT against Treasury OTA, not CBO against Treasury. (2) Treasury's row is not rate-only: since the FY2023 edition it carries the GILTI effective rate up with the statutory rate, and its own chapter says so. (3) Per-point dollars are not comparable across rate levels or scopes anyway; on the implied marginal base (|total| / step / 10, as a share of the vintage's own average base) the record is four estimators clustered and one high - Tax Foundation 55.1%, JCT 55.9%, PWBM 64.4%, Treasury (rate + GILTI) 79.5% - and this model reads 80.8% at +1pp and 76.1% at +7pp since PR #121 projected the base off the vintage's own receipts path, above all four at the small step and above three of the four at the large one. There is also NOTHING in the record supporting a per-point yield that rises with the step: where one estimator prices a big step and a small one, JCT's 14-point cut from 35% and its 1-point increase from 21% imply marginal bases of $963.2B and $963.0B.",
-        "Option 64 carries NO income-and-payroll-tax offset footnote, though the facing Option 63 does. An earlier version of this note called the individual-side interaction 'the largest single unmodelled channel'; JCT does not apply one here either, so that channel is refuted as an explanation of this row rather than merely unmeasured. Two channels that would push the derived score down are still named and not built, because each needs a number nobody publishes. Credit CARRYFORWARDS: section 38(c) and section 904(c) limits rise with the rate, so marginal absorption exceeds the average ratio the module applies - and CBO's 2018 Option 24, the only volume with a narrative, names exactly this channel as included in JCT's estimate ('An increase in the corporate tax rate would increase corporations' ability to use tax credits ... That use of credits would reduce revenues'). Lane R5 DID the acquisition the previous note called for and the stocks exist: IRS Publication 5108 (TY2022, PDF pp. 164 and 166) prints Form 3800's carryforward into 2022 at $91.16B (Part I line 4) plus $33.31B (Part II line 34), $124.47B against $72.17B of claims, and SOI's Corporate Foreign Tax Credit Table 1 prints a $174.44B section 904 limitation - 20.7% of its own $842.41B of foreign taxable income, so the mechanism is confirmed on published columns. What is STILL missing is the share of the base held by taxpayers in the constrained position: SOI's excess-credit and excess-limitation tables were published for TY2010 only and the series was discontinued, and the aggregate columns cannot identify the split (column 19 is limitation less credit by construction). So the channel is bounded rather than priced - see `corporate.credit_absorption_bounds` and `fiscal_model/data_files/corporate/credit_carryforward_stocks.csv`. The bound is informative: the section 904 channel at its own upper bound absorbs 28.85% of a marginal pre-credit dollar against the 29.15% the derived path already books by substituting the average credit ratio for the marginal one, so the section 38(c) channel is ENTIRELY unbooked and points this row DOWN. CAMT: for a book-minimum payer a point of regular rate raises nothing until the regular tax clears the minimum; it began in TY2023, after the last SOI year on file, and no source publishes the taxable income of CAMT-liable corporations (Treasury's JY2574 gives ~100 payers and a 2.6% counterfactual effective rate; JCT's 2022 letter to Chairman Wyden gives 175-200 corporations averaging $8.2B of book income in 2019 - neither is a base).",
+        "Scored in the corporate module's derived mode, so the base is not the fitted profits aggregate. Since PR #121 it is CBO's own projected corporate receipts path (publication 59710 Table 1-1) converted to a statutory base at one ratio measured on completed history - IRS SOI Table 11's credit-realized TY2022 base over Treasury's actual FY2022 receipts, 4.80133, which is 1.0083 / 0.21 - and settled on IRC section 6655's estimated-payment calendar. That base is about a quarter larger than the fitted one in the window's first year, so the derived path over-predicts this row by LESS than the fitted path did once the marginal-credit factor shipped, while the 21%->28% benchmark (a rate-plus-GILTI row) moved from 4.04% to 29.1%.",
+        "The residual is an ESTIMATOR difference and a SCOPE difference, not the 42% document gap an earlier version of this note claimed. Both halves are corrected by `planning/memos/CORPORATE_PER_POINT_YIELD.md`. (1) This option is a JCT estimate that CBO publishes - every corporate-rate option in every Options volume carries 'Data source: Staff of the Joint Committee on Taxation' - so the comparison with Treasury's Green Book row is JCT against Treasury OTA, not CBO against Treasury. (2) Treasury's row is not rate-only: since the FY2023 edition it carries the GILTI effective rate up with the statutory rate, and its own chapter says so. (3) Per-point dollars are not comparable across rate levels or scopes anyway; on the implied marginal base (|total| / step / 10, as a share of the vintage's own average base) the record is four estimators clustered and one high - Tax Foundation 55.1%, JCT 55.9%, PWBM 64.4%, Treasury (rate + GILTI) 79.5% - and this model reads 59.7% at +1pp and 56.3% at +7pp, inside that span at both steps, above Tax Foundation and below PWBM and Treasury. The 59.7% is calibrated to Tax Foundation and PWBM, the two rate-only houses no scorecard row targets; JCT's four Options rows were held out. There is also NOTHING in the record supporting a per-point yield that rises with the step: where one estimator prices a big step and a small one, JCT's 14-point cut from 35% and its 1-point increase from 21% imply marginal bases of $963.2B and $963.0B.",
+        "Option 64 carries NO income-and-payroll-tax offset footnote, though the facing Option 63 does. An earlier version of this note called the individual-side interaction 'the largest single unmodelled channel'; JCT does not apply one here either, so that channel is refuted as an explanation of this row rather than merely unmeasured. Two channels that would push the derived score down are still named and not built, because each needs a number nobody publishes. Credit CARRYFORWARDS: section 38(c) and section 904(c) limits rise with the rate, so marginal absorption exceeds the average ratio the module applies - and CBO's 2018 Option 24, the only volume with a narrative, names exactly this channel as included in JCT's estimate ('An increase in the corporate tax rate would increase corporations' ability to use tax credits ... That use of credits would reduce revenues'). Lane R5 DID the acquisition the previous note called for and the stocks exist: IRS Publication 5108 (TY2022, PDF pp. 164 and 166) prints Form 3800's carryforward into 2022 at $91.16B (Part I line 4) plus $33.31B (Part II line 34), $124.47B against $72.17B of claims, and SOI's Corporate Foreign Tax Credit Table 1 prints a $174.44B section 904 limitation - 20.7% of its own $842.41B of foreign taxable income, so the mechanism is confirmed on published columns. What is STILL missing is the share of the base held by taxpayers in the constrained position: SOI's excess-credit and excess-limitation tables were published for TY2010 only and the series was discontinued, and the aggregate columns cannot identify the split (column 19 is limitation less credit by construction). So the channel is bounded rather than priced - see `corporate.credit_absorption_bounds` and `fiscal_model/data_files/corporate/credit_carryforward_stocks.csv`. The bound is informative: the section 904 channel at its own upper bound absorbs 28.85% of a marginal pre-credit dollar against the 29.15% the receipts identity already books, so the leftover channel is section 38(c). That channel is now priced as a calibrated factor (γ = 0.739 on the credit-realized base, extra absorption 18.5% of pre-credit tax, between the average GBC claim rate and the 75% cap) rather than identified from Form 3800, because the constrained-tax share is still unpublished. CAMT: for a book-minimum payer a point of regular rate raises nothing until the regular tax clears the minimum; it began in TY2023, after the last SOI year on file, and no source publishes the taxable income of CAMT-liable corporations (Treasury's JY2574 gives ~100 payers and a 2.6% counterfactual effective rate; JCT's 2022 letter to Chairman Wyden gives 175-200 corporations averaging $8.2B of book income in 2019 - neither is a base).",
         "CBO's own loss-firm haircut was examined by lane R5 and REFUSED. `business-investment-model/source_code/Create_Tax_Data.prg:32-33` publishes `dmyrevnfc = 0.85` and `dmyrevx = 0.80`, derived from SOI 2005, and applying 0.85 would take this row to 22.8% - inside that lane's own pre-registered band. It is not applied because it multiplies a statutory RATE in a user-cost expression while this path multiplies a BASE that already nets loss firms: SOI's income subject to tax is net of a net-operating-loss deduction running 8.7-11.6% of the pre-NOL base against CBO's 12.8%, and CBO itself DIVIDES by the factor at `:172-175` wherever the other input already carries it, 'to avoid double-counting'. The pair is also not financial versus nonfinancial, as this repository's own plan said: 0.80 is 0.85 further reduced by the nonprofit share of nonresidential investment, and there is no sector split in the source. `tests/test_corporate_loss_firm_haircut.py` is the gate.",
         "SOI's TY2022 base is inflated by two timing items that reverse - section 174 R&D capitalisation, which began that year, and the bonus-depreciation phase-down - and the memo sizes it: SOI's income subject to tax averaged 71.8% of NIPA pre-tax corporate profits over TY2019-2021 and 79.8% in TY2022, so TY2022's base is 11.1% above what the prior ratio implies. That is an upper bound, since it charges the whole ratio move to the timing items; deflating by it takes this row to about 46%, not to CBO's figure. The module anchors on the latest published complete report and does not adjust, and an earlier anchor year would score this row better - which is exactly why the year is fixed as 'latest published' rather than chosen.",
         "A fourth, smaller item: the module's section 6655 first-year factor is 0.757, where JCT's options run 0.591-0.732 first-to-second-year and Treasury's FY2022/FY2023 rows run 0.593/0.601. Treasury's is a statutory blend the module has no concept of; JCT's is unexplained, because no volume mentions payment timing anywhere."
@@ -3354,15 +3355,15 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2018-12",
       "benchmark_url": "https://www.cbo.gov/publication/54667",
-      "model_10yr_billions": -147.75377907506862,
-      "difference_billions": -51.453779075068624,
-      "percent_difference": -53.43071555043471,
-      "abs_percent_difference": 53.43071555043471,
-      "rating": "Poor",
+      "model_10yr_billions": -109.19525297562684,
+      "difference_billions": -12.895252975626846,
+      "percent_difference": -13.390709216642623,
+      "abs_percent_difference": 13.390709216642623,
+      "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [
-        "The module answers a 1pp corporate rate increase with nearly the same figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across the four Options volumes, a 2.2% spread, where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 80.8% against a published 55.1-79.5%), not a decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
-        "The residual on every edition of this reform is one number, not an edition-specific mechanism. The derived path reaches about 80.8% of the credit-realized statutory base its receipts path implies (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase), where JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each row's error to within a tenth of a point, which is what makes the four residuals four readings of one gap. The channel that points it downward and is entirely unbooked is IRC section 38(c): a general-business-credit carryforward stock of $124.47B against $72.17B of claims, under a statutory cap that RISES with the rate. The share of the base held by taxpayers who are both capped and holding stock is published for no post-2010 year (SOI's excess-position tables stop at TY2010), so nothing here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/CORP_class_accuracy.md section 2.2."
+        "The module answers a 1pp corporate rate increase with a 33% spread across the four Options volumes (-$109.2B, -$89.4B, -$135.3B and -$144.9B), where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 59.7% against JCT's 52.6-57.1% on the three non-COVID vintages), not a decade. The 59.7% is CALIBRATED: it is the mean of two published rate-only houses that are in neither this battery nor any scorecard row's target (Tax Foundation 55.1%, PWBM 64.4%); the four JCT Options rows were held out, so this class is a cross-house transfer test, not an independent one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/BET2_corporate_credit_factor.md.",
+        "The residual on every edition of this reform is still one number, not an edition-specific mechanism. After the Outlook-vintage install the derived path reached about 80.8% of the credit-realized statutory base (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase). A later pass scaled that path by a marginal-credit factor calibrated to the mean implied share of two published rate-only houses that no scorecard row targets - Tax Foundation 2024 55.1% and PWBM 2024 64.4%, mean 59.7% - taking the +1pp share from 80.8% to 59.7%. That is 0.7pp from JCT's own 0.590, which is part of why the held-out rows land close; the factor is a fitted scalar and is labelled calibrated, not sourced. JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. Those four rows were held out of the calibration; the leftover against them is the published houses disagreeing with JCT, not a second unbooked channel. The factor is not JCT's 0.559 and is not the 0.5785 that would reproduce Option 64. Form 3800 still cannot identify the constrained-tax share (SOI's excess-position tables stop at TY2010), so the factor is not multiplied from those columns. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/BET2_corporate_credit_factor.md."
       ],
       "notes": "CBO Options 2019-2028 (pub. 54667), revenue option 24 (report p. 266): +$96.3B over FY2019-2028, 'Source: Staff of the Joint Committee on Taxation.' The second of four editions of one reform - $96.3B (FY2019-2028), $99.3B (FY2021-2030), $129.3B (FY2023-2032), $135.7B (FY2025-2034) - which is what gives the corporate class more than one observation for the first time.",
       "provenance": "line_item",
@@ -3617,15 +3618,15 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2020-12",
       "benchmark_url": "https://www.cbo.gov/publication/56783",
-      "model_10yr_billions": -120.90240348210834,
-      "difference_billions": -21.602403482108343,
-      "percent_difference": -21.75468628611112,
-      "abs_percent_difference": 21.75468628611112,
-      "rating": "Poor",
+      "model_10yr_billions": -89.35113955280063,
+      "difference_billions": 9.948860447199365,
+      "percent_difference": 10.01899340100641,
+      "abs_percent_difference": 10.01899340100641,
+      "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [
-        "The module answers a 1pp corporate rate increase with nearly the same figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across the four Options volumes, a 2.2% spread, where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 80.8% against a published 55.1-79.5%), not a decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
-        "The residual on every edition of this reform is one number, not an edition-specific mechanism. The derived path reaches about 80.8% of the credit-realized statutory base its receipts path implies (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase), where JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each row's error to within a tenth of a point, which is what makes the four residuals four readings of one gap. The channel that points it downward and is entirely unbooked is IRC section 38(c): a general-business-credit carryforward stock of $124.47B against $72.17B of claims, under a statutory cap that RISES with the rate. The share of the base held by taxpayers who are both capped and holding stock is published for no post-2010 year (SOI's excess-position tables stop at TY2010), so nothing here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/CORP_class_accuracy.md section 2.2.",
+        "The module answers a 1pp corporate rate increase with a 33% spread across the four Options volumes (-$109.2B, -$89.4B, -$135.3B and -$144.9B), where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 59.7% against JCT's 52.6-57.1% on the three non-COVID vintages), not a decade. The 59.7% is CALIBRATED: it is the mean of two published rate-only houses that are in neither this battery nor any scorecard row's target (Tax Foundation 55.1%, PWBM 64.4%); the four JCT Options rows were held out, so this class is a cross-house transfer test, not an independent one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/BET2_corporate_credit_factor.md.",
+        "The residual on every edition of this reform is still one number, not an edition-specific mechanism. After the Outlook-vintage install the derived path reached about 80.8% of the credit-realized statutory base (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase). A later pass scaled that path by a marginal-credit factor calibrated to the mean implied share of two published rate-only houses that no scorecard row targets - Tax Foundation 2024 55.1% and PWBM 2024 64.4%, mean 59.7% - taking the +1pp share from 80.8% to 59.7%. That is 0.7pp from JCT's own 0.590, which is part of why the held-out rows land close; the factor is a fitted scalar and is labelled calibrated, not sourced. JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. Those four rows were held out of the calibration; the leftover against them is the published houses disagreeing with JCT, not a second unbooked channel. The factor is not JCT's 0.559 and is not the 0.5785 that would reproduce Option 64. Form 3800 still cannot identify the constrained-tax share (SOI's excess-position tables stop at TY2010), so the factor is not multiplied from those columns. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/BET2_corporate_credit_factor.md.",
         "This row's receipts path is CBO's September 2020 Outlook (publication 56517, Table 1), which is the baseline JCT's estimate was priced against and is also a COVID outlier: it projects FY2021 corporate receipts at $122.8B against a Treasury MTS actual of $371.8B. So this row's error is the module's usual marginal-share level measured against a depressed denominator, not a more accurate score, and it must not be quoted without that clause. The correct path is still this one - JCT scored a projection, not realized receipts."
       ],
       "notes": "CBO Options 2021-2030 (pub. 56783), revenue option 19 (report p. 293): +$99.3B over FY2021-2030, 'Data source: Staff of the Joint Committee on Taxation.'",
@@ -3911,15 +3912,15 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2022-12",
       "benchmark_url": "https://www.cbo.gov/publication/58163",
-      "model_10yr_billions": -183.12108010840709,
-      "difference_billions": -53.821080108407074,
-      "percent_difference": -41.624965281057285,
-      "abs_percent_difference": 41.624965281057285,
-      "rating": "Poor",
+      "model_10yr_billions": -135.33293559583535,
+      "difference_billions": -6.03293559583534,
+      "percent_difference": -4.66584346158959,
+      "abs_percent_difference": 4.66584346158959,
+      "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [
-        "The module answers a 1pp corporate rate increase with nearly the same figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across the four Options volumes, a 2.2% spread, where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 80.8% against a published 55.1-79.5%), not a decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
-        "The residual on every edition of this reform is one number, not an edition-specific mechanism. The derived path reaches about 80.8% of the credit-realized statutory base its receipts path implies (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase), where JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each row's error to within a tenth of a point, which is what makes the four residuals four readings of one gap. The channel that points it downward and is entirely unbooked is IRC section 38(c): a general-business-credit carryforward stock of $124.47B against $72.17B of claims, under a statutory cap that RISES with the rate. The share of the base held by taxpayers who are both capped and holding stock is published for no post-2010 year (SOI's excess-position tables stop at TY2010), so nothing here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/CORP_class_accuracy.md section 2.2."
+        "The module answers a 1pp corporate rate increase with a 33% spread across the four Options volumes (-$109.2B, -$89.4B, -$135.3B and -$144.9B), where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 59.7% against JCT's 52.6-57.1% on the three non-COVID vintages), not a decade. The 59.7% is CALIBRATED: it is the mean of two published rate-only houses that are in neither this battery nor any scorecard row's target (Tax Foundation 55.1%, PWBM 64.4%); the four JCT Options rows were held out, so this class is a cross-house transfer test, not an independent one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/BET2_corporate_credit_factor.md.",
+        "The residual on every edition of this reform is still one number, not an edition-specific mechanism. After the Outlook-vintage install the derived path reached about 80.8% of the credit-realized statutory base (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase). A later pass scaled that path by a marginal-credit factor calibrated to the mean implied share of two published rate-only houses that no scorecard row targets - Tax Foundation 2024 55.1% and PWBM 2024 64.4%, mean 59.7% - taking the +1pp share from 80.8% to 59.7%. That is 0.7pp from JCT's own 0.590, which is part of why the held-out rows land close; the factor is a fitted scalar and is labelled calibrated, not sourced. JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. Those four rows were held out of the calibration; the leftover against them is the published houses disagreeing with JCT, not a second unbooked channel. The factor is not JCT's 0.559 and is not the 0.5785 that would reproduce Option 64. Form 3800 still cannot identify the constrained-tax share (SOI's excess-position tables stop at TY2010), so the factor is not multiplied from those columns. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/BET2_corporate_credit_factor.md."
       ],
       "notes": "CBO Options 2023-2032 Volume II (pub. 58163), revenue option 50 (report p. 115): -$129.3B over FY2023-2032, 'Data source: Staff of the Joint Committee on Taxation.' CORPORATE_PER_POINT_YIELD.md showed JCT's per-point yield is flat in the rate; these four editions show what it does in TIME, which the memo could not.",
       "provenance": "line_item",
@@ -4088,19 +4089,20 @@
     {
       "surface": "revenue_scorecard",
       "severity": "warn",
-      "policy_id": "biden_corporate_28_fy2022",
+      "policy_id": "biden_corporate_28",
       "category": "Corporate",
       "rating": "Poor",
-      "message": "biden_corporate_28_fy2022 has a Poor revenue scorecard rating.",
+      "message": "biden_corporate_28 has a Poor revenue scorecard rating.",
       "details": {
         "reason": "documented_or_generic_poor",
         "direction_match": true,
-        "abs_percent_difference": 50.689857192586715,
+        "abs_percent_difference": 29.08017934245497,
         "known_limitations": [
-          "Scored across a window offset: the target is Treasury's FY2022-2031 row on a 2021 baseline and this repository carries no 2021 vintage, so the corporate runner's own FY2025-2034 window is used. In reported mode the rate channel is a flat annual, so the model returns the same figure for either decade - which is the residual this benchmark exists to show, not an artefact of the offset.",
-          "WINDOW OFFSET, stated rather than adjusted. The target covers FY2022-2031 on a 2021 baseline and this repository carries no 2021 vintage, so the row is scored on the corporate runner's own FY2025-2034 window - the same mismatch `iija_2021_discretionary` records in the out-of-sample manifest. In `reported` mode the offset costs nothing, because the module's rate channel is a flat annual: shifting the window changes which years the same number is stamped on and nothing else. That invariance is itself the thing this benchmark exists to expose - the module's answer to '21% to 28%' is -$1,397.2B whichever decade is asked about, where Treasury's two editions differ by 36% per point. Nothing here is a claim that the model was run on Treasury's window.",
-          "Not fitted to this target and never to be fitted to it. `BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted to `biden_corporate_28`; a second constant fitted here would make the pair uninformative. The residual is the finding: Treasury's FY2022 row implies a marginal base of $1,225.5B per year against the module's $1,996.0B, and the FY2025 row $1,928.5B - a 36% move across two editions of one proposal that a fixed base cannot represent. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` sections 4 and 7.",
-          "Scope caveat in the other direction from `biden_corporate_28`'s: this row is rate-only and so is the factory, but its baseline is a 2021 profit level, before the 2021-22 profits boom that took SOI's income subject to tax from $1,780.3B (TY2020) to $2,422.1B (TY2021). Part of the residual is that revision, and the memo does not separate it from the modelling error."
+          "Corporate base-shifting, pass-through spillovers, and international interactions are simplified relative to Treasury and JCT models.",
+          "The target prices a broader reform than the model builds. Treasury's FY2025 Green Book chapter (report p. 2) states 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition since FY2023 carries that step inside the corporate-rate row, while the factory scored against it sets gilti_rate_change=0.0. The GILTI leg is never printed separately and cannot be differenced across editions, so the reported error measures a scope mismatch as well as a fit.",
+          "Poor, and reclassified rather than retuned: `BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted so the `reported` path lands on this target, and the scorecard / app score `derived`. The credit-factor lane moved derived 4.04% -> 29.08%; no constant was moved to close it.",
+          "The target is a rate-PLUS-GILTI row scored against a rate-only shape. Treasury's FY2025 Green Book chapter (report p. 2) says 'The effective global intangible low-taxed income (GILTI) rate would increase to 14 percent under the proposal', and every edition from FY2023 carries that step, while `create_biden_corporate_rate_only` sets `gilti_rate_change=0.0`. The GILTI leg's size is never printed and cannot be recovered by differencing editions, so the error measures a scope mismatch as well as a reconstruction. Recorded as `line_item_differs` by the 2026-09-05 provenance pass; no constant was retuned, and the target did not move because there is nothing to move it to. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` section 2.",
+          "The only rate-only Green Book row is FY2022's, and it is now carried beside this one as `biden_corporate_28_fy2022` — same reform, same factory, a per-point yield 36% lower."
         ],
         "holdout_status": "calibration_reference"
       }
@@ -4115,7 +4117,7 @@
       "details": {
         "reason": "documented_or_generic_poor",
         "direction_match": true,
-        "abs_percent_difference": 129.57065074514568,
+        "abs_percent_difference": 80.85747302305512,
         "known_limitations": [
           "The target is a published range rather than a point: PWBM's +$595B and Tax Foundation's +$673.1B for 21% to 15% across all corporations, both FY2025-2034 conventional, with Tax Foundation's carried as the anchor. Until 2026-09-05 the target was this model's own +$1,920B.",
           "Poor, and reclassified rather than retuned: the corporate module's behavioural offset returned an absolute value, so this rate cut booked 12.5% of its static effect as extra deficit rather than as an offset, and the fitted annual was compensating for that. The sign was corrected 2026-09-05 and the row moved 0.1% -> 22.3%; no constant was moved to close it.",
@@ -4685,28 +4687,6 @@
     {
       "surface": "revenue_scorecard",
       "severity": "warn",
-      "policy_id": "cbo_opt64_corporate_rate_1pp",
-      "category": "Generic",
-      "rating": "Poor",
-      "message": "cbo_opt64_corporate_rate_1pp has a Poor revenue scorecard rating.",
-      "details": {
-        "reason": "documented_or_generic_poor",
-        "direction_match": true,
-        "abs_percent_difference": 44.49661254065267,
-        "known_limitations": [
-          "Scored in the corporate module's derived mode, so the base is not the fitted profits aggregate. Since PR #121 it is CBO's own projected corporate receipts path (publication 59710 Table 1-1) converted to a statutory base at one ratio measured on completed history - IRS SOI Table 11's credit-realized TY2022 base over Treasury's actual FY2022 receipts, 4.80133, which is 1.0083 / 0.21 - and settled on IRC section 6655's estimated-payment calendar. That base is about a quarter larger than the fitted one in the window's first year, so the derived path over-predicts this row by MORE than the fitted path did, while reproducing the 21%->28% benchmark to 4.04%.",
-          "The residual is an ESTIMATOR difference and a SCOPE difference, not the 42% document gap an earlier version of this note claimed. Both halves are corrected by `planning/memos/CORPORATE_PER_POINT_YIELD.md`. (1) This option is a JCT estimate that CBO publishes - every corporate-rate option in every Options volume carries 'Data source: Staff of the Joint Committee on Taxation' - so the comparison with Treasury's Green Book row is JCT against Treasury OTA, not CBO against Treasury. (2) Treasury's row is not rate-only: since the FY2023 edition it carries the GILTI effective rate up with the statutory rate, and its own chapter says so. (3) Per-point dollars are not comparable across rate levels or scopes anyway; on the implied marginal base (|total| / step / 10, as a share of the vintage's own average base) the record is four estimators clustered and one high - Tax Foundation 55.1%, JCT 55.9%, PWBM 64.4%, Treasury (rate + GILTI) 79.5% - and this model reads 80.8% at +1pp and 76.1% at +7pp since PR #121 projected the base off the vintage's own receipts path, above all four at the small step and above three of the four at the large one. There is also NOTHING in the record supporting a per-point yield that rises with the step: where one estimator prices a big step and a small one, JCT's 14-point cut from 35% and its 1-point increase from 21% imply marginal bases of $963.2B and $963.0B.",
-          "Option 64 carries NO income-and-payroll-tax offset footnote, though the facing Option 63 does. An earlier version of this note called the individual-side interaction 'the largest single unmodelled channel'; JCT does not apply one here either, so that channel is refuted as an explanation of this row rather than merely unmeasured. Two channels that would push the derived score down are still named and not built, because each needs a number nobody publishes. Credit CARRYFORWARDS: section 38(c) and section 904(c) limits rise with the rate, so marginal absorption exceeds the average ratio the module applies - and CBO's 2018 Option 24, the only volume with a narrative, names exactly this channel as included in JCT's estimate ('An increase in the corporate tax rate would increase corporations' ability to use tax credits ... That use of credits would reduce revenues'). Lane R5 DID the acquisition the previous note called for and the stocks exist: IRS Publication 5108 (TY2022, PDF pp. 164 and 166) prints Form 3800's carryforward into 2022 at $91.16B (Part I line 4) plus $33.31B (Part II line 34), $124.47B against $72.17B of claims, and SOI's Corporate Foreign Tax Credit Table 1 prints a $174.44B section 904 limitation - 20.7% of its own $842.41B of foreign taxable income, so the mechanism is confirmed on published columns. What is STILL missing is the share of the base held by taxpayers in the constrained position: SOI's excess-credit and excess-limitation tables were published for TY2010 only and the series was discontinued, and the aggregate columns cannot identify the split (column 19 is limitation less credit by construction). So the channel is bounded rather than priced - see `corporate.credit_absorption_bounds` and `fiscal_model/data_files/corporate/credit_carryforward_stocks.csv`. The bound is informative: the section 904 channel at its own upper bound absorbs 28.85% of a marginal pre-credit dollar against the 29.15% the derived path already books by substituting the average credit ratio for the marginal one, so the section 38(c) channel is ENTIRELY unbooked and points this row DOWN. CAMT: for a book-minimum payer a point of regular rate raises nothing until the regular tax clears the minimum; it began in TY2023, after the last SOI year on file, and no source publishes the taxable income of CAMT-liable corporations (Treasury's JY2574 gives ~100 payers and a 2.6% counterfactual effective rate; JCT's 2022 letter to Chairman Wyden gives 175-200 corporations averaging $8.2B of book income in 2019 - neither is a base).",
-          "CBO's own loss-firm haircut was examined by lane R5 and REFUSED. `business-investment-model/source_code/Create_Tax_Data.prg:32-33` publishes `dmyrevnfc = 0.85` and `dmyrevx = 0.80`, derived from SOI 2005, and applying 0.85 would take this row to 22.8% - inside that lane's own pre-registered band. It is not applied because it multiplies a statutory RATE in a user-cost expression while this path multiplies a BASE that already nets loss firms: SOI's income subject to tax is net of a net-operating-loss deduction running 8.7-11.6% of the pre-NOL base against CBO's 12.8%, and CBO itself DIVIDES by the factor at `:172-175` wherever the other input already carries it, 'to avoid double-counting'. The pair is also not financial versus nonfinancial, as this repository's own plan said: 0.80 is 0.85 further reduced by the nonprofit share of nonresidential investment, and there is no sector split in the source. `tests/test_corporate_loss_firm_haircut.py` is the gate.",
-          "SOI's TY2022 base is inflated by two timing items that reverse - section 174 R&D capitalisation, which began that year, and the bonus-depreciation phase-down - and the memo sizes it: SOI's income subject to tax averaged 71.8% of NIPA pre-tax corporate profits over TY2019-2021 and 79.8% in TY2022, so TY2022's base is 11.1% above what the prior ratio implies. That is an upper bound, since it charges the whole ratio move to the timing items; deflating by it takes this row to about 46%, not to CBO's figure. The module anchors on the latest published complete report and does not adjust, and an earlier anchor year would score this row better - which is exactly why the year is fixed as 'latest published' rather than chosen.",
-          "A fourth, smaller item: the module's section 6655 first-year factor is 0.757, where JCT's options run 0.591-0.732 first-to-second-year and Treasury's FY2022/FY2023 rows run 0.593/0.601. Treasury's is a statutory blend the module has no concept of; JCT's is unexplained, because no volume mentions payment timing anywhere."
-        ],
-        "holdout_status": "generic_reference"
-      }
-    },
-    {
-      "surface": "revenue_scorecard",
-      "severity": "warn",
       "policy_id": "cbo2019_opt18_hi_payroll_1pp",
       "category": "Generic",
       "rating": "Poor",
@@ -4735,24 +4715,6 @@
         "abs_percent_difference": 20.302986890552717,
         "known_limitations": [
           "As the 1pp alternative: CBO splits the rate increase evenly between employers and employees while the runnable shape books it entirely on employees, and the covered-earnings base is projected back past its February 2024 vintage."
-        ],
-        "holdout_status": "generic_reference"
-      }
-    },
-    {
-      "surface": "revenue_scorecard",
-      "severity": "warn",
-      "policy_id": "cbo2019_opt24_corporate_rate_1pp",
-      "category": "Generic",
-      "rating": "Poor",
-      "message": "cbo2019_opt24_corporate_rate_1pp has a Poor revenue scorecard rating.",
-      "details": {
-        "reason": "documented_or_generic_poor",
-        "direction_match": true,
-        "abs_percent_difference": 53.43071555043471,
-        "known_limitations": [
-          "The module answers a 1pp corporate rate increase with nearly the same figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across the four Options volumes, a 2.2% spread, where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 80.8% against a published 55.1-79.5%), not a decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
-          "The residual on every edition of this reform is one number, not an edition-specific mechanism. The derived path reaches about 80.8% of the credit-realized statutory base its receipts path implies (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase), where JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each row's error to within a tenth of a point, which is what makes the four residuals four readings of one gap. The channel that points it downward and is entirely unbooked is IRC section 38(c): a general-business-credit carryforward stock of $124.47B against $72.17B of claims, under a statutory cap that RISES with the rate. The share of the base held by taxpayers who are both capped and holding stock is published for no post-2010 year (SOI's excess-position tables stop at TY2010), so nothing here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/CORP_class_accuracy.md section 2.2."
         ],
         "holdout_status": "generic_reference"
       }
@@ -4821,43 +4783,6 @@
         "abs_percent_difference": 34.59298238053083,
         "known_limitations": [
           "As the 1pp alternative: the 2020 volume's pandemic-depressed wage path is below the 2018 volume's for the same reform two years later, and the model's monotonic February 2024 wage path cannot reproduce that."
-        ],
-        "holdout_status": "generic_reference"
-      }
-    },
-    {
-      "surface": "revenue_scorecard",
-      "severity": "warn",
-      "policy_id": "cbo2021_opt19_corporate_rate_1pp",
-      "category": "Generic",
-      "rating": "Poor",
-      "message": "cbo2021_opt19_corporate_rate_1pp has a Poor revenue scorecard rating.",
-      "details": {
-        "reason": "documented_or_generic_poor",
-        "direction_match": true,
-        "abs_percent_difference": 21.75468628611112,
-        "known_limitations": [
-          "The module answers a 1pp corporate rate increase with nearly the same figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across the four Options volumes, a 2.2% spread, where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 80.8% against a published 55.1-79.5%), not a decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
-          "The residual on every edition of this reform is one number, not an edition-specific mechanism. The derived path reaches about 80.8% of the credit-realized statutory base its receipts path implies (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase), where JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each row's error to within a tenth of a point, which is what makes the four residuals four readings of one gap. The channel that points it downward and is entirely unbooked is IRC section 38(c): a general-business-credit carryforward stock of $124.47B against $72.17B of claims, under a statutory cap that RISES with the rate. The share of the base held by taxpayers who are both capped and holding stock is published for no post-2010 year (SOI's excess-position tables stop at TY2010), so nothing here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/CORP_class_accuracy.md section 2.2.",
-          "This row's receipts path is CBO's September 2020 Outlook (publication 56517, Table 1), which is the baseline JCT's estimate was priced against and is also a COVID outlier: it projects FY2021 corporate receipts at $122.8B against a Treasury MTS actual of $371.8B. So this row's error is the module's usual marginal-share level measured against a depressed denominator, not a more accurate score, and it must not be quoted without that clause. The correct path is still this one - JCT scored a projection, not realized receipts."
-        ],
-        "holdout_status": "generic_reference"
-      }
-    },
-    {
-      "surface": "revenue_scorecard",
-      "severity": "warn",
-      "policy_id": "cbo2023_opt50_corporate_rate_1pp",
-      "category": "Generic",
-      "rating": "Poor",
-      "message": "cbo2023_opt50_corporate_rate_1pp has a Poor revenue scorecard rating.",
-      "details": {
-        "reason": "documented_or_generic_poor",
-        "direction_match": true,
-        "abs_percent_difference": 41.624965281057285,
-        "known_limitations": [
-          "The module answers a 1pp corporate rate increase with nearly the same figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across the four Options volumes, a 2.2% spread, where CBO's own estimates for the identical reform span 41.0% ($96.3B to $135.7B). The residual on any one of these rows is therefore mostly a level (the implied marginal share of the statutory base, 80.8% against a published 55.1-79.5%), not a decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
-          "The residual on every edition of this reform is one number, not an edition-specific mechanism. The derived path reaches about 80.8% of the credit-realized statutory base its receipts path implies (CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 phase), where JCT's own implied marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each row's error to within a tenth of a point, which is what makes the four residuals four readings of one gap. The channel that points it downward and is entirely unbooked is IRC section 38(c): a general-business-credit carryforward stock of $124.47B against $72.17B of claims, under a statutory cap that RISES with the rate. The share of the base held by taxpayers who are both capped and holding stock is published for no post-2010 year (SOI's excess-position tables stop at TY2010), so nothing here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and planning/lanes/CORP_class_accuracy.md section 2.2."
         ],
         "holdout_status": "generic_reference"
       }

@@ -5,14 +5,22 @@ import { classBandSentence, estimateIdentity, identityLine, publishedWindow, sho
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
+const tcja = JSON.parse(readFileSync(new URL("../../site_data/presets/tcja-full-extension.json", import.meta.url), "utf8")) as PresetFile;
 const noRow = JSON.parse(
   readFileSync(new URL("../../site_data/presets/ultra-millionaire-surtax-3pp.json", import.meta.url), "utf8"),
 ) as PresetFile;
 
 test("a fitted row's tag says calibrated and never out of sample", () => {
-  const line = identityLine(estimateIdentity(corp.conventional, "model"));
+  const line = identityLine(estimateIdentity(tcja.conventional, "model"));
   assert.match(line, /calibrated/i);
   assert.doesNotMatch(line, /out of sample/i);
+  assert.match(line, /This calculator · conventional · FY2026-2035 · CBO Feb 2026 baseline/);
+});
+
+test("the corporate 28% row's tag says unfitted reconstruction", () => {
+  const line = identityLine(estimateIdentity(corp.conventional, "model"));
+  assert.match(line, /Unfitted reconstruction/);
+  assert.doesNotMatch(line, /calibrated/i);
   assert.match(line, /This calculator · conventional · FY2026-2035 · CBO Feb 2026 baseline/);
 });
 
@@ -84,7 +92,7 @@ test("a column header with no named producer does not repeat the word published"
 test("sections the tier does not grade carry the producer and window but no tier", () => {
   const file = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
   const full = estimateIdentity(file.conventional, "model");
-  assert.match(identityLine(full), /Calibrated reference/);
+  assert.match(identityLine(full), /Unfitted reconstruction/);
   const bare = withoutTier(full);
   assert.doesNotMatch(identityLine(bare), /Calibrated reference|out-of-sample|reconstruction/i);
   assert.match(identityLine(bare), /This calculator · conventional · FY2026-2035/);

@@ -244,9 +244,19 @@ jobs:
       # or reclassified, and the share within 25% rose 35/44 = 79.5% -> 36/44 =
       # 81.8%. What moved is that three rows stopped being scored against a
       # receipts path their targets were never priced on.
+      #
+      # The corporate credit-factor lane
+      # (planning/lanes/BET2_corporate_credit_factor.md) took the same 44 rows
+      # to 12.2% and 39 within 25% by moving the four corporate rows only:
+      #   ceiling  ceil(12.2 x 1.25) = 16 -> nearest 5 = 20. Unchanged.
+      #   floor    39 - 1 = 38. Raised 35 -> 38.
+      # Forced by test_no_gate_is_looser_than_the_workflow_rule_derives, not
+      # chosen. The corporate factor is CALIBRATED to Tax Foundation and PWBM;
+      # without it the tier reads 15.1% and 36 within 25%, and cold_holdout.py
+      # prints both.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 35
+          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 38
 
       # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
       # The pooled gate above cannot see one policy class regressing while the
@@ -389,11 +399,22 @@ jobs:
       #   ordinary_rate_change  ceil(15.05 x 1.25) = 19, lowered 20 -> 19.
       # Forced by the one-sided invariant, not chosen. agi_inclusive_surtax
       # re-derives to 9 and is unchanged.
+      #
+      # The corporate credit-factor lane
+      # (planning/lanes/BET2_corporate_credit_factor.md) moved the corporate
+      # class 40.3% -> 8.7% (mass 161.3 -> 34.9, within-15 0 -> 4):
+      #   corporate  ceil(8.72 x 1.25) = 11, lowered 51 -> 11.
+      # Forced by the one-sided invariant (51 is more than twice 8.7), not
+      # chosen; the lane had planned to leave gates to a follow-up PR. Read 11
+      # beside what it gates: the factor is CALIBRATED to Tax Foundation and
+      # PWBM, whose mean share sits 0.7pp from JCT's own, so this class is now a
+      # cross-house transfer test rather than an independent one. The pooled
+      # floor moved with it (35 -> 38, above).
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
             agi_inclusive_surtax=9 ordinary_rate_change=19 \
-            capital_gains=18 corporate=51 \
+            capital_gains=18 corporate=11 \
             enacted_law_spending=10 discretionary_spending=6 \
             payroll=24 tax_expenditure=9
 

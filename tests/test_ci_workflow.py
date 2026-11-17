@@ -370,10 +370,22 @@ def test_the_corporate_ceiling_records_the_outlook_vintage_tightening():
     gap closing.
     """
     workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
-    assert _per_class_ceilings(workflow)["corporate"] == 51
     assert "ceil(40.33 x 1.25) = 51" in workflow, (
         "the corporate ceiling's re-derivation arithmetic is not recorded"
     )
+
+
+def test_the_corporate_ceiling_records_the_credit_factor_tightening():
+    """51 was derived from 40.3%; the credit-factor lane took the class to 8.7%.
+
+    ``ceil(8.72 x 1.25) = 11``. The factor is calibrated to Tax Foundation and
+    PWBM, so the workflow has to say that the class it gates is a cross-house
+    transfer test, not an independent one.
+    """
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    assert _per_class_ceilings(workflow)["corporate"] == 11
+    assert "ceil(8.72 x 1.25) = 11" in workflow
+    assert "CALIBRATED to Tax Foundation and" in workflow
 
 
 def test_the_tax_expenditure_ceiling_records_lane_r1s_tightening():
@@ -412,7 +424,10 @@ def test_the_pooled_gate_records_the_battery_that_shrank():
     # priced on: mean 18.0% -> 15.2%, within-25 35 -> 36.
     #   ceiling  ceil(15.2 x 1.25) = 19 -> nearest 5 = 20. Lowered 25 -> 20.
     #   floor    36 - 1 = 35. Raised 34 -> 35.
-    assert "--max-mean-error 20 --min-within-25pct 35" in workflow
+    # The corporate credit-factor lane (BET2) then took within-25 36 -> 39 on
+    # the same 44 rows, by moving the four corporate rows only:
+    #   floor    39 - 1 = 38. Raised 35 -> 38.
+    assert "--max-mean-error 20 --min-within-25pct 38" in workflow
     assert "86.4%" in workflow, "the within-25 share must be recorded beside the count"
     assert "shrinking battery" in workflow
 

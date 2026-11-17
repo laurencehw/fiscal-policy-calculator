@@ -61,7 +61,9 @@ def test_the_validation_mode_is_still_derived():
     """The uncalibrated path must not read a base fitted to a benchmark.
 
     It was already ``derived`` before the flip and stays ``derived`` after it,
-    so ``cbo_opt64_corporate_rate_1pp`` is unmoved by this lane.
+    so ``cbo_opt64_corporate_rate_1pp`` is not scored through the fitted
+    aggregate. The credit-factor lane *does* move that row; this test is
+    about the mode pin, not the level.
     """
     assert CORPORATE_VALIDATION_MODE == CORPORATE_MODE_DERIVED
 
@@ -72,14 +74,15 @@ def test_metric_one_derived_is_nearer_on_the_published_targets():
     derived = _mean_abs_error(CORPORATE_MODE_DERIVED)
     assert derived < reported
     assert reported == pytest.approx(62.75, abs=0.05)
-    assert derived == pytest.approx(61.43, abs=0.05)
+    assert derived == pytest.approx(40.43, abs=0.05)
 
 
-def test_metric_one_wins_on_the_mean_while_losing_two_rows():
-    """The result is narrow and the tests say so, so nobody quotes it as broad.
+def test_metric_one_wins_on_the_mean_and_on_two_of_three_rows():
+    """The credit factor moved derived off the FY2025 rate-plus-GILTI row.
 
-    ``derived`` is nearer on the mean because it wins the FY2022 rate-only row
-    by 12.2 points; it loses the other two by 0.3 and 7.9.
+    ``derived`` is nearer on the mean because it wins the FY2022 rate-only
+    row and the 15% cut; it loses ``biden_corporate_28``, whose target bundles
+    GILTI and whose ``reported`` constant is fitted to it.
     """
     per_row = {}
     for sid in PUBLISHED_TARGETS:
@@ -94,7 +97,8 @@ def test_metric_one_wins_on_the_mean_while_losing_two_rows():
         for sid, errs in per_row.items()
         if errs[CORPORATE_MODE_DERIVED] < errs[CORPORATE_MODE_REPORTED]
     ]
-    assert won == ["biden_corporate_28_fy2022"]
+    assert set(won) == {"biden_corporate_28_fy2022", "trump_corporate_15"}
+    assert "biden_corporate_28" not in won
 
 
 def test_metric_two_derived_is_inside_the_span_and_reported_is_not():
@@ -170,6 +174,8 @@ def test_the_caption_fires_on_a_corporate_rate_run_and_names_both_figures():
     previous = reported_mode_total_billions(policy, len(result.static_deficit_effect))
     assert format_money(current, escape=True) in caption
     assert format_money(previous, escape=True) in caption
+    assert "38(c)" in caption
+    assert "JCT Options" in caption
 
 
 def test_the_caption_is_silent_where_nothing_moved():

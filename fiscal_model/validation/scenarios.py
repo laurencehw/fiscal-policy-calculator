@@ -216,18 +216,29 @@ CORPORATE_VALIDATION_SCENARIOS = {
         "score_id": "biden_corporate_28",
         "policy_factory": create_biden_corporate_rate_only,
         "expected_10yr": -1347.0,
+        # ``BASELINE_TAXABLE_PROFITS_BILLIONS`` is still fitted so *reported*
+        # hits this target. The scorecard and the app score ``derived``. A
+        # constant fitted to a quantity the scorecard no longer computes is
+        # not a calibration to that target — the same rule that moved
+        # ``cap_charitable`` (H7) and ``trump_corporate_15`` (PR #119). No
+        # constant was retuned.
+        "calibrated_to_target": False,
         "notes": "Core rate increase from 21% to 28% only, without international provisions.",
         "limitations": [
+            "Poor, and reclassified rather than retuned: "
+            "`BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted so the `reported` "
+            "path lands on this target, and the scorecard / app score "
+            "`derived`. The credit-factor lane moved derived 4.04% -> 29.08%; "
+            "no constant was moved to close it.",
             "The target is a rate-PLUS-GILTI row scored against a rate-only "
-            "shape, and the figure agrees anyway. Treasury's FY2025 Green Book "
-            "chapter (report p. 2) says 'The effective global intangible "
-            "low-taxed income (GILTI) rate would increase to 14 percent under "
-            "the proposal', and every edition from FY2023 carries that step, "
-            "while `create_biden_corporate_rate_only` sets "
-            "`gilti_rate_change=0.0`. The GILTI leg's size is never printed "
-            "and cannot be recovered by differencing editions, so the 3.7% "
-            "this row reports measures a scope mismatch as well as a fit and "
-            "the two cannot be split. Recorded as `line_item_differs` by the "
+            "shape. Treasury's FY2025 Green Book chapter (report p. 2) says "
+            "'The effective global intangible low-taxed income (GILTI) rate "
+            "would increase to 14 percent under the proposal', and every "
+            "edition from FY2023 carries that step, while "
+            "`create_biden_corporate_rate_only` sets `gilti_rate_change=0.0`. "
+            "The GILTI leg's size is never printed and cannot be recovered by "
+            "differencing editions, so the error measures a scope mismatch as "
+            "well as a reconstruction. Recorded as `line_item_differs` by the "
             "2026-09-05 provenance pass; no constant was retuned, and the "
             "target did not move because there is nothing to move it to. See "
             "`planning/memos/CORPORATE_PER_POINT_YIELD.md` section 2.",

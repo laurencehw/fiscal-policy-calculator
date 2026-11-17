@@ -115,41 +115,40 @@ CORPORATE_MODES = (CORPORATE_MODE_REPORTED, CORPORATE_MODE_DERIVED)
 #: ================================  ==========  ==========  =========  ========
 #: Benchmark                         Target      Reported    Derived    Winner
 #: ================================  ==========  ==========  =========  ========
-#: ``biden_corporate_28``            -$1,347.0B  3.73%       4.04%      reported
-#: ``biden_corporate_28_fy2022``     -$857.8B    62.88%      50.69%     derived
-#: ``trump_corporate_15``            +$673.1B    121.63%     129.57%    reported
-#: **mean abs**                                  **62.75%**  **61.43%** derived
+#: ``biden_corporate_28``            -$1,347.0B  3.73%       29.08%     reported
+#: ``biden_corporate_28_fy2022``     -$857.8B    62.88%      11.37%     derived
+#: ``trump_corporate_15``            +$673.1B    121.63%     80.86%     derived
+#: **mean abs**                                  **62.75%**  **40.44%** derived
 #: ================================  ==========  ==========  =========  ========
 #:
-#: **Read that as the narrow, two-of-three-rows-lost result it is.** ``derived``
-#: wins the mean by 1.32 points while losing two rows head to head, and the row
-#: it wins is the only one whose *scope* matches what the factory builds:
-#: ``biden_corporate_28_fy2022`` is the FY2022 Green Book's rate-only row, the
-#: one corporate row in any Green Book whose Proposal section does not mention
-#: GILTI. ``biden_corporate_28``, which ``reported`` wins by three tenths of a
-#: point, is a row ``reported``'s own constant is **fitted** to, so its 3.73% is
-#: partly arithmetic; and ``trump_corporate_15`` is a bundled run whose
-#: bonus-depreciation leg (+$294.15B of +$1,491.8B) neither mode prices from a
-#: published figure. Neither mode was retuned to win this comparison and
+#: **Read that as the two-of-three-rows-won result it is.** ``derived`` wins
+#: the mean by 22 points and wins the two rate-only published rows; it loses
+#: ``biden_corporate_28``, whose target bundles GILTI and whose ``reported``
+#: constant is **fitted** to it. ``trump_corporate_15`` is still a bundled run
+#: whose bonus-depreciation leg (+$294.15B of +$1,491.8B) neither mode prices
+#: from a published figure — the credit factor moved the rate leg, not the
+#: bonus-depreciation gap. Neither mode was retuned to win this comparison and
 #: :data:`BASELINE_TAXABLE_PROFITS_BILLIONS` is untouched.
 #:
-#: The second metric is independent of any target and points the same way more
-#: sharply (``planning/lanes/HSB_h3a_corporate_range.md`` §6.3 finding 4). Four
-#: houses have scored a corporate statutory-rate change on CBO's February 2024
+#: The second metric is independent of any target and still points the same way
+#: (``planning/lanes/HSB_h3a_corporate_range.md`` §6.3 finding 4). Four houses
+#: have scored a corporate statutory-rate change on CBO's February 2024
 #: baseline over FY2025-2034; converted to the **+7pp step every shipped
 #: corporate preset uses**, they span -$1,349.9B to -$935.8B. ``derived`` scores
-#: -$1,292.62B, **inside**; ``reported`` scores -$1,397.21B, $47.27B outside and
-#: larger than all four. On the marginal-share metric ``derived`` reads 76.1%
-#: against a published 55.1-79.5% and ``reported`` 82.3%, above all of it.
+#: -$955.3B, **inside** (and near the Tax Foundation end, because Tax Foundation
+#: is one of the two houses the credit factor is calibrated to); ``reported``
+#: scores -$1,397.21B, $47.27B outside and larger than all four. On the
+#: marginal-share metric ``derived`` reads 56.3% at +7pp against a published
+#: 55.1-79.5% and ``reported`` 82.3%, above all of it.
 #:
-#: What this is **not** is an accuracy claim. Both means are above 60%, and the
-#: honest summary is the one PR #122 wrote: a module whose implied marginal base
-#: is at or above every published estimator's misses two published corporate
-#: targets in the same direction and misses the third by more. The flip changes
-#: which of two wrong answers the app serves, on the rule the repository set in
-#: advance. Two shipped presets moved with a Decision 6 caption
-#: (``ui/tabs/results_summary.corporate_mode_flip_caption``); the other 43 score
-#: to three decimals what they scored before.
+#: What this is **not** is an independent accuracy claim about JCT. The 59.74%
+#: +1pp share is the mean of Tax Foundation and PWBM, two rate-only scores no
+#: scorecard row targets (``planning/lanes/BET2_corporate_credit_factor.md``).
+#: Treasury's FY2022 rate-only row is deliberately *not* in it: it is the target
+#: of ``biden_corporate_28_fy2022``, the module's one unfitted corporate check.
+#: JCT's four Options +1pp rows were held out and miss by 8.7% mean (4 of 4
+#: within 15%), which is a cross-house transfer test, not an independent one. Two shipped presets moved with a Decision 6 caption
+#: (``ui/tabs/results_summary.corporate_mode_flip_caption``).
 CORPORATE_APP_MODE = CORPORATE_MODE_DERIVED
 
 #: What the *uncalibrated* validation path scores.
@@ -498,6 +497,132 @@ def base_per_dollar_of_receipts() -> float:
 BASE_PER_DOLLAR_OF_RECEIPTS = base_per_dollar_of_receipts()
 
 
+# =============================================================================
+# MARGINAL CREDIT FACTOR — FITTED TO TWO HOUSES OUTSIDE THE SCORECARD, JCT HELD OUT
+# =============================================================================
+
+#: CBO February 2024 Outlook (pub. 59710) Table 1-1 printed total, the
+#: denominator Tax Foundation 2024 and PWBM 2024 are normalised against.
+#: Same figure ``estimator_ranges.CORPORATE_RECEIPTS_10YR_BILLIONS`` carries.
+CBO_FEB_2024_CORPORATE_RECEIPTS_10YR_BILLIONS = 5094.0
+
+#: Published *rate-only* implied marginal shares that are **not** in the
+#: out-of-sample battery **and are not the target of any scorecard row**. Each share is the memo's §4 metric:
+#: ``|10yr| / Δτ / 10 / (vintage receipts / τ / 10)``.
+#:
+#: Held out: the four JCT Options +1pp rows (the ``corporate`` class). TPC's
+#: 2020 −$730B row is excluded because its denominator is CBO's September 2020
+#: COVID-outlier path, the same caveat the 2020 Options row already carries.
+#: ``biden_corporate_28`` (Treasury FY2025, rate + GILTI) and
+#: ``trump_corporate_15`` (rate cut plus an unsourced bonus-depreciation leg)
+#: are not in this set. Nor is Treasury's FY2022 Green Book rate-only row
+#: (−$857.817B): it is the target of ``biden_corporate_28_fy2022``, which is
+#: never to be fitted, and fitting to it is why PR #254 could not merge.
+#:
+#: The factor this produces is a **fitted scalar**, calibrated to these two
+#: houses. The §38(c) carryforward channel points this way, but nobody
+#: publishes the constrained-taxpayer share that would measure it, so every
+#: surface says "calibrated to Tax Foundation and PWBM", never "sourced".
+#:
+#: Sources, all already transcribed in ``corporate_rate_scores.csv``:
+#: Tax Foundation *Biden Budget Tax Proposals* (21 June 2024) Table 4,
+#: −$935.8B over FY2025–2034; PWBM *President Biden's FY2025 Budget Proposal*
+#: (22 May 2024) Table 1, −$1,093B over the same window.
+RATE_ONLY_CALIBRATION_SHARES: dict[str, float] = {
+    "tax_foundation_fy2025_2034": (
+        935.8 / 0.07 / 10.0 / (CBO_FEB_2024_CORPORATE_RECEIPTS_10YR_BILLIONS / CURRENT_CORPORATE_RATE / 10.0)
+    ),
+    "pwbm_fy2025_2034": (
+        1093.0 / 0.07 / 10.0 / (CBO_FEB_2024_CORPORATE_RECEIPTS_10YR_BILLIONS / CURRENT_CORPORATE_RATE / 10.0)
+    ),
+}
+
+RATE_ONLY_CALIBRATION_MEAN_SHARE = (
+    sum(RATE_ONLY_CALIBRATION_SHARES.values()) / len(RATE_ONLY_CALIBRATION_SHARES)
+)
+
+#: The four JCT Options +1pp rows. Named so a test can fail if a calibration
+#: share is ever taken from this set.
+RATE_ONLY_HOLDOUT_POLICY_IDS: tuple[str, ...] = (
+    "cbo2019_opt24_corporate_rate_1pp",
+    "cbo2021_opt19_corporate_rate_1pp",
+    "cbo2023_opt50_corporate_rate_1pp",
+    "cbo_opt64_corporate_rate_1pp",
+)
+
+#: Window the calibration mean is measured against: CBO February 2024,
+#: FY2025–2034. The factor is then applied on every vintage — it is a
+#: realization ratio, not a receipts-path property.
+_CALIBRATION_WINDOW_START_YEAR = 2025
+_CALIBRATION_WINDOW_YEARS = 10
+
+
+def window_marginal_share(
+    rate_change: float = 0.01,
+    vintage: str = CORPORATE_RECEIPTS_VINTAGE,
+    start_year: int = _CALIBRATION_WINDOW_START_YEAR,
+    duration_years: int = _CALIBRATION_WINDOW_YEARS,
+    credit_factor: float = 1.0,
+) -> float:
+    """Implied share of the vintage's average receipts-implied base.
+
+    Net ten-year yield (after the Heckemeyer offset and IRC §6655 phase)
+    divided by ``Δτ`` divided by the vintage's average ``receipts / τ``.
+    ``credit_factor=1.0`` is the mechanical identity before extra §38(c)
+    absorption; :func:`marginal_credit_factor` is the calibrated value.
+    """
+    new_rate = CURRENT_CORPORATE_RATE + rate_change
+    net_total = 0.0
+    avg_base_total = 0.0
+    behavioral = 1.0 - PROFIT_SHIFTING_SEMI_ELASTICITY * new_rate
+    carry = 1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
+    for offset in range(duration_years):
+        year = start_year + offset
+        receipts = cbo_corporate_receipts(year, vintage)
+        base = receipts * BASE_PER_DOLLAR_OF_RECEIPTS * credit_factor
+        static = rate_change * base
+        if offset == 0:
+            phase = ESTIMATED_PAYMENT_SAME_FY_SHARE
+        else:
+            prior = (
+                cbo_corporate_receipts(year - 1, vintage)
+                * BASE_PER_DOLLAR_OF_RECEIPTS
+                * credit_factor
+            )
+            phase = ESTIMATED_PAYMENT_SAME_FY_SHARE + carry * (prior / base)
+        net_total += static * behavioral * phase
+        avg_base_total += receipts / CURRENT_CORPORATE_RATE
+    return (net_total / rate_change) / avg_base_total
+
+
+@lru_cache(maxsize=1)
+def mechanical_plus_one_pp_share() -> float:
+    """The derived +1pp share with average credit realization, before §38(c)."""
+    return window_marginal_share(0.01, credit_factor=1.0)
+
+
+@lru_cache(maxsize=1)
+def marginal_credit_factor() -> float:
+    """Scale the credit-realized base so a +1pp step matches the calibration mean.
+
+    The derived path books the *average* credit realization inside
+    :data:`BASE_PER_DOLLAR_OF_RECEIPTS`. A statutory rate change also unlocks
+    (or, on a cut, locks) §38(c) general-business-credit carryforwards — CBO
+    2018 Option 24 is the only *Options* narrative that names the channel.
+    Form 3800 publishes the stock and the cap, not the constrained *tax*
+    share (R5; SOI's excess-position tables stop at TY2010).
+
+    This factor is the ratio of :data:`RATE_ONLY_CALIBRATION_MEAN_SHARE` to
+    the mechanical +1pp share. It is **not** JCT's 0.559 and it is **not**
+    the 0.5785 that reproduces Option 64: those four rows are held out, and
+    a test refuses a factor that lands the +1pp share within one point of
+    either forbidden number. The implied extra absorption sits between the
+    average GBC rate already in the receipts identity and the statutory 75%
+    cap, which is the check Form 3800's Part II lines support.
+    """
+    return RATE_ONLY_CALIBRATION_MEAN_SHARE / mechanical_plus_one_pp_share()
+
+
 def projected_statutory_base(
     fiscal_year: int, vintage: str = CORPORATE_RECEIPTS_VINTAGE
 ) -> float:
@@ -699,12 +824,15 @@ def credit_absorption_bounds(tax_year: int | None = None) -> dict[str, float]:
     depends on the share of the base held by taxpayers who are both capped and
     holding stock, **which is not published for any post-TCJA year** (the SOI
     excess-position tables stop at TY2010). No point estimate is returned, and
-    nothing in this module multiplies one.
+    nothing in this function multiplies one. The calibrated
+    :func:`marginal_credit_factor` is a *house-mean share*, not a Form 3800
+    identification, and lives on the derived rate channel rather than here.
 
     The reading that matters: the section 904 bound and the average substitution
-    are within a third of a percentage point of each other, so the section 38(c)
-    channel — a stock of 1.7 years of claims — is entirely unbooked, and it
-    points the score toward the published estimators rather than away.
+    are within a third of a percentage point of each other, so the leftover
+    channel is section 38(c). The extra absorption the credit factor implies
+    sits between the average GBC claim rate and the statutory 75% cap, which
+    is the check these lines support.
     """
     base = statutory_base_billions(tax_year)
     limitation = credit_carryforward_item("form_1118_col18_limitation")
@@ -725,6 +853,13 @@ def credit_absorption_bounds(tax_year: int | None = None) -> dict[str, float]:
         )
     gbc_claimed = float(claimed_cell) / 1e6
 
+    line7 = credit_carryforward_item("form_3800_part_ii_line_7_regular_tax")
+    line6 = credit_carryforward_item("form_3800_part_i_line_6_total")
+    line17 = credit_carryforward_item("form_3800_part_ii_line_17_allowed_part_i")
+    statutory_tax = float(soi_row(tax_year)["income_tax_thousands"]) / 1e6
+    extra_absorption = credit_realization_ratio(tax_year) * (
+        1.0 - marginal_credit_factor()
+    )
     return {
         "average_substitution_in_use": 1.0 - credit_realization_ratio(tax_year),
         "section_904_upper_bound": (limitation / CURRENT_CORPORATE_RATE) / base,
@@ -734,6 +869,9 @@ def credit_absorption_bounds(tax_year: int | None = None) -> dict[str, float]:
         "section_38c_carryforward_stock_billions": gbc_stock,
         "section_38c_claimed_billions": gbc_claimed,
         "section_38c_stock_in_years_of_claims": gbc_stock / gbc_claimed,
+        "gbc_filers_share_of_statutory_tax": line7 / statutory_tax,
+        "section_38c_part_i_unused_billions": line6 - line17,
+        "extra_absorption_of_precredit_tax": extra_absorption,
     }
 
 
@@ -872,10 +1010,12 @@ class CorporateTaxPolicy(TaxPolicy):
         """
         Rate-channel revenue change in a fiscal year, from published inputs.
 
-        ``delta x`` :func:`projected_statutory_base` — CBO's own projected
-        corporate receipts for that year, converted to a statutory base at the
-        ratio measured on the TY2022/FY2022 anchor. ``year=None`` returns
-        ``start_year``'s figure, which is what the component breakdown prints.
+        ``delta x`` :func:`projected_statutory_base` ``x``
+        :func:`marginal_credit_factor` — CBO's own projected corporate
+        receipts for that year, converted to a statutory base at the ratio
+        measured on the TY2022/FY2022 anchor, then scaled from average to
+        marginal credit realization. ``year=None`` returns ``start_year``'s
+        figure, which is what the component breakdown prints.
 
         The base used to be SOI's TY2022 level aged at a flat 4%/yr, which grew
         2.8x faster than the baseline it was scored against and priced more than
@@ -889,7 +1029,11 @@ class CorporateTaxPolicy(TaxPolicy):
         if delta == 0.0:
             return 0.0
         fiscal_year = self.start_year if year is None else year
-        return delta * projected_statutory_base(fiscal_year, self.receipts_vintage)
+        return (
+            delta
+            * projected_statutory_base(fiscal_year, self.receipts_vintage)
+            * marginal_credit_factor()
+        )
 
     def _get_reform_rate(self) -> float:
         """Get the reform corporate tax rate."""

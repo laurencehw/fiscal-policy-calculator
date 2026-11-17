@@ -42,6 +42,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -207,9 +208,37 @@ def build_report() -> dict:
             }
         return out
 
+    # The corporate class is calibrated to two houses outside the scorecard
+    # (``planning/lanes/BET2_corporate_credit_factor.md``): Tax Foundation and
+    # PWBM set the marginal credit factor, the four JCT rows are held out. That
+    # makes the class a cross-house transfer test rather than an independent
+    # one, so the pooled figure is also printed without the factor. The derived
+    # rate channel is linear in the factor (the IRC §6655 phase reads a ratio of
+    # two bases, in which it cancels), so dividing each corporate row's model
+    # figure by it recovers the mechanical score exactly.
+    from fiscal_model.corporate import marginal_credit_factor
+
+    factor = marginal_credit_factor()
+
+    def _without_credit_factor(entry):
+        if classify_policy(entry.policy_id) != "corporate":
+            return entry
+        official = entry.official_10yr_billions
+        model = entry.model_10yr_billions / factor
+        err = abs((model - official) / official * 100.0) if official else 0.0
+        return SimpleNamespace(
+            policy_id=entry.policy_id,
+            abs_percent_difference=err,
+            provenance=getattr(entry, "provenance", "unclassified"),
+        )
+
+    uncal_without = [_without_credit_factor(e) for e in uncal]
+
     return {
         "out_of_sample": {
             "summary": _agg(uncal),
+            "summary_without_corporate_credit_factor": _agg(uncal_without),
+            "corporate_credit_factor": round(factor, 4),
             "classes": _classes(uncal),
             "entries": [_entry_dict(e) for e in sorted(uncal, key=lambda x: x.abs_percent_difference)],
         },
@@ -318,6 +347,15 @@ def _print_human(report: dict) -> None:
         f"pre-registered in\n  fiscal_model/validation/preregistered.py. "
         f"Median abs error: {s['median_abs_error']}%."
     )
+    w = oos.get("summary_without_corporate_credit_factor")
+    if w is not None:
+        print(
+            f"  The corporate class is calibrated to Tax Foundation and PWBM (credit "
+            f"factor {oos['corporate_credit_factor']}),\n  so it is a cross-house "
+            f"transfer test, not an independent one. Without that factor:\n"
+            f"  mean abs error {w['mean_abs_error']}%, {w['within_15pct']}/{w['n']} "
+            f"within 15%, {w['within_25pct']}/{w['n']} within 25%."
+        )
     print()
     print(f"  {'Policy':<34}{'Official':>10}{'Model':>10}{'Err':>7}  Source")
     print("  " + "-" * 70)

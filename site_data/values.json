@@ -98,9 +98,9 @@
         },
         {
           "policy_id": "top-rate-39-6",
-          "label": "Top Rate to 39.6% (Biden FY2025)",
+          "label": "Top Rate to 39.6%",
           "score": -245.9,
-          "why": "Top Rate to 39.6% (Biden FY2025) closes 2% of the gap on its own — its burden lands where you weighted it.",
+          "why": "Top Rate to 39.6% closes 2% of the gap on its own — its burden lands where you weighted it.",
           "tags": {
             "direction": "raise_revenue",
             "progressivity": "strong_progressive",
@@ -560,9 +560,9 @@
         },
         {
           "policy_id": "top-rate-39-6",
-          "label": "Top Rate to 39.6% (Biden FY2025)",
+          "label": "Top Rate to 39.6%",
           "score": -245.9,
-          "why": "Top Rate to 39.6% (Biden FY2025) moves 4% of the gap and lands where you said it should land — its burden lands where you weighted it.",
+          "why": "Top Rate to 39.6% moves 4% of the gap and lands where you said it should land — its burden lands where you weighted it.",
           "tags": {
             "direction": "raise_revenue",
             "progressivity": "strong_progressive",
@@ -735,9 +735,9 @@
         },
         {
           "policy_id": "top-rate-39-6",
-          "label": "Top Rate to 39.6% (Biden FY2025)",
+          "label": "Top Rate to 39.6%",
           "score": -245.9,
-          "why": "Top Rate to 39.6% (Biden FY2025) carries 2% of the gap over the window — its burden lands where you weighted it.",
+          "why": "Top Rate to 39.6% carries 2% of the gap over the window — its burden lands where you weighted it.",
           "tags": {
             "direction": "raise_revenue",
             "progressivity": "strong_progressive",

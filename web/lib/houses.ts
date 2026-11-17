@@ -5,6 +5,8 @@ export type HouseEstimate = {
   document: string;
   value_billions: number;
   fitted: boolean;
+  /** The model's rate channel is calibrated to this house (corporate only). */
+  calibrated?: boolean;
 };
 
 export type HouseRange = {
@@ -26,7 +28,7 @@ export type HouseStripData = {
   range: HouseRange | null;
 };
 
-export type Mark = { key: string; left: number; value: number; kind: "house" | "model" | "range"; label: string; fitted?: boolean };
+export type Mark = { key: string; left: number; value: number; kind: "house" | "model" | "range"; label: string; fitted?: boolean; calibrated?: boolean };
 
 /** Percent positions, inset so a dot on the end is not clipped. */
 export function stripMarks(strip: HouseStripData): { marks: Mark[]; range: { left: number; width: number } | null } {
@@ -47,6 +49,7 @@ export function stripMarks(strip: HouseStripData): { marks: Mark[]; range: { lef
       kind: "house" as const,
       label: row.estimator,
       fitted: row.fitted,
+      calibrated: row.calibrated ?? false,
     })),
     {
       key: "model",
