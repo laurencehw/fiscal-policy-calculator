@@ -2,7 +2,7 @@
   "id": "pillar-two-adoption",
   "conventional": {
     "policy_name": "🌍 Pillar Two Adoption (-$80B)",
-    "policy_description": "Adopt OECD Pillar Two 15% global minimum tax. JCT estimate: raises ~\\$80B.",
+    "policy_description": "Adopt the OECD Pillar Two 15% global minimum tax. Published estimate: raises about \\$80B (JCT).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -61.19999999999999,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌍 Pillar Two Adoption (-$80B)",
-    "policy_description": "Adopt OECD Pillar Two 15% global minimum tax. JCT estimate: raises ~\\$80B.",
+    "policy_description": "Adopt the OECD Pillar Two 15% global minimum tax. Published estimate: raises about \\$80B (JCT).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -61.19999999999999,

@@ -2,7 +2,7 @@
   "id": "ss-donut-250k",
   "conventional": {
     "policy_name": "💰 SS Donut Hole $250K (-$1.43T)",
-    "policy_description": "Apply SS tax to wages above \\$250K (donut hole). CBO's *Options for Reducing the Deficit: 2025 to 2034* Option 62 alternative 2 scores the same design at \\$1,427B over FY2025-2034. The model still returns \\$2,700B, because its covered-wage band was set from the superseded target and retuning it would hide the miss.",
+    "policy_description": "Apply the Social Security payroll tax to wages above \\$250K (a donut hole). Published estimate: \\$1,427B over FY2025-2034 (CBO, Options for Reducing the Deficit: 2025 to 2034, Option 62 alternative 2). This calculator's estimate is much larger because of how it sets the taxed wage band, a known miss.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -2700.0,
@@ -146,7 +146,7 @@
   },
   "dynamic": {
     "policy_name": "💰 SS Donut Hole $250K (-$1.43T)",
-    "policy_description": "Apply SS tax to wages above \\$250K (donut hole). CBO's *Options for Reducing the Deficit: 2025 to 2034* Option 62 alternative 2 scores the same design at \\$1,427B over FY2025-2034. The model still returns \\$2,700B, because its covered-wage band was set from the superseded target and retuning it would hide the miss.",
+    "policy_description": "Apply the Social Security payroll tax to wages above \\$250K (a donut hole). Published estimate: \\$1,427B over FY2025-2034 (CBO, Options for Reducing the Deficit: 2025 to 2034, Option 62 alternative 2). This calculator's estimate is much larger because of how it sets the taxed wage band, a known miss.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -2700.0,

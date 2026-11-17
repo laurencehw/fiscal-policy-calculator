@@ -2,7 +2,7 @@
   "id": "carbon-tax-25",
   "conventional": {
     "policy_name": "🌱 Carbon Tax \\$25/ton",
-    "policy_description": "\\$25/ton CO2 starter tax with 5% annual escalator. **No official score is quoted**: a real document does exist, on a different decade — CBO and JCT's *Options for Reducing the Deficit: 2023 to 2032* scores \\$25/tonne rising 5% plus inflation at −\\$865B over FY2023-2032 — but this repository has no scorecard row for it, so the model's own estimate is the only number shown.",
+    "policy_description": "A \\$25 per ton CO2 tax rising 5% a year. No official score of this design covers this window. CBO and JCT's Options for Reducing the Deficit: 2023 to 2032 scores a \\$25 per tonne tax rising 5% plus inflation at -\\$865B over FY2023-2032, a different decade, so the figure shown is this calculator's own estimate.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1066.7636078092605,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌱 Carbon Tax \\$25/ton",
-    "policy_description": "\\$25/ton CO2 starter tax with 5% annual escalator. **No official score is quoted**: a real document does exist, on a different decade — CBO and JCT's *Options for Reducing the Deficit: 2023 to 2032* scores \\$25/tonne rising 5% plus inflation at −\\$865B over FY2023-2032 — but this repository has no scorecard row for it, so the model's own estimate is the only number shown.",
+    "policy_description": "A \\$25 per ton CO2 tax rising 5% a year. No official score of this design covers this window. CBO and JCT's Options for Reducing the Deficit: 2023 to 2032 scores a \\$25 per tonne tax rising 5% plus inflation at -\\$865B over FY2023-2032, a different decade, so the figure shown is this calculator's own estimate.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1066.7636078092605,

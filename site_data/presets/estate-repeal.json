@@ -2,7 +2,7 @@
   "id": "estate-repeal",
   "conventional": {
     "policy_name": "🏠 Eliminate Estate Tax ($407B)",
-    "policy_description": "Repeal federal estate tax entirely. Tax Foundation's *Options 3.0* Option 83 puts it at \\$407B over CY2027-2036 -- a row that repeals the estate **and gift** taxes, so it is the broader of the two.",
+    "policy_description": "Repeal the federal estate tax. Published estimate: about \\$407B over CY2027-2036 (Tax Foundation, Options 3.0, Option 83), which repeals the gift tax too, so it is the broader of the two.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 350.0,
@@ -144,7 +144,7 @@
   },
   "dynamic": {
     "policy_name": "🏠 Eliminate Estate Tax ($407B)",
-    "policy_description": "Repeal federal estate tax entirely. Tax Foundation's *Options 3.0* Option 83 puts it at \\$407B over CY2027-2036 -- a row that repeals the estate **and gift** taxes, so it is the broader of the two.",
+    "policy_description": "Repeal the federal estate tax. Published estimate: about \\$407B over CY2027-2036 (Tax Foundation, Options 3.0, Option 83), which repeals the gift tax too, so it is the broader of the two.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 350.0,

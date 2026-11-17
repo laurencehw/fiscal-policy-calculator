@@ -8,7 +8,7 @@ import { baseline, houseStrip, manifest, preset, presets, views } from "@/lib/da
 import { ResultSections } from "@/components/ResultSections";
 import { EstimateTag } from "@/components/EstimateTag";
 import { Checked, YearTable } from "@/components/ScoreParts";
-import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
+import { direction, money, plainDescription, shortLabel } from "@/lib/format";
 import { adjustable, tailorHref } from "@/lib/adjust";
 import { estimateIdentity, identityLine } from "@/lib/identity";
 import { citation } from "@/lib/share";
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const c = file.conventional;
   return {
     title: shortLabel(c.policy_name),
-    description: `${money(c.ten_year_deficit_impact)} over ${c.budget_window}: ${direction(c.ten_year_deficit_impact)}. ${cleanLabel(c.policy_description)}`.slice(0, 199),
+    description: `${money(c.ten_year_deficit_impact)} over ${c.budget_window}: ${direction(c.ten_year_deficit_impact)}. ${plainDescription(c.policy_description)}`.slice(0, 199),
     alternates: { canonical: `/explore/${id}` },
   };
 }
@@ -58,7 +58,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           {c.budget_window} · CBO {c.baseline_vintage} baseline
         </span>
         <h1>{name}</h1>
-        <p className="sentence">{cleanLabel(c.policy_description)}</p>
+        <p className="sentence">{plainDescription(c.policy_description)}</p>
         <StaleLink scoresDate={scoresDate} />
       </header>
 

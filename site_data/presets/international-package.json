@@ -2,7 +2,7 @@
   "id": "international-package",
   "conventional": {
     "policy_name": "🌍 Biden International Package (-$632B)",
-    "policy_description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~\\$632B (Treasury FY2025 Green Book subtotal).",
+    "policy_description": "The full Biden international package: per-country GILTI at 21%, FDII repeal and the UTPR. Published estimate: raises about \\$632B over ten years (Treasury, FY2025 Green Book subtotal).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -353.7104999999999,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌍 Biden International Package (-$632B)",
-    "policy_description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~\\$632B (Treasury FY2025 Green Book subtotal).",
+    "policy_description": "The full Biden international package: per-country GILTI at 21%, FDII repeal and the UTPR. Published estimate: raises about \\$632B over ten years (Treasury, FY2025 Green Book subtotal).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -353.7104999999999,

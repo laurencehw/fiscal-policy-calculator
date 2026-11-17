@@ -2,7 +2,7 @@
   "id": "medicare-surcharge-2pp",
   "conventional": {
     "policy_name": "High-Earner Medicare Surcharge 2pp",
-    "policy_description": "+2pp Medicare surcharge on wage **and investment** income above \\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green Book row uses. Extends the NIIT's 3.8% surtax logic to a broader base. Similar in structure to the Biden 2025 Medicare surtax proposal.",
+    "policy_description": "A 2pp Medicare surcharge on wage and investment income above \\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green Book row uses. It extends the logic of the NIIT's 3.8% surtax to a broader base, and is similar in structure to the Biden 2025 Medicare surtax proposal.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -450.2612092591499,
@@ -229,7 +229,7 @@
   },
   "dynamic": {
     "policy_name": "High-Earner Medicare Surcharge 2pp",
-    "policy_description": "+2pp Medicare surcharge on wage **and investment** income above \\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green Book row uses. Extends the NIIT's 3.8% surtax logic to a broader base. Similar in structure to the Biden 2025 Medicare surtax proposal.",
+    "policy_description": "A 2pp Medicare surcharge on wage and investment income above \\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green Book row uses. It extends the logic of the NIIT's 3.8% surtax to a broader base, and is similar in structure to the Biden 2025 Medicare surtax proposal.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -450.2612092591499,
