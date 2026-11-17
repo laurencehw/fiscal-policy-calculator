@@ -26,7 +26,7 @@
       "title": "Static Revenue: 2pp Rate Increase on Top Earners",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "The top marginal income tax rate applies to income above $400,000. There are roughly 1.8 million filers in this bracket, with average taxable income of about $1.2 million.\nUsing the static formula:\n  ΔRevenue = ΔRate × (Avg_Income − Threshold) × Num_Filers × 10 years\n\nSet the rate change to 2 percentage points (0.02) and estimate the 10-year static revenue gain in billions. Enter your answer below.",
+      "prompt": "The top marginal income tax rate applies to income above $400,000. There are roughly 1.8 million filers in this bracket, with average taxable income of about $1.2 million.\nUsing the static formula:\n  ΔRevenue = ΔRate × (Avg_Income − Threshold) × Num_Filers × 10 years\n\nSet the rate change to 2 percentage points (0.02) and estimate the 10-year static revenue gain in billions.\nEnter the 10-year static effect in billions of dollars (negative = revenue gain, deficit falls).",
       "parameters": [
         {
           "name": "rate_change",
@@ -73,7 +73,7 @@
       "title": "Behavioral Offset: The ETI in Action",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "Taxpayers respond to higher rates by reducing taxable income: deferring bonuses, increasing retirement contributions, sheltering income through deductions. The Elasticity of Taxable Income (ETI) measures this response.\nThe standard ETI used by CBO is 0.25. The behavioral offset formula is:\n  Offset = −ETI × 0.5 × Static_Revenue\n\nGiven your static estimate from Exercise 1, calculate the behavioral offset and the net revenue effect. Enter the final (net) 10-year revenue change.",
+      "prompt": "Taxpayers respond to higher rates by reducing taxable income: deferring bonuses, increasing retirement contributions, sheltering income through deductions. The Elasticity of Taxable Income (ETI) measures this response.\nThe standard ETI used by CBO is 0.25. The behavioral offset formula is:\n  Offset = −ETI × 0.5 × Static_Revenue\n\nGiven your static estimate from Exercise 1, calculate the behavioral offset and the net revenue effect.\nEnter the final (net) 10-year revenue change in billions of dollars (negative = revenue gain, deficit falls).",
       "parameters": [
         {
           "name": "rate_change",
@@ -126,7 +126,7 @@
       "title": "Revenue-Maximizing Rate",
       "type": "target_finding",
       "level": "graduate",
-      "prompt": "Vary the rate change to find the revenue-maximizing top marginal rate. The current top rate is 37%. At what new rate does further increases stop raising revenue? Use ETI = 0.25.\nThe revenue-maximizing rate formula is: t* = 1 / (1 + ETI × (1/(1-t))) — but use the model to verify empirically by trying several rate levels.\nFind the rate change at which the net 10-year revenue is maximized (hint: it is around +35pp to +40pp above the current 37% rate).",
+      "prompt": "Vary the rate change to find the revenue-maximizing top marginal rate. The current top rate is 37%. At what new rate does further increases stop raising revenue? Use ETI = 0.25.\nThe revenue-maximizing rate formula is: t* = 1 / (1 + ETI × (1/(1-t))) — but use the model to verify empirically by trying several rate levels.\nFind the rate change at which the net 10-year revenue is maximized (hint: it is around +35pp to +40pp above the current 37% rate).\nEnter the net 10-year revenue effect at the rate change you settle on, in billions of dollars (negative = revenue gain, deficit falls).",
       "parameters": [
         {
           "name": "rate_change",

@@ -83,10 +83,10 @@ export function formatAnswer(value: number, unit = "$B"): string {
   const digits = Number.isInteger(value) ? 0 : 1;
   return `${value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })} ${unit}`;
 }
-
+/** What the answer box asks for. Each dollar question states its own sign. */
 /** What the answer box asks for. Dollar answers carry the sign convention. */
 export function answerLabel(unit: string): string {
-  if (unit === "$B") return "Your answer, billions of dollars (negative = revenue gain, deficit falls)";
+  if (unit === "$B") return "Your answer, billions of dollars, with the sign the question asks for";
   if (unit === "%") return "Your answer, percent";
   if (unit === "pp") return "Your answer, percentage points";
   return `Your answer, ${unit}`;

@@ -27,7 +27,7 @@
       "title": "How Much Does TCJA Extension Cost?",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "The Tax Cuts and Jobs Act of 2017 temporarily reduced individual income tax rates, nearly doubled the standard deduction, capped SALT deductions at $10,000, and cut the corporate rate from 35% to 21%. Most individual provisions expire after 2025.\nCBO estimates that a full TCJA extension costs approximately $4.6 trillion over 10 years (2026-2035). Your task is to verify this by scoring the TCJA extension in the model and entering the 10-year deficit increase.\nUse the slider to set the rate_change parameter that approximates the full individual rate cut (approximately −3.7pp average effective rate cut).",
+      "prompt": "The Tax Cuts and Jobs Act of 2017 temporarily reduced individual income tax rates, nearly doubled the standard deduction, capped SALT deductions at $10,000, and cut the corporate rate from 35% to 21%. Most individual provisions expire after 2025.\nCBO estimates that a full TCJA extension costs approximately $4.6 trillion over 10 years (2026-2035). Your task is to verify this by scoring the TCJA extension in the model and entering the 10-year deficit increase.\nUse the slider to set the rate_change parameter that approximates the full individual rate cut (approximately −3.7pp average effective rate cut).\nEnter the 10-year cost at your setting, in billions of dollars (a positive number, since the deficit rises).",
       "parameters": [
         {
           "name": "rate_change",
@@ -70,7 +70,7 @@
       "title": "The SALT Cap: Who Pays More?",
       "type": "comparison",
       "level": "undergraduate",
-      "prompt": "TCJA capped state and local tax (SALT) deductions at $10,000, affecting high-tax-state residents (CA, NY, NJ) most heavily. CBO estimates removing the SALT cap would cost an additional $1.9 trillion over 10 years.\nCompare two scenarios: A) TCJA extension WITH the $10K SALT cap (baseline) B) TCJA extension WITHOUT the SALT cap (restore full deductibility)\nThe difference in 10-year cost between (B) and (A) represents the revenue cost of removing the SALT cap. Estimate this difference.",
+      "prompt": "TCJA capped state and local tax (SALT) deductions at $10,000, affecting high-tax-state residents (CA, NY, NJ) most heavily. CBO estimates removing the SALT cap would cost an additional $1.9 trillion over 10 years.\nCompare two scenarios: A) TCJA extension WITH the $10K SALT cap (baseline) B) TCJA extension WITHOUT the SALT cap (restore full deductibility)\nThe difference in 10-year cost between (B) and (A) represents the revenue cost of removing the SALT cap. Estimate this difference.\nEnter that cost in billions of dollars over 10 years (a positive number, since removing the cap raises the deficit).",
       "parameters": [
         {
           "name": "rate_change",
