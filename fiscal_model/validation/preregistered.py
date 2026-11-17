@@ -549,7 +549,7 @@ PREREGISTERED_CASES: tuple[PreregisteredCase, ...] = (
         first_scoring_run_commit=VALIDATION_MODULE_COMMIT,
         superseded_by="biden_high_income_tax.v2",
         note=(
-            "Same target as the 'Biden 2025 Proposal' entry in CBO_SCORE_MAP; registered "
+            "Same target as the 'Top Rate to 39.6% (Biden FY2025)' entry in CBO_SCORE_MAP; registered "
             "once so the prediction is not double-counted. Treasury describes it as "
             "'combined with other provisions', so the target is itself a bundled figure. "
             "SUPERSEDED in Wave 4: the Green Book row this record cites prints $245,924 "

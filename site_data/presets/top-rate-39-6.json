@@ -1,7 +1,7 @@
 {
   "id": "top-rate-39-6",
   "conventional": {
-    "policy_name": "Biden 2025 Proposal",
+    "policy_name": "Top Rate to 39.6% (Biden FY2025)",
     "policy_description": "+2.6pp on income above \\$400K, restoring the pre-TCJA 39.6% top rate. Treasury FY2025 Green Book estimate: raises ~\\$252B over 10 years.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
@@ -144,7 +144,7 @@
     "error_message": null
   },
   "dynamic": {
-    "policy_name": "Biden 2025 Proposal",
+    "policy_name": "Top Rate to 39.6% (Biden FY2025)",
     "policy_description": "+2.6pp on income above \\$400K, restoring the pre-TCJA 39.6% top rate. Treasury FY2025 Green Book estimate: raises ~\\$252B over 10 years.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",

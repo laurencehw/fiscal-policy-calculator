@@ -62,3 +62,21 @@ export function arrange(rows: ExploreRow[], sort: ExploreSort): { area: string |
 export function scaleOf(rows: ExploreRow[]): number {
   return Math.max(1, ...rows.flatMap((row) => [row.conventional, row.published]).map((v) => Math.abs(v ?? 0)));
 }
+
+/**
+ * The line an Explore page shows beside "Add to package" when Build will list
+ * the policy at a different figure. Explore leads with this calculator's
+ * score; Build sums list prices, so a reader who clicks through otherwise
+ * meets a second number with no warning (second external review, 2026-11-17).
+ * Empty when the figures agree to the tenth of a billion or Build has no row.
+ */
+export function buildPriceNote(
+  row: { score: number; source: string; cbo_published?: boolean } | null | undefined,
+  calculator: number,
+  money: (value: number) => string,
+): string {
+  if (!row || !Number.isFinite(row.score) || !Number.isFinite(calculator)) return "";
+  if (Math.abs(row.score - calculator) < 0.05) return "";
+  const who = row.cbo_published === false ? "an unpublished figure" : `${row.source}'s published score`;
+  return `In a package this policy counts at ${money(row.score)}, ${who}, not the calculator's ${money(calculator)}. Build adds up published list prices.`;
+}

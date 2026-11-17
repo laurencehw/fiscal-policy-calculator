@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow } from "./explore";
+import { arrange, buildPriceNote, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow } from "./explore";
 
 const rows: ExploreRow[] = [
   { id: "a", name: "TCJA Full Extension", area: "TCJA / Individual", conventional: 4581.9, published: 4600 },
@@ -34,4 +34,13 @@ test("the direction filter and the URL view", () => {
   assert.equal(byDirection(rows, "all").length, 4);
   assert.deepEqual(viewFromQuery("?show=reduces&sort=size"), { query: "", sort: "size", show: "reduces" });
   assert.deepEqual(viewFromQuery("?show=bogus&sort=x&q=tariff"), { query: "tariff", sort: "topic", show: "all" });
+});
+
+test("Explore warns when Build will list the policy at another figure (second review)", () => {
+  const money = (v: number) => `${v < 0 ? "-" : "+"}$${Math.abs(v).toFixed(1)}B`;
+  const note = buildPriceNote({ score: -245.9, source: "Treasury", cbo_published: true }, -309.76, money);
+  assert.match(note, /-\$245\.9B, Treasury's published score, not the calculator's -\$309\.8B/);
+  assert.equal(buildPriceNote({ score: -309.8, source: "Treasury" }, -309.76, money), "");
+  assert.equal(buildPriceNote(null, -309.76, money), "");
+  assert.match(buildPriceNote({ score: -100, source: "x", cbo_published: false }, -50, money), /an unpublished figure/);
 });

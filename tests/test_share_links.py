@@ -88,7 +88,7 @@ def test_apply_share_query_params_for_tax_preset_sets_preset_choice():
 def test_apply_share_query_params_accepts_legacy_policy_key_and_list_values():
     st_module = _DummyStreamlit(
         {
-            "policy": ["Biden 2025 Proposal"],
+            "policy": ["Top Rate to 39.6% (Biden FY2025)"],
             "dynamic": ["yes"],
             "run": ["true"],
         }
@@ -98,7 +98,7 @@ def test_apply_share_query_params_accepts_legacy_policy_key_and_list_values():
 
     assert st_module.session_state["sidebar_analysis_mode"] == "📋 Tax proposal (preset)"
     assert st_module.session_state["sidebar_policy_area"] == "TCJA / Individual"
-    assert st_module.session_state["sidebar_preset_choice"] == "Biden 2025 Proposal"
+    assert st_module.session_state["sidebar_preset_choice"] == "Top Rate to 39.6% (Biden FY2025)"
     assert st_module.session_state["sidebar_setting_dynamic_scoring"] is True
     assert st_module.session_state["qs_calculate"] is True
 
@@ -128,7 +128,7 @@ def test_apply_share_query_params_for_spending_clears_tax_state():
         }
     )
     st_module.session_state["sidebar_policy_area"] = "Income Tax"
-    st_module.session_state["sidebar_preset_choice"] = "Biden 2025 Proposal"
+    st_module.session_state["sidebar_preset_choice"] = "Top Rate to 39.6% (Biden FY2025)"
 
     apply_share_query_params(st_module=st_module)
 
@@ -140,7 +140,7 @@ def test_apply_share_query_params_for_spending_clears_tax_state():
 
 def test_build_share_url_for_tax_preset_emits_the_stable_id_on_explore():
     result_data = {
-        "policy_name": "Biden 2025 Proposal",
+        "policy_name": "Top Rate to 39.6% (Biden FY2025)",
         "result": SimpleNamespace(dynamic_effects=object()),
         "is_spending": False,
     }
