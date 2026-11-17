@@ -105,7 +105,7 @@ def test_student_debt_is_one_time():
 def test_warren_surtax_threshold_is_above_biden_400k():
     """Warren's proposal targets a much higher income threshold than Biden's."""
     warren = PRESET_POLICIES["Warren Ultra-Millionaire Surtax"]
-    biden = PRESET_POLICIES["Biden 2025 Proposal"]
+    biden = PRESET_POLICIES["Top Rate to 39.6% (Biden FY2025)"]
     assert warren["threshold"] > biden["threshold"]
 
 

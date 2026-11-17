@@ -120,7 +120,7 @@ def test_retired_target_is_not_dispatched():
 
 
 def test_biden_2025_preset_is_not_double_registered():
-    """'Biden 2025 Proposal' in CBO_SCORE_MAP is the same Treasury target
+    """'Top Rate to 39.6% (Biden FY2025)' in CBO_SCORE_MAP is the same Treasury target
     already carried as ``biden_high_income_tax``; registering it twice would
     count one prediction twice.
 

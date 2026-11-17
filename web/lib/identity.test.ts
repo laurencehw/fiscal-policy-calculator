@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { estimateIdentity, identityLine, publishedWindow, shortProducer, withoutTier } from "./identity";
+import { classBandSentence, estimateIdentity, identityLine, publishedWindow, shortProducer, withoutTier } from "./identity";
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
@@ -34,6 +34,17 @@ test("a policy with no own row takes the class band, and none when the class has
     "model",
   );
   assert.equal(none.tier, "none");
+});
+
+test("the class band is said in reader prose, with the same count (second review)", () => {
+  const band = estimateIdentity(
+    { budget_window: "FY2026-2035", baseline_vintage: "February 2026", credibility: { n_tier1_rows: 11, own_row_tier: null, class_label: "ordinary rate change", limitations: [] } as unknown as Credibility },
+    "model",
+  );
+  assert.doesNotMatch(band.limitation, /row of its own/);
+  assert.match(band.limitation, /No published score for this exact proposal/);
+  assert.match(band.limitation, /11 ordinary rate change proposals/);
+  assert.equal(classBandSentence(1, null).includes("1 similar proposal "), true);
 });
 
 test("a package sum does not claim one baseline or one tier", () => {

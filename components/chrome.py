@@ -317,6 +317,28 @@ def _render_degradation_banner(st_module: Any, health: dict[str, Any]) -> None:
 NEW_SITE_URL = "https://fiscal.lwilsesamson.com"
 
 
+#: The notice every page of this app opens with. It sits above the brand line,
+#: before anything else is drawn, because search engines still send people here
+#: and the first thing on the page has to say where the maintained site is
+#: (second external review, 2026-11-17). Before that it was a plain line of text
+#: below the title, the data-status pill and any data notice.
+MOVED_NOTICE = (
+    "**This calculator has moved to "
+    f"[{NEW_SITE_URL.removeprefix('https://')}]({NEW_SITE_URL}).** "
+    "It runs the same model with current scores, and it is the only version "
+    "I update. This Streamlit copy is frozen, so its counts and figures are "
+    "out of date."
+)
+
+
+def render_moved_notice(st_module: Any) -> None:
+    """Point the visitor at the maintained site before anything else renders."""
+    st_module.warning(MOVED_NOTICE, icon="➡️")
+    link_button = getattr(st_module, "link_button", None)
+    if callable(link_button):
+        link_button("Open the current calculator", NEW_SITE_URL, type="primary")
+
+
 def render_chrome(
     st_module: Any,
     deps: Any,
@@ -337,6 +359,7 @@ def render_chrome(
     otherwise let a student quietly unpick the lock.
     """
     bootstrap_page(st_module)
+    render_moved_notice(st_module)
 
     # Layout and brand first, health second. Streamlit streams each element to
     # the browser as it is created, and ``get_health_snapshot`` costs ~3s on the
@@ -404,10 +427,6 @@ def render_chrome(
     if settings.get("dark_mode", False):
         st_module.markdown(_DARK_MODE_CSS, unsafe_allow_html=True)
 
-    st_module.markdown(
-        f"📢 This calculator has moved to **[{NEW_SITE_URL.removeprefix('https://')}]({NEW_SITE_URL})**, "
-        "a faster site with the same model. This Streamlit version stays up for now but is no longer updated."
-    )
     _render_degradation_banner(st_module, health)
     st_module.markdown("---")
 

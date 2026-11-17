@@ -114,7 +114,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
     "🌍 Biden GILTI Reform (-$374B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     "🌍 Repeal FDII (-$158B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     "🌍 Biden International Package (-$632B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
-    "Biden 2025 Proposal": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
+    "Top Rate to 39.6% (Biden FY2025)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     # ── Already law ─────────────────────────────────────────────────────
     "🔍 IRA Enforcement Funding (-$180B)": PolicyStatus(
         "enacted",

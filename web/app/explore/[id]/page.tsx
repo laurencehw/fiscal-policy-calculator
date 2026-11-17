@@ -4,7 +4,8 @@ import { ChartActions } from "@/components/ChartActions";
 import { BaselineChart } from "@/components/BaselineChart";
 import { HouseStrip } from "@/components/HouseStrip";
 import { YearChart } from "@/components/YearChart";
-import { baseline, houseStrip, manifest, preset, presets, views } from "@/lib/data";
+import { baseline, buildCatalog, houseStrip, manifest, preset, presets, views } from "@/lib/data";
+import { buildPriceNote } from "@/lib/explore";
 import { ResultSections } from "@/components/ResultSections";
 import { EstimateTag } from "@/components/EstimateTag";
 import { Checked, YearTable } from "@/components/ScoreParts";
@@ -62,6 +63,11 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const lawNow = currentLawFigure(status, (other) => preset(other)?.conventional.ten_year_deficit_impact ?? null);
   const sameAs = status?.current_law?.same_as ?? null;
   const sameAsName = sameAs ? shortLabel(preset(sameAs)?.conventional.policy_name ?? sameAs) : null;
+  const packageNote = buildPriceNote(
+    buildCatalog().find((row) => row.build_id === id),
+    headline,
+    money,
+  );
   const published =
     info?.cbo_published && info.cbo_source ? estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published") : null;
   return (
@@ -97,6 +103,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         {adjustable(id) ? <a href={tailorHref(id) ?? "/tailor"}>Adjust in Tailor</a> : null}
         <a href="#exports">Share</a>
       </nav>
+      {packageNote ? <p className="note">{packageNote}</p> : null}
 
       <Checked cred={c.credibility} point={headline} window={c.budget_window} published={published} />
 

@@ -439,7 +439,7 @@ def test_the_caption_is_silent_on_every_preset_that_did_not_move():
     from fiscal_model.composer.composer import _build_preset_policy, _scorer_for
     from fiscal_model.ui.tabs.results_summary import agi_inclusive_base_caption
 
-    for label in ("Biden 2025 Proposal", "Flat Tax Reform", "Middle Class Tax Cut"):
+    for label in ("Top Rate to 39.6% (Biden FY2025)", "Flat Tax Reform", "Middle Class Tax Cut"):
         policy, use_real = _build_preset_policy(label, PRESET_POLICIES[label])
         result = _scorer_for(policy, use_real).score_policy(policy, dynamic=False)
         assert agi_inclusive_base_caption(policy, result) == "", label

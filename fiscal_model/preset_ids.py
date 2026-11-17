@@ -80,7 +80,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "📋 Eliminate Step-Up Basis (-$500B)": "step-up-basis-eliminate",
     "📋 Cap Charitable Deduction (-$200B)": "charitable-deduction-cap",
     # Generic individual rate presets (no is_* flag; scored as plain TaxPolicy)
-    "Biden 2025 Proposal": "top-rate-39-6",
+    "Top Rate to 39.6% (Biden FY2025)": "top-rate-39-6",
     "Progressive Millionaire Tax": "millionaire-surtax-5pp",
     "Middle Class Tax Cut": "middle-class-rate-cut-2pp",
     "Flat Tax Reform": "across-the-board-rate-cut-5pp",
@@ -201,6 +201,10 @@ LEGACY_LABEL_ALIASES: dict[str, str] = {
         "🌱 Repeal IRA Clean Energy Credits (-$851B)"
     ),
     "🌱 Repeal EV Credits ($182B)": "🌱 Repeal EV Credits (-$182B)",
+    # 2026-11-17, second external site review: "Biden 2025 Proposal" made a
+    # first-time reader ask why the whole FY2025 budget moved the deficit by
+    # only ~$310B. The preset is one provision of it, the top rate back to 39.6%.
+    "Biden 2025 Proposal": "Top Rate to 39.6% (Biden FY2025)",
 }
 
 #: Scorable presets first, then the Build-local score-only ids.
