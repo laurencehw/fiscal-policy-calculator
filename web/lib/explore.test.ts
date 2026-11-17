@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow } from "./explore";
+import { arrange, byDirection, exploreSearch, filterRows, scaleOf, viewFromQuery, type ExploreRow } from "./explore";
 
 const rows: ExploreRow[] = [
   { id: "a", name: "TCJA Full Extension", area: "TCJA / Individual", conventional: 4581.9, published: 4600 },
@@ -32,6 +32,9 @@ test("the direction filter and the URL view", () => {
   assert.deepEqual(byDirection(rows, "reduces").map((r) => r.id), ["b", "c"]);
   assert.deepEqual(byDirection(rows, "adds").map((r) => r.id), ["a", "d"]);
   assert.equal(byDirection(rows, "all").length, 4);
-  assert.deepEqual(viewFromQuery("?show=reduces&sort=size"), { query: "", sort: "size", show: "reduces" });
-  assert.deepEqual(viewFromQuery("?show=bogus&sort=x&q=tariff"), { query: "tariff", sort: "topic", show: "all" });
+  assert.deepEqual(viewFromQuery("?show=reduces&sort=size"), { query: "", sort: "size", show: "reduces", law: "current" });
+  assert.deepEqual(viewFromQuery("?show=bogus&sort=x&q=tariff"), { query: "tariff", sort: "topic", show: "all", law: "current" });
+  assert.deepEqual(viewFromQuery("?law=pre2025&sort=size"), { query: "", sort: "size", show: "all", law: "pre2025" });
+  assert.equal(exploreSearch({ law: "pre2025", sort: "size" }), "?sort=size&law=pre2025");
+  assert.equal(exploreSearch({ law: "current" }), "");
 });

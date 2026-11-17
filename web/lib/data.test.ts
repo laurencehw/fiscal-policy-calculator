@@ -40,6 +40,16 @@ test("grouping keeps every preset once", () => {
   assert.match(areas[areas.length - 1], /^Illustrative/);
 });
 
+test("the law-baseline catalog matches the module's three yardsticks", async () => {
+  const { lawCatalog } = await import("./data");
+  const catalog = lawCatalog();
+  assert.equal(catalog.default, "current");
+  assert.equal(catalog.classified["tcja-full-extension"].current.display_score, 0);
+  assert.equal(catalog.classified["tcja-full-extension"].pre2025.display_score, "stored");
+  assert.equal(catalog.live.current.kind, "live");
+  assert.equal(catalog.figures.pl119_21_outlook.billions, 4700);
+});
+
 test("P.L. 119-21 reconstructions carry status and do not claim the current baseline", () => {
   const off = [
     "tcja-full-extension",

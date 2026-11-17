@@ -1,20 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ChartActions } from "@/components/ChartActions";
-import { BaselineChart } from "@/components/BaselineChart";
-import { HouseStrip } from "@/components/HouseStrip";
-import { YearChart } from "@/components/YearChart";
-import { baseline, houseStrip, manifest, preset, presets, views } from "@/lib/data";
-import { ResultSections } from "@/components/ResultSections";
-import { EstimateTag } from "@/components/EstimateTag";
-import { Checked, YearTable } from "@/components/ScoreParts";
+import { ExplorePreset } from "@/components/ExplorePreset";
+import { baseline, houseStrip, lawCatalog, manifest, preset, presets, views } from "@/lib/data";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
-import { adjustable, tailorHref } from "@/lib/adjust";
-import { estimateIdentity, identityLine } from "@/lib/identity";
-import { citation } from "@/lib/share";
-import { CiteBlock } from "@/components/CiteBlock";
-import { PolicyStatusNotice } from "@/components/PolicyStatusNotice";
-import { StaleLink } from "@/components/StaleLink";
 import { siteUrl } from "@/lib/site";
 
 export const dynamicParams = false;
@@ -40,106 +28,22 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const file = preset(id);
   if (!file) notFound();
   const c = file.conventional;
-  const d = file.dynamic;
-  const name = shortLabel(c.policy_name);
-  const headline = c.ten_year_deficit_impact;
-  const dyn = d.dynamic_adjusted_impact;
-  const v = views(id);
-  const strip = houseStrip(id);
   const info = presets().find((row) => row.id === id);
-  const scoresDate = manifest().scores_date ?? "";
-  const status = info?.policy_status ?? null;
-  const scored = { ...c, on_current_baseline: status?.on_current_baseline };
-  const scoredDynamic = { ...d, on_current_baseline: status?.on_current_baseline };
-  const modelIdentity = estimateIdentity(scored, "model");
-  const cite = citation({ title: name, identity: modelIdentity, path: `/explore/${id}`, scoresDate, site: siteUrl() });
-  const published =
-    info?.cbo_published && info.cbo_source ? estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published") : null;
+  if (!info) notFound();
   return (
-    <div className="work">
-      <header>
-        <span className="eyebrow">
-          {c.budget_window} · {modelIdentity.baseline || `CBO ${c.baseline_vintage} baseline`}
-        </span>
-        <h1>{name}</h1>
-        <p className="sentence">{cleanLabel(c.policy_description)}</p>
-        <PolicyStatusNotice status={status} />
-        <StaleLink scoresDate={scoresDate} />
-      </header>
-
-      <div className="headline">
-        <div className="stage">
-          <span className="q">Ten-year deficit effect, conventional</span>
-          <span className={`v ${headline > 0 ? "adds" : "reduces"}`}>{money(headline)}</span>
-          <EstimateTag identity={modelIdentity} />
-          <span className="q">{direction(headline)}</span>
-        </div>
-        <div className="stage">
-          <span className="q">With macroeconomic feedback and debt service</span>
-          <span className="v">{dyn === null ? "Not available" : money(dyn)}</span>
-          <EstimateTag identity={estimateIdentity(scoredDynamic, "model-dynamic")} />
-          <span className="q">{d.dynamic_model ?? d.error_message ?? ""}</span>
-        </div>
-      </div>
-
-      <nav className="actions" aria-label="Proposal">
-        <a href={`/build?add=${id}`}>Add to package</a>
-        <a href={`/compare?ids=${id}`}>Compare</a>
-        {adjustable(id) ? <a href={tailorHref(id) ?? "/tailor"}>Adjust in Tailor</a> : null}
-        <a href="#exports">Share</a>
-      </nav>
-
-      <Checked cred={c.credibility} point={headline} window={c.budget_window} published={published} />
-
-      <BaselineChart
-        years={baseline().years}
-        effects={c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect }))}
-        headline={headline}
-      />
-
-      {strip ? <HouseStrip strip={strip} /> : null}
-
-      <section className="chart">
-        <div className="head">
-          <h2>Year by year</h2>
-          <EstimateTag identity={modelIdentity} />
-        </div>
-        <YearChart
-          plotId="year-chart"
-          rows={c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect }))}
-          label={`Annual deficit effect of ${name}, ${c.budget_window}`}
-        />
-        <YearTable c={c} d={d} />
-        <p className="foot" id="exports">
-          <a href={`/explore/${id}/csv`} download>
-            Download CSV
-          </a>
-          <ChartActions
-            chartId="year-chart"
-            title={name}
-            identity={identityLine(modelIdentity)}
-            site={`Fiscal Policy Calculator, ${siteUrl().replace(/^https?:\/\//, "")}/explore/${id}`}
-            scoresDate={scoresDate}
-          />
-        </p>
-      </section>
-
-      {v ? (
-        <ResultSections views={v} conventional={modelIdentity} dynamic={estimateIdentity(scoredDynamic, "model-dynamic")} />
-      ) : null}
-
-      {c.credibility?.limitations.length ? (
-        <details className="latest">
-          <summary>Limitations</summary>
-          <ul className="marked">
-            {c.credibility.limitations.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </details>
-      ) : null}
-
-      <CiteBlock text={cite.text} />
-    </div>
+    <ExplorePreset
+      id={id}
+      name={shortLabel(c.policy_name)}
+      description={cleanLabel(c.policy_description)}
+      file={file}
+      status={info.policy_status ?? null}
+      info={info}
+      views={views(id)}
+      strip={houseStrip(id)}
+      years={baseline().years}
+      scoresDate={manifest().scores_date ?? ""}
+      site={siteUrl()}
+      catalog={lawCatalog()}
+    />
   );
 }

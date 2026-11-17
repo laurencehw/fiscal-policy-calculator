@@ -36,6 +36,10 @@ once a night, and written as JSON under ``site_data/``:
 - ``baseline.json``: CBO's February 2026 deficit, debt held by the public and
   nominal GDP by fiscal year, so a proposal page can draw the policy on the
   baseline. Deficit keeps CBO's sign.
+- ``law-baselines.json``: the three current-law yardsticks Explore can switch
+  (current = CBO Feb 2026 including P.L. 119-21; pre-2025 law; current law
+  with P.L. 119-21's temporary provisions extended), with sourced published
+  differences and per-preset presentation rules. No preset is rescored.
 - ``changes.json``: what moved since the previous export, kept for a year:
   preset scores that moved by more than 0.5% (old and new figures), new CBO
   estimates in the tracker, and a baseline vintage change. Each item says
@@ -697,6 +701,9 @@ def export(out: Path, *, today: str | None = None) -> dict[str, Any]:
     _write(out / "states.json", states)
     _write(out / "ranges.json", estimator_strips_payload(headlines))
     _write(out / "baseline.json", baseline_payload())
+    from fiscal_model.law_baselines import to_export as law_baselines_payload
+
+    _write(out / "law-baselines.json", law_baselines_payload())
     social_security = social_security_payload()
     _write(out / "social-security.json", social_security, compact=True)
     classroom = classroom_payloads()

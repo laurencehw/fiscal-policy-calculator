@@ -7,6 +7,7 @@ import type { ClassroomAssignment, ClassroomIndexRow } from "./classroom";
 import type { HouseStripData } from "./houses";
 import type { SSData } from "./socialSecurity";
 import type { BaselineFile } from "./baseline";
+import type { LawCatalog } from "./lawBaseline";
 import type { ChangesFile } from "./changes";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
@@ -76,6 +77,11 @@ export function houseStrip(id: string): HouseStripData | null {
 
 export function baseline(): BaselineFile {
   return read<BaselineFile>("baseline.json");
+}
+
+/** Three current-law yardsticks Explore can switch, with sourced differences. */
+export function lawCatalog(): LawCatalog {
+  return read<LawCatalog>("law-baselines.json");
 }
 
 export function scorecardEntries(): ScorecardEntry[] {

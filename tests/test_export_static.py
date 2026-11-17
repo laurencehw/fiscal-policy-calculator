@@ -123,6 +123,15 @@ def test_policy_status_travels_with_the_index(exported: Path):
             assert row["policy_status"] == status.to_export()
 
 
+def test_law_baselines_travel_with_the_export(exported: Path):
+    from fiscal_model.law_baselines import to_export as law_baselines_payload
+
+    payload = _read(exported / "law-baselines.json")
+    assert payload == law_baselines_payload()
+    assert payload["default"] == "current"
+    assert [row["id"] for row in payload["laws"]] == ["current", "pre2025", "extended"]
+
+
 def test_the_committed_export_has_the_current_shape(exported: Path):
     def names(root: Path) -> set[Path]:
         return {p.relative_to(root) for p in root.rglob("*.json")}

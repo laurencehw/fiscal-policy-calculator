@@ -90,6 +90,10 @@ test("a P.L. 119-21 reconstruction does not claim the CBO Feb 2026 baseline", ()
   assert.doesNotMatch(line, /CBO Feb 2026/);
   const stillClaims = identityLine(estimateIdentity(tcja.conventional, "model"));
   assert.match(stillClaims, /CBO Feb 2026 baseline/);
+  const viewingCurrent = identityLine(
+    estimateIdentity(tcja.conventional, "model", { baselineOverride: "CBO Feb 2026 baseline (current law)" }),
+  );
+  assert.match(viewingCurrent, /CBO Feb 2026 baseline \(current law\)/);
 });
 
 test("the published tag carries the published figure's own window, not the page's", () => {

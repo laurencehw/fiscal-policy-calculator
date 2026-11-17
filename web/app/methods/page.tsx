@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { evidence, scorecardEntries, tierOf, type Tier } from "@/lib/data";
+import { evidence, lawCatalog, scorecardEntries, tierOf, type Tier } from "@/lib/data";
 import { money } from "@/lib/format";
 import OutOfSampleScatter from "@/components/OutOfSampleScatter";
 import type { EvidenceSummary, ScorecardEntry } from "@/lib/types";
@@ -78,6 +78,7 @@ function Benchmarks({ tier, rows }: { tier: Tier; rows: ScorecardEntry[] }) {
 
 export default function Methods() {
   const ev = evidence();
+  const laws = lawCatalog();
   const oos = ev.out_of_sample;
   const cal = ev.calibrated;
   const loo = ev.leave_one_out;
@@ -222,12 +223,58 @@ export default function Methods() {
       </section>
 
       <section>
+        <h2>Which current law</h2>
+        <p>
+          A score is a difference from a baseline. Explore can switch the yardstick; the default is CBO&apos;s February
+          2026 current law, which already includes P.L. 119-21. {laws.worked_example}
+        </p>
+        <div className="tablescroll">
+          <table className="sheet words">
+            <thead>
+              <tr>
+                <th scope="col">Yardstick</th>
+                <th scope="col">What it is</th>
+                <th scope="col">Published difference from current law</th>
+              </tr>
+            </thead>
+            <tbody>
+              {laws.laws.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.title}</td>
+                  <td>{row.summary}</td>
+                  <td>
+                    {row.versus_current ? (
+                      <>
+                        {money(row.versus_current.billions, { trillions: true })} over {row.versus_current.window}
+                        {row.versus_current.approximated ? " (approximated)" : ""}.{" "}
+                        <a href={row.versus_current.url}>{row.versus_current.source}</a>
+                      </>
+                    ) : (
+                      "This is the default."
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="note">
+          Presets that reconstruct a P.L. 119-21 question are scored against pre-2025 law and explained as already
+          current law (incremental $0) on the other two yardsticks. Other presets still show the February 2026 score
+          when you switch away from current law, and say so. Build, Tailor, Compare and Ask are not on this switch
+          yet.
+        </p>
+      </section>
+
+      <section>
         <h2>Data</h2>
         <ul>
           <li>
             <b>CBO baseline, {v.cbo_baseline_vintage}.</b> Ten-year revenue, spending, deficits and the economic path,
-            read from CBO&apos;s own published tables (<a href="https://github.com/US-CBO/cbo-data">US-CBO/cbo-data</a>).
-            Every score is a change against this current-law baseline.
+            read from CBO&apos;s own published tables (<a href="https://github.com/US-CBO/cbo-data">US-CBO/cbo-data</a>
+            ). The default score is a change against this current-law baseline. Explore can also present a preset
+            against pre-2025 law or against current law with P.L. 119-21&apos;s temporary provisions extended; see
+            above.
           </li>
           <li>
             <b>IRS Statistics of Income, tax years {v.irs_soi_tax_years.join(", ")}.</b> Filer counts, income and tax by

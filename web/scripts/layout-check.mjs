@@ -16,7 +16,10 @@ export const PAGES = [
   "/?vs=medicare-surcharge-2pp",
   "/explore",
   "/explore?show=reduces&sort=size",
+  "/explore?law=pre2025",
   "/explore/tcja-full-extension",
+  "/explore/tcja-full-extension?law=pre2025",
+  "/explore/tcja-full-extension?law=extended",
   "/explore/corporate-28pct",
   "/explore/corporate-15pct",
   "/compare",
@@ -205,14 +208,35 @@ async function checkPage(browser, route, viewport) {
     const badges = await page.evaluate(() => document.querySelectorAll(".explorelist .statusbadge").length);
     if (badges === 0) problems.push("Explore list has no P.L. 119-21 status badges");
   }
+  if (route === "/explore" || route.startsWith("/explore?" ) || route.startsWith("/explore/")) {
+    const n = await page.evaluate(() => document.querySelectorAll(".lawswitch [role='radio']").length);
+    if (n !== 3) problems.push(`law switch has ${n} options, not 3`);
+  }
   if (route === "/explore/tcja-full-extension") {
     const status = await page.evaluate(() => ({
-      eyebrow: document.querySelector(".work header .eyebrow")?.textContent ?? "",
+      figure: document.querySelector(".headline .v")?.textContent?.trim() ?? "",
       notice: document.querySelector(".statusnotice")?.textContent ?? "",
       tag: document.querySelector(".headline .estimatetag")?.textContent ?? "",
+      eyebrow: document.querySelector(".work header .eyebrow")?.textContent ?? "",
     }));
+    if (status.figure !== "$0.0B") problems.push(`current-law TCJA extension is ${status.figure || "missing"}, not $0.0B`);
     if (!/Superseded by P\.L\. 119-21/.test(status.notice)) problems.push("TCJA page has no superseded notice");
     if (!/pre-2025 law/.test(status.notice)) problems.push("TCJA notice does not say the score is pre-2025 law");
+    if (!/current law/i.test(status.eyebrow)) problems.push("current-law TCJA eyebrow does not name current law");
+    if (!/CBO Feb 2026/i.test(status.tag)) problems.push("current-law $0 tag does not name the CBO Feb 2026 baseline");
+  }
+  if (route === "/explore/tcja-full-extension?law=pre2025") {
+    const status = await page.evaluate(() => ({
+      figure: document.querySelector(".headline .v")?.textContent?.trim() ?? "",
+      notice: document.querySelector(".statusnotice")?.textContent ?? "",
+      tag: document.querySelector(".headline .estimatetag")?.textContent ?? "",
+      eyebrow: document.querySelector(".work header .eyebrow")?.textContent ?? "",
+    }));
+    if (!/^\+\$[\d,]+(?:\.\d)?B$/.test(status.figure) || status.figure === "+$0.0B") {
+      problems.push(`pre-2025 TCJA extension is ${status.figure || "missing"}, not the stored reconstruction`);
+    }
+    if (!/Superseded by P\.L\. 119-21/.test(status.notice)) problems.push("pre-2025 TCJA page has no superseded notice");
+    if (!/pre-2025 law/.test(status.notice)) problems.push("pre-2025 TCJA notice does not say the score is pre-2025 law");
     if (!/pre-2025 law/i.test(status.eyebrow)) problems.push("TCJA eyebrow still claims the current CBO baseline");
     if (/CBO Feb 2026/i.test(status.tag)) problems.push("TCJA identity tag still claims the CBO Feb 2026 baseline");
   }

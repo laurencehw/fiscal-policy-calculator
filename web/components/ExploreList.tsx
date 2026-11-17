@@ -3,11 +3,24 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { EstimateTag } from "@/components/EstimateTag";
+import { LawLesson } from "@/components/LawLesson";
+import { LawSwitch } from "@/components/LawSwitch";
+import { PolicyStatusBadge } from "@/components/PolicyStatusNotice";
 import { MAX_COMPARE, compareHref, toggleId } from "@/lib/compare";
 import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow, type ExploreShow, type ExploreSort } from "@/lib/explore";
-import { PolicyStatusBadge } from "@/components/PolicyStatusNotice";
 import { money } from "@/lib/format";
-import type { EstimateIdentity } from "@/lib/identity";
+import { estimateIdentity, type EstimateIdentity } from "@/lib/identity";
+import {
+  DEFAULT_LAW,
+  displayedPublished,
+  displayedScore,
+  lawInfo,
+  presentPreset,
+  withLaw,
+  type LawCatalog,
+  type LawId,
+  type Presentation,
+} from "@/lib/lawBaseline";
 
 function Bar({ value, scale, published }: { value: number; scale: number; published?: boolean }) {
   const width = `${Math.max(1, (Math.abs(value) / scale) * 100)}%`;
@@ -19,33 +32,110 @@ function Bar({ value, scale, published }: { value: number; scale: number; publis
   );
 }
 
+type ShownRow = ExploreRow & { presentation: Presentation };
+
+function writeLaw(law: LawId) {
+  const url = new URL(window.location.href);
+  if (law === DEFAULT_LAW) url.searchParams.delete("law");
+  else url.searchParams.set("law", law);
+  window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+function ScoreCell({
+  value,
+  scale,
+  presentation,
+  published,
+}: {
+  value: number | null;
+  scale: number;
+  presentation: Presentation;
+  published?: boolean;
+}) {
+  if (value === null) {
+    const blank = published && presentation.show_published ? "none" : "—";
+    return (
+      <span className="figcell">
+        <span className="fig none" title={presentation.explanation ?? undefined}>
+          {blank}
+        </span>
+      </span>
+    );
+  }
+  const approx = !presentation.score_is_on_this_law;
+  return (
+    <span className="figcell">
+      <span
+        className={`fig ${published ? "published" : value > 0 ? "adds" : "reduces"}`}
+        title={presentation.explanation ?? undefined}
+      >
+        <span className="sr-only">{published ? "Published: " : "Calculator: "}</span>
+        {money(value)}
+        {approx ? <span className="approx">approx.</span> : null}
+      </span>
+      {value === 0 ? null : <Bar value={value} scale={scale} published={published} />}
+    </span>
+  );
+}
+
 /** Explore's list: a filter box, a sort toggle, and one bar per figure on a shared scale. */
 export function ExploreList({
   rows,
   calculator,
   published,
+  catalog,
 }: {
   rows: ExploreRow[];
   calculator: EstimateIdentity;
   published: EstimateIdentity;
+  catalog: LawCatalog;
 }) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<ExploreSort>("topic");
   const [picked, setPicked] = useState<string[]>([]);
   const [show, setShow] = useState<ExploreShow>("all");
-  // A link such as /explore?show=reduces&sort=size opens on that view.
+  const [law, setLaw] = useState<LawId>(DEFAULT_LAW);
+  // A link such as /explore?show=reduces&sort=size&law=pre2025 opens on that view.
   useEffect(() => {
     const view = viewFromQuery(window.location.search);
     setQuery(view.query);
     setSort(view.sort);
     setShow(view.show);
+    setLaw(view.law);
   }, []);
-  const scale = useMemo(() => scaleOf(rows), [rows]);
-  const shown = filterRows(byDirection(rows, show), query);
+
+  const onLaw = (next: LawId) => {
+    setLaw(next);
+    writeLaw(next);
+  };
+
+  const viewed = useMemo<ShownRow[]>(
+    () =>
+      rows.map((row) => {
+        const presentation = presentPreset(catalog, row.id, law);
+        return {
+          ...row,
+          conventional: displayedScore(row.conventional, presentation),
+          published: displayedPublished(row.published, presentation),
+          presentation,
+        };
+      }),
+    [rows, catalog, law],
+  );
+
+  const scale = useMemo(() => scaleOf(viewed), [viewed]);
+  const shown = filterRows(byDirection(viewed, show), query);
   const groups = arrange(shown, sort);
+  const yardstick = lawInfo(catalog, law);
+  const calculatorTag = estimateIdentity(
+    { budget_window: calculator.window, credibility: null },
+    "model",
+    { baselineOverride: yardstick.phrase },
+  );
   return (
     <div className="explore">
       <div className="exploretools">
+        <LawSwitch catalog={catalog} value={law} onChange={onLaw} />
         <label className="search">
           <span className="sr-only">Filter proposals</span>
           <input
@@ -63,16 +153,19 @@ export function ExploreList({
             Largest first
           </button>
         </div>
-        <p className="note" aria-live="polite">
-          {shown.length === rows.length ? `${rows.length} proposals.` : `${shown.length} of ${rows.length} proposals.`}
-          {show !== "all" ? ` Only those that ${show === "reduces" ? "reduce" : "add to"} the deficit. ` : null}
-          {show !== "all" ? (
-            <button type="button" className="linkish" onClick={() => setShow("all")}>
-              Show all
-            </button>
-          ) : null}
-          {shown.length === 0 ? " Nothing matches; try a shorter word." : null}
-        </p>
+        <div className="exploremeta">
+          <p className="note" aria-live="polite">
+            {shown.length === rows.length ? `${rows.length} proposals.` : `${shown.length} of ${rows.length} proposals.`}
+            {show !== "all" ? ` Only those that ${show === "reduces" ? "reduce" : "add to"} the deficit. ` : null}
+            {show !== "all" ? (
+              <button type="button" className="linkish" onClick={() => setShow("all")}>
+                Show all
+              </button>
+            ) : null}
+            {shown.length === 0 ? " Nothing matches; try a shorter word." : null}
+          </p>
+          <LawLesson catalog={catalog} law={law} compact />
+        </div>
         {picked.length ? (
           <p className="comparepick" aria-live="polite">
             <Link href={compareHref(picked)}>
@@ -85,15 +178,11 @@ export function ExploreList({
           </p>
         ) : null}
       </div>
-      <p className="note identitynote">
-        <EstimateTag identity={calculator} />
-        <EstimateTag identity={published} />
-      </p>
       <ul className="presetlist explorelist">
         <li className="explorehead" aria-hidden="true">
           <span />
           <span className="figlabel">
-            <EstimateTag identity={calculator} short />
+            <EstimateTag identity={calculatorTag} short />
           </span>
           <span className="figlabel">
             <EstimateTag identity={published} short />
@@ -105,48 +194,34 @@ export function ExploreList({
               <h2>{group.area}</h2>
             </li>
           ) : null,
-          ...group.rows.map((row) => (
-            <li key={row.id}>
-              <span className="rowname">
-                <input
-                  type="checkbox"
-                  aria-label={`Compare ${row.name}`}
-                  title="Compare"
-                  checked={picked.includes(row.id)}
-                  disabled={!picked.includes(row.id) && picked.length >= MAX_COMPARE}
-                  onChange={() => setPicked((ids) => toggleId(ids, row.id))}
-                />
-                <span className="rowlabel">
-                  <Link href={`/explore/${row.id}`}>{row.name}</Link>
-                  <PolicyStatusBadge status={row.status} />
+          ...group.rows.map((row) => {
+            const shownRow = row as ShownRow;
+            return (
+              <li key={shownRow.id}>
+                <span className="rowname">
+                  <input
+                    type="checkbox"
+                    aria-label={`Compare ${shownRow.name}`}
+                    title="Compare"
+                    checked={picked.includes(shownRow.id)}
+                    disabled={!picked.includes(shownRow.id) && picked.length >= MAX_COMPARE}
+                    onChange={() => setPicked((ids) => toggleId(ids, shownRow.id))}
+                  />
+                  <span className="rowlabel">
+                    <Link href={withLaw(`/explore/${shownRow.id}`, law)}>{shownRow.name}</Link>
+                    <PolicyStatusBadge status={shownRow.status} />
+                  </span>
                 </span>
-              </span>
-              <span className="figcell">
-                {row.conventional === null ? null : (
-                  <>
-                    <span className={`fig ${row.conventional > 0 ? "adds" : "reduces"}`}>
-                      <span className="sr-only">Calculator: </span>
-                      {money(row.conventional)}
-                    </span>
-                    <Bar value={row.conventional} scale={scale} />
-                  </>
-                )}
-              </span>
-              <span className="figcell">
-                {row.published === null ? (
-                  <span className="fig published none">none</span>
-                ) : (
-                  <>
-                    <span className="fig published">
-                      <span className="sr-only">Published: </span>
-                      {money(row.published)}
-                    </span>
-                    <Bar value={row.published} scale={scale} published />
-                  </>
-                )}
-              </span>
-            </li>
-          )),
+                <ScoreCell value={shownRow.conventional} scale={scale} presentation={shownRow.presentation} />
+                <ScoreCell
+                  value={shownRow.published}
+                  scale={scale}
+                  presentation={shownRow.presentation}
+                  published
+                />
+              </li>
+            );
+          }),
         ])}
       </ul>
     </div>

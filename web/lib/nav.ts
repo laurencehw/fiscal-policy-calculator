@@ -8,7 +8,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     name: "Policies",
     items: [
-      { href: "/explore", label: "Explore", blurb: "Every preset proposal, with its ten-year score beside the published score it is checked against." },
+      { href: "/explore", label: "Explore", blurb: "Every preset proposal, scored against current law, pre-2025 law, or current law with P.L. 119-21's temporary provisions extended." },
       { href: "/compare", label: "Compare", blurb: "Up to three proposals side by side, year by year on one axis, with their published scores." },
       { href: "/build", label: "Build", blurb: "Put policies together, or start from your values, and see the package total." },
       { href: "/tailor", label: "Tailor", blurb: "Set your own income or corporate tax rate change and score it." },

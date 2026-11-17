@@ -25,9 +25,11 @@ Statuses:
 ``on_current_baseline`` is False when the *score* is still a pre-2025-law
 reconstruction. CBO's February 2026 baseline already includes P.L. 119-21,
 so labelling those figures "CBO Feb 2026 baseline" would claim the wrong
-yardstick. A later PR may add a baseline switch; this map only names the
-mismatch. Repeal of the SALT cap is superseded as a legal question but
-its score was moved onto current law (PR #161), so it stays True.
+yardstick. Explore's law switch (``fiscal_model.law_baselines``) presents
+those reconstructions against pre-2025 law and explains them as already
+current law (or as a remainder not yet scored) on the other two yardsticks.
+Repeal of the SALT cap is superseded as a legal question but its score was
+moved onto current law (PR #161), so it stays True.
 """
 
 from __future__ import annotations

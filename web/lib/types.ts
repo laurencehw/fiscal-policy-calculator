@@ -70,6 +70,9 @@ export type PolicyStatusInfo = {
   baseline_sentence: string | null;
 };
 
+/** Three current-law yardsticks. Shapes match site_data/law-baselines.json. */
+export type { LawCatalog, LawId, LawInfo, Presentation, PresetRole, SourcedFigure } from "./lawBaseline";
+
 export type PresetInfo = {
   id: string;
   name: string;

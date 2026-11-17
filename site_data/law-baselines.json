@@ -1,0 +1,364 @@
+{
+  "default": "current",
+  "param": "law",
+  "worked_example": "Take TCJA full extension. Against pre-2025 law it adds about $4.6 trillion to the deficit, because the individual cuts would otherwise expire after 2025. Against current law the same proposal scores $0: P.L. 119-21 already made those cuts permanent, so scoring the extension again would double-count. The 2026 debate is the same shape on a new yardstick — whether to extend the *temporary* pieces of that law, which current law still assumes expire.",
+  "laws": [
+    {
+      "id": "current",
+      "short_label": "Current law",
+      "title": "Current law (CBO February 2026)",
+      "phrase": "CBO Feb 2026 baseline (current law)",
+      "summary": "CBO's February 2026 baseline, which already includes P.L. 119-21.",
+      "lesson": "A score is the difference from this baseline, not a property of the policy on its own. CBO's February 2026 Outlook already includes P.L. 119-21, so extending the TCJA individual cuts — the 2024–25 debate — is already current law. Scoring that extension again here would count it twice. The live 2026 question is whether to extend the law's temporary pieces (tips, overtime, the $40,000 SALT cap, and others), which this baseline assumes expire on schedule.",
+      "cbo_vintage": "February 2026",
+      "versus_current": null
+    },
+    {
+      "id": "pre2025",
+      "short_label": "Pre-2025 law",
+      "title": "Pre-2025 law (TCJA/IRA expire)",
+      "phrase": "pre-2025 law",
+      "summary": "Current law as it stood before P.L. 119-21: TCJA individual provisions and many IRA energy credits expire on their old schedule.",
+      "lesson": "Against this yardstick the TCJA individual cuts expire after 2025, as they were written before P.L. 119-21. Extending them is a large new cost — CBO scored a full extension around $4.6 trillion — because the baseline does not already contain it. That is why the same proposal that scores $0 against current law scores trillions here. Other proposals on this page still show the number computed on CBO's February 2026 baseline; a full re-score on January 2025 current law is not in this release, and those rows say so.",
+      "cbo_vintage": "January 2025",
+      "versus_current": {
+        "billions": 4700.0,
+        "window": "FY2026-2035",
+        "convention": "unified deficit including macroeconomic effects and debt service",
+        "source": "CBO publication 62105 (February 2026), Chapter 5",
+        "url": "https://www.cbo.gov/publication/62105",
+        "approximated": false,
+        "note": "Primary deficits +$3.7 trillion and debt service +$0.9 trillion over FY2026–2035, from the July 2025 cost estimate shifted onto this window; macroeconomic effects take the total to +$4.7 trillion. The conventional $3.4 trillion in publication 61570 is the same law on FY2025–2034 without those two channels."
+      }
+    },
+    {
+      "id": "extended",
+      "short_label": "Temps extended",
+      "title": "Current law, P.L. 119-21 temporary provisions extended",
+      "phrase": "current law, P.L. 119-21 temps extended",
+      "summary": "February 2026 current law, but with P.L. 119-21's temporary provisions made permanent — the live 2026 debate.",
+      "lesson": "Current law assumes P.L. 119-21's temporary provisions expire: no tax on tips, overtime and a larger senior deduction after 2028, the $40,000 SALT cap after 2029, time-limited factory expensing, and several appropriation boosts. Making those permanent is the same kind of question TCJA extension was in 2024–25, on today's yardstick. CRFB, reading CBO's February 2026 baseline, puts the primary-deficit cost at $1.9 trillion through FY2036 — an eleven-year window, and not a CBO table of the enacted package. Preset rows still show scores computed on current law; they have not been re-run on this scenario.",
+      "cbo_vintage": null,
+      "versus_current": {
+        "billions": 1900.0,
+        "window": "FY2026-2036",
+        "convention": "primary deficit; excludes debt service and macroeconomic effects",
+        "source": "CRFB, 19 February 2026, off CBO's February 2026 baseline",
+        "url": "https://www.crfb.org/blogs/debt-could-reach-131-gdp-under-alternative-scenario",
+        "approximated": true,
+        "note": "CRFB: making temporary P.L. 119-21 provisions permanent adds $1.9 trillion to primary deficits through FY2036, including about $290 billion in FY2036. The site's scored window is FY2026–2035, so the ten-year increment is smaller by that last year and is not separately published. Tax pieces named: tips, overtime and the senior deduction expire after 2028; the $40,000 SALT cap after 2029; factory expensing is similarly time-limited. Spending pieces (defense and immigration appropriations through FY2029) are in the $1.9 trillion too."
+      }
+    }
+  ],
+  "preset_roles": {
+    "amt-extend-tcja-relief": "already_law",
+    "ctc-extension": "already_law",
+    "estate-extend-tcja": "already_law",
+    "ev-credit-repeal": "already_law",
+    "ira-clean-energy-repeal": "remainder_unscored",
+    "tcja-extension-no-salt-cap": "remainder_unscored",
+    "tcja-full-extension": "already_law",
+    "tcja-rates-only": "already_law"
+  },
+  "classified": {
+    "amt-extend-tcja-relief": {
+      "current": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "CBO Feb 2026 baseline (current law)",
+        "explanation": "Already current law. The incremental score against CBO's February 2026 baseline is $0 — scoring the extension again would double-count P.L. 119-21. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      },
+      "pre2025": {
+        "kind": "reconstruction",
+        "role": "already_law",
+        "display_score": "stored",
+        "show_published": true,
+        "score_is_on_this_law": true,
+        "identity_baseline": "pre-2025 law",
+        "explanation": "This score is the pre-enactment reconstruction, which is the right number against pre-2025 law."
+      },
+      "extended": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "current law, P.L. 119-21 temps extended",
+        "explanation": "Already current law, and still current law if the temporary pieces are extended. The incremental score is $0. The 2026 debate is about those temporary pieces, not this extension. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      }
+    },
+    "ctc-extension": {
+      "current": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "CBO Feb 2026 baseline (current law)",
+        "explanation": "Already current law. The incremental score against CBO's February 2026 baseline is $0 — scoring the extension again would double-count P.L. 119-21. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      },
+      "pre2025": {
+        "kind": "reconstruction",
+        "role": "already_law",
+        "display_score": "stored",
+        "show_published": true,
+        "score_is_on_this_law": true,
+        "identity_baseline": "pre-2025 law",
+        "explanation": "This score is the pre-enactment reconstruction, which is the right number against pre-2025 law."
+      },
+      "extended": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "current law, P.L. 119-21 temps extended",
+        "explanation": "Already current law, and still current law if the temporary pieces are extended. The incremental score is $0. The 2026 debate is about those temporary pieces, not this extension. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      }
+    },
+    "estate-extend-tcja": {
+      "current": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "CBO Feb 2026 baseline (current law)",
+        "explanation": "Already current law. The incremental score against CBO's February 2026 baseline is $0 — scoring the extension again would double-count P.L. 119-21. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      },
+      "pre2025": {
+        "kind": "reconstruction",
+        "role": "already_law",
+        "display_score": "stored",
+        "show_published": true,
+        "score_is_on_this_law": true,
+        "identity_baseline": "pre-2025 law",
+        "explanation": "This score is the pre-enactment reconstruction, which is the right number against pre-2025 law."
+      },
+      "extended": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "current law, P.L. 119-21 temps extended",
+        "explanation": "Already current law, and still current law if the temporary pieces are extended. The incremental score is $0. The 2026 debate is about those temporary pieces, not this extension. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      }
+    },
+    "ev-credit-repeal": {
+      "current": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "CBO Feb 2026 baseline (current law)",
+        "explanation": "Already current law. The incremental score against CBO's February 2026 baseline is $0 — scoring the extension again would double-count P.L. 119-21. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      },
+      "pre2025": {
+        "kind": "reconstruction",
+        "role": "already_law",
+        "display_score": "stored",
+        "show_published": true,
+        "score_is_on_this_law": true,
+        "identity_baseline": "pre-2025 law",
+        "explanation": "This score is the pre-enactment reconstruction, which is the right number against pre-2025 law."
+      },
+      "extended": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "current law, P.L. 119-21 temps extended",
+        "explanation": "Already current law, and still current law if the temporary pieces are extended. The incremental score is $0. The 2026 debate is about those temporary pieces, not this extension. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      }
+    },
+    "ira-clean-energy-repeal": {
+      "current": {
+        "kind": "remainder_unscored",
+        "role": "remainder_unscored",
+        "display_score": null,
+        "show_published": false,
+        "score_is_on_this_law": false,
+        "identity_baseline": "CBO Feb 2026 baseline (current law)",
+        "explanation": "Part of this proposal is already current law. The exported score is the pre-2025 reconstruction of the whole; what remains against today's baseline is not yet computed. Switch to pre-2025 law to see that reconstruction."
+      },
+      "pre2025": {
+        "kind": "reconstruction",
+        "role": "remainder_unscored",
+        "display_score": "stored",
+        "show_published": true,
+        "score_is_on_this_law": true,
+        "identity_baseline": "pre-2025 law",
+        "explanation": "This score is the pre-enactment reconstruction, which is the right number against pre-2025 law."
+      },
+      "extended": {
+        "kind": "remainder_unscored",
+        "role": "remainder_unscored",
+        "display_score": null,
+        "show_published": false,
+        "score_is_on_this_law": false,
+        "identity_baseline": "current law, P.L. 119-21 temps extended",
+        "explanation": "Part of this proposal is already current law. The exported score is the pre-2025 reconstruction of the whole; what remains against an extended current-law baseline is not yet computed."
+      }
+    },
+    "tcja-extension-no-salt-cap": {
+      "current": {
+        "kind": "remainder_unscored",
+        "role": "remainder_unscored",
+        "display_score": null,
+        "show_published": false,
+        "score_is_on_this_law": false,
+        "identity_baseline": "CBO Feb 2026 baseline (current law)",
+        "explanation": "Part of this proposal is already current law. The exported score is the pre-2025 reconstruction of the whole; what remains against today's baseline is not yet computed. Switch to pre-2025 law to see that reconstruction."
+      },
+      "pre2025": {
+        "kind": "reconstruction",
+        "role": "remainder_unscored",
+        "display_score": "stored",
+        "show_published": true,
+        "score_is_on_this_law": true,
+        "identity_baseline": "pre-2025 law",
+        "explanation": "This score is the pre-enactment reconstruction, which is the right number against pre-2025 law."
+      },
+      "extended": {
+        "kind": "remainder_unscored",
+        "role": "remainder_unscored",
+        "display_score": null,
+        "show_published": false,
+        "score_is_on_this_law": false,
+        "identity_baseline": "current law, P.L. 119-21 temps extended",
+        "explanation": "Part of this proposal is already current law. The exported score is the pre-2025 reconstruction of the whole; what remains against an extended current-law baseline is not yet computed."
+      }
+    },
+    "tcja-full-extension": {
+      "current": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "CBO Feb 2026 baseline (current law)",
+        "explanation": "Already current law. The incremental score against CBO's February 2026 baseline is $0 — scoring the extension again would double-count P.L. 119-21. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      },
+      "pre2025": {
+        "kind": "reconstruction",
+        "role": "already_law",
+        "display_score": "stored",
+        "show_published": true,
+        "score_is_on_this_law": true,
+        "identity_baseline": "pre-2025 law",
+        "explanation": "This score is the pre-enactment reconstruction, which is the right number against pre-2025 law."
+      },
+      "extended": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "current law, P.L. 119-21 temps extended",
+        "explanation": "Already current law, and still current law if the temporary pieces are extended. The incremental score is $0. The 2026 debate is about those temporary pieces, not this extension. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      }
+    },
+    "tcja-rates-only": {
+      "current": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "CBO Feb 2026 baseline (current law)",
+        "explanation": "Already current law. The incremental score against CBO's February 2026 baseline is $0 — scoring the extension again would double-count P.L. 119-21. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      },
+      "pre2025": {
+        "kind": "reconstruction",
+        "role": "already_law",
+        "display_score": "stored",
+        "show_published": true,
+        "score_is_on_this_law": true,
+        "identity_baseline": "pre-2025 law",
+        "explanation": "This score is the pre-enactment reconstruction, which is the right number against pre-2025 law."
+      },
+      "extended": {
+        "kind": "already_law",
+        "role": "already_law",
+        "display_score": 0,
+        "show_published": false,
+        "score_is_on_this_law": true,
+        "identity_baseline": "current law, P.L. 119-21 temps extended",
+        "explanation": "Already current law, and still current law if the temporary pieces are extended. The incremental score is $0. The 2026 debate is about those temporary pieces, not this extension. Switch to pre-2025 law to see the reconstruction of this proposal as it was scored before enactment."
+      }
+    }
+  },
+  "live": {
+    "current": {
+      "kind": "live",
+      "role": "live",
+      "display_score": "stored",
+      "show_published": true,
+      "score_is_on_this_law": true,
+      "identity_baseline": "CBO Feb 2026 baseline (current law)",
+      "explanation": null
+    },
+    "pre2025": {
+      "kind": "current_law_score_on_other_yardstick",
+      "role": "live",
+      "display_score": "stored",
+      "show_published": true,
+      "score_is_on_this_law": false,
+      "identity_baseline": "CBO Feb 2026 baseline (current law)",
+      "explanation": "This proposal is still scored on CBO's February 2026 baseline (current law). A pre-2025-law re-score is not yet computed. The *level* of the two baselines differs by CBO's estimate of P.L. 119-21."
+    },
+    "extended": {
+      "kind": "current_law_score_on_other_yardstick",
+      "role": "live",
+      "display_score": "stored",
+      "show_published": true,
+      "score_is_on_this_law": false,
+      "identity_baseline": "CBO Feb 2026 baseline (current law)",
+      "explanation": "This proposal is scored on CBO's February 2026 current-law baseline, not on a baseline that extends P.L. 119-21's temporary provisions. A re-score on that scenario is not yet computed. CRFB puts the scenario's primary-deficit level about $1.9 trillion higher through FY2036."
+    }
+  },
+  "figures": {
+    "pl119_21_conventional": {
+      "billions": 3400.0,
+      "window": "FY2025-2034",
+      "convention": "conventional unified deficit; excludes macroeconomic feedback and debt service",
+      "source": "CBO publication 61570 (21 July 2025)",
+      "url": "https://www.cbo.gov/publication/61570",
+      "approximated": false,
+      "note": "As enacted 4 July 2025: −$1.1 trillion direct spending and −$4.5 trillion revenues, a $3.4 trillion net increase in the unified deficit."
+    },
+    "pl119_21_outlook": {
+      "billions": 4700.0,
+      "window": "FY2026-2035",
+      "convention": "unified deficit including macroeconomic effects and debt service",
+      "source": "CBO publication 62105 (February 2026), Chapter 5",
+      "url": "https://www.cbo.gov/publication/62105",
+      "approximated": false,
+      "note": "Primary deficits +$3.7 trillion and debt service +$0.9 trillion over FY2026–2035, from the July 2025 cost estimate shifted onto this window; macroeconomic effects take the total to +$4.7 trillion. The conventional $3.4 trillion in publication 61570 is the same law on FY2025–2034 without those two channels."
+    },
+    "temps_extended_primary": {
+      "billions": 1900.0,
+      "window": "FY2026-2036",
+      "convention": "primary deficit; excludes debt service and macroeconomic effects",
+      "source": "CRFB, 19 February 2026, off CBO's February 2026 baseline",
+      "url": "https://www.crfb.org/blogs/debt-could-reach-131-gdp-under-alternative-scenario",
+      "approximated": true,
+      "note": "CRFB: making temporary P.L. 119-21 provisions permanent adds $1.9 trillion to primary deficits through FY2036, including about $290 billion in FY2036. The site's scored window is FY2026–2035, so the ten-year increment is smaller by that last year and is not separately published. Tax pieces named: tips, overtime and the senior deduction expire after 2028; the $40,000 SALT cap after 2029; factory expensing is similarly time-limited. Spending pieces (defense and immigration appropriations through FY2029) are in the $1.9 trillion too."
+    },
+    "house_passed_temps": {
+      "billions": 1400.0,
+      "window": "FY2025-2034",
+      "convention": "primary deficit, 16 tax provisions in House-passed H.R. 1",
+      "source": "CBO publication 61471 (12 June 2025)",
+      "url": "https://www.cbo.gov/publication/61471",
+      "approximated": true,
+      "note": "House-passed H.R. 1, not P.L. 119-21 as enacted. Permanently enacting 16 tax provisions that would sunset in 2028 or 2029 adds $1.4 trillion to primary deficits and $687 billion of debt service over FY2025–2034. Cited as CBO's published method for this kind of question, not as the score of the enacted temporary package."
+    }
+  }
+}

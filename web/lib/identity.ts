@@ -114,7 +114,11 @@ function limitationForTier(tier: string, cred: Credibility): string {
  * The tier is the scorecard's own row when there is one; otherwise the class
  * band (out of sample, with its n) or none.
  */
-export function estimateIdentity(result: IdentityResult, kind: IdentityKind): EstimateIdentity {
+export function estimateIdentity(
+  result: IdentityResult,
+  kind: IdentityKind,
+  opts?: { baselineOverride?: string },
+): EstimateIdentity {
   if (kind === "package-sum") {
     return {
       producer: "Published scores",
@@ -143,6 +147,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
     };
   }
   const onCurrent = result.on_current_baseline !== false;
+  const baseline = opts?.baselineOverride || baselinePhrase(result.baseline_vintage, onCurrent);
   if (kind === "model-dynamic") {
     // The scorecard's tiers grade conventional scores. A fitted conventional row
     // does not make the dynamic figure calibrated, and the dynamic tier (B6) is
@@ -151,7 +156,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
       producer: "This calculator",
       kind,
       window: result.budget_window?.trim() ?? "",
-      baseline: baselinePhrase(result.baseline_vintage, onCurrent),
+      baseline,
       tier: "none",
       tierLabel: "not benchmarked",
       limitation: "The macroeconomic feedback is not scored against a published dynamic estimate here.",
@@ -161,7 +166,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
     producer: "This calculator",
     kind,
     window: result.budget_window?.trim() ?? "",
-    baseline: baselinePhrase(result.baseline_vintage, onCurrent),
+    baseline,
     tier,
     tierLabel,
     limitation,
