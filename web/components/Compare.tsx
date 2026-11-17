@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { CompareChart } from "@/components/CompareChart";
 import { EstimateTag } from "@/components/EstimateTag";
+import { PolicyStatusNotice } from "@/components/PolicyStatusNotice";
 import { compareHref, difference, sharedAxis, toggleId, type CompareItem } from "@/lib/compare";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
@@ -38,6 +39,7 @@ export function Compare({ cards }: { cards: CompareCard[] }) {
                 <Link href={`/explore/${item.id}`}>{item.name}</Link>
               </h2>
             </div>
+            <PolicyStatusNotice status={item.status} />
             <div className="stage">
               <span className="q">Ten-year deficit effect, conventional</span>
               <span className={`v ${item.tenYear > 0 ? "adds" : "reduces"}`}>{money(item.tenYear)}</span>

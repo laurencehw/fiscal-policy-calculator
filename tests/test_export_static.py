@@ -44,7 +44,8 @@ def _read(path: Path):
 def test_every_preset_equals_the_api_in_both_modes(exported: Path, client: TestClient):
     presets = client.get("/presets").json()["presets"]
     index = _read(exported / "presets" / "index.json")["presets"]
-    assert [{k: v for k, v in p.items() if k != "cbo_published"} for p in index] == presets
+    extra = {"cbo_published", "policy_status"}
+    assert [{k: v for k, v in p.items() if k not in extra} for p in index] == presets
     for preset in presets:
         data = _read(exported / "presets" / f"{preset['id']}.json")
         for mode, dynamic in (("conventional", False), ("dynamic", True)):
@@ -95,6 +96,40 @@ def test_only_published_scores_are_flagged_published(exported: Path):
         "carbon-tax-50",
     }
     assert all(not p["cbo_published"] for p in index if p["cbo_score"] is None)
+
+
+def test_policy_status_travels_with_the_index(exported: Path):
+    """The site badges P.L. 119-21 reconstructions from the export, not a guess."""
+    from fiscal_model.policy_status import PRE_2025_SCORE_SENTENCE, get_policy_status
+
+    index = {p["id"]: p for p in _read(exported / "presets" / "index.json")["presets"]}
+    tcja = index["tcja-full-extension"]["policy_status"]
+    assert tcja["status"] == "superseded"
+    assert tcja["badge"] == "Superseded by P.L. 119-21"
+    assert tcja["on_current_baseline"] is False
+    assert tcja["baseline_sentence"] == PRE_2025_SCORE_SENTENCE
+    ira = index["ira-clean-energy-repeal"]["policy_status"]
+    assert ira["status"] == "partially"
+    assert ira["on_current_baseline"] is False
+    corp = index["corporate-28pct"]["policy_status"]
+    assert corp["status"] == "proposed"
+    assert corp["on_current_baseline"] is True
+    assert corp["baseline_sentence"] is None
+    for preset_id, row in index.items():
+        status = get_policy_status(preset_id)
+        if status is None:
+            assert row["policy_status"] is None
+        else:
+            assert row["policy_status"] == status.to_export()
+
+
+def test_law_baselines_travel_with_the_export(exported: Path):
+    from fiscal_model.law_baselines import to_export as law_baselines_payload
+
+    payload = _read(exported / "law-baselines.json")
+    assert payload == law_baselines_payload()
+    assert payload["default"] == "current"
+    assert [row["id"] for row in payload["laws"]] == ["current", "pre2025", "extended"]
 
 
 def test_the_committed_export_has_the_current_shape(exported: Path):

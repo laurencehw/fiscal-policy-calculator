@@ -47,7 +47,7 @@ from fiscal_model.policies import (
     ordinary_income_base_for_preset,
 )
 from fiscal_model.policies_factory import create_spending_increase
-from fiscal_model.policy_status import get_policy_status
+from fiscal_model.policy_status import get_policy_status, scored_on_current_baseline
 from fiscal_model.preset_handler import create_policy_from_preset
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.ui.helpers import escape_markdown_dollars
@@ -1263,7 +1263,10 @@ def compose_values_package(
     1. **Veto.** Drop every policy a protected commitment rules out. A veto is
        absolute — no alignment score buys past it. Untagged options are dropped
        too whenever *any* commitment is named, because we cannot certify that
-       an untagged instrument respects it.
+       an untagged instrument respects it. Presets whose score is still a
+       pre-2025-law reconstruction (P.L. 119-21 is already in the February
+       2026 baseline) are left out of starting packages; they stay on the
+       checklist.
     2. **Commit.** At most one deficit-*increasing* policy, and only when the
        vector endorses it above :data:`COMMITMENT_ALIGNMENT_FLOOR`. Its cost is
        added to what the raisers then have to cover, so "spend at the bottom"
@@ -1294,6 +1297,9 @@ def compose_values_package(
     has_commitments = bool(vector.protected)
     for policy_id in sorted(catalog):
         policy = catalog[policy_id]
+        # Pre-2025 reconstructions stay checkable; they are not a starting pick.
+        if not scored_on_current_baseline(policy.policy_id):
+            continue
         rules = vetoing_rules(policy.policy_id, policy.tags, vector.protected)
         if rules:
             vetoed.append((policy.policy_id, rules[0].key))

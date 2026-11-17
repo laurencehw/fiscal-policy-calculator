@@ -1,11 +1,15 @@
 // Explore's list as plain data, so the page can filter and sort it in the browser.
 
+import { DEFAULT_LAW, type LawId, lawFromQuery } from "./lawBaseline";
+import type { PolicyStatusInfo } from "./types";
+
 export type ExploreRow = {
   id: string;
   name: string;
   area: string;
   conventional: number | null;
   published: number | null;
+  status?: PolicyStatusInfo | null;
 };
 
 export type ExploreSort = "topic" | "size";
@@ -19,13 +23,25 @@ export function byDirection(rows: ExploreRow[], show: ExploreShow): ExploreRow[]
   return rows.filter((row) => row.conventional !== null && (show === "reduces" ? row.conventional < 0 : row.conventional > 0));
 }
 
-/** The starting view from the URL: ?q=, ?sort=size, ?show=reduces|adds. Unknown values fall back. */
-export function viewFromQuery(search: string): { query: string; sort: ExploreSort; show: ExploreShow } {
-  const params = new URLSearchParams(search);
+/** The starting view from the URL: ?q=, ?sort=size, ?show=reduces|adds, ?law=. Unknown values fall back. */
+export function viewFromQuery(search: string): { query: string; sort: ExploreSort; show: ExploreShow; law: LawId } {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   const sort = params.get("sort") === "size" ? "size" : "topic";
   const raw = params.get("show");
   const show: ExploreShow = raw === "reduces" || raw === "adds" ? raw : "all";
-  return { query: params.get("q") ?? "", sort, show };
+  return { query: params.get("q") ?? "", sort, show, law: lawFromQuery(search) };
+}
+
+/** Write `law=` into an Explore search string, keeping q/sort/show. Default law is omitted. */
+export function exploreSearch(view: { query?: string; sort?: ExploreSort; show?: ExploreShow; law?: LawId }): string {
+  const params = new URLSearchParams();
+  const query = view.query?.trim() ?? "";
+  if (query) params.set("q", query);
+  if (view.sort === "size") params.set("sort", "size");
+  if (view.show === "reduces" || view.show === "adds") params.set("show", view.show);
+  if (view.law && view.law !== DEFAULT_LAW) params.set("law", view.law);
+  const text = params.toString();
+  return text ? `?${text}` : "";
 }
 
 /** Rows whose name or topic contains every word of the query, case-insensitively. */

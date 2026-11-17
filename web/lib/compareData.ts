@@ -12,6 +12,7 @@ export function compareCards(ids: string[]): CompareCard[] {
     if (!file) return [];
     const c = file.conventional;
     const info = index.find((row) => row.id === id);
+    const status = info?.policy_status ?? null;
     const published =
       info && info.cbo_published && info.cbo_score !== null && info.cbo_source
         ? {
@@ -20,17 +21,20 @@ export function compareCards(ids: string[]): CompareCard[] {
             date: info.cbo_date,
           }
         : null;
+    const scored = { ...c, on_current_baseline: status?.on_current_baseline };
+    const calculator = estimateIdentity(scored, "model");
     return [
       {
         item: {
           id,
           name: shortLabel(c.policy_name),
           window: c.budget_window,
-          baseline: c.baseline_vintage,
+          baseline: calculator.baseline || c.baseline_vintage,
           tenYear: c.ten_year_deficit_impact,
           years: c.year_by_year.map((row) => ({ year: row.year, value: row.final_effect })),
+          status,
         },
-        calculator: estimateIdentity(c, "model"),
+        calculator,
         published,
       },
     ];

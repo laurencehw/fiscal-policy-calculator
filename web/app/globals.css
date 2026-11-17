@@ -69,6 +69,13 @@ section.chart { border-top: 1px solid var(--ink); padding: 14px 0 0; display: gr
 tr[id^="bench-"] { scroll-margin-top: 16px; }
 .head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
 .tag { font-family: var(--label); font-size: 15px; letter-spacing: 0.06em; font-variant-caps: all-small-caps; color: var(--muted); }
+.statusnotice { margin: 0; max-width: 62ch; font-size: 16px; color: var(--ink); }
+.statusnotice .statusbadge { margin-right: 6px; }
+.statusbadge { color: var(--warn); }
+/* List badges sit on the name line so Explore still fits twelve proposals above the fold. */
+.rowlabel { display: inline-flex; flex-wrap: wrap; gap: 0 8px; align-items: baseline; min-width: 0; }
+.rowlabel .statusbadge { font-size: 12px; }
+.buildname .statusbadge { display: block; font-size: 12px; }
 .estimatetag { display: block; max-width: 100%; line-height: 1.35; }
 .estimatetag.short { display: inline; font-size: 12px; }
 .identitynote { display: flex; flex-wrap: wrap; gap: 2px 16px; }
@@ -306,6 +313,20 @@ section.values { display: grid; gap: 12px; }
 .seg { display: flex; flex-wrap: wrap; gap: 0; }
 .seg button { font: inherit; font-family: var(--label); font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: var(--muted); margin-right: -1px; }
 .seg button[aria-pressed="true"] { color: var(--paper); background: var(--ink); border-color: var(--ink); }
+.lawswitch { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 0; }
+.lawswitch .tag { margin: 0; }
+.lawswitch .seg button:first-child { border-radius: 2px 0 0 2px; }
+.lawswitch .seg button:last-child { border-radius: 0 2px 2px 0; }
+.exploretools .lawswitch { flex: 1 1 auto; }
+.lawlesson { max-width: 62ch; display: grid; gap: 8px; margin: 12px 0 16px; padding: 12px 0 0; border-top: 1px solid var(--rule); }
+.lawlesson .sentence, .lawlesson .note { margin: 0; }
+.lawlesson details { font-size: 15px; }
+.lawlesson .marked { margin: 8px 0 0; }
+.lawlesson.compact { display: inline; margin: 0; padding: 0; border: 0; }
+.lawlesson.compact summary { font-family: var(--label); font-size: 14px; color: var(--muted); cursor: pointer; }
+.lawlesson.compact[open] { display: grid; gap: 8px; margin: 8px 0 0; }
+.fig .approx { display: block; font-size: 11px; letter-spacing: 0.04em; color: var(--muted); font-family: var(--label); }
+.headline.reconstruction { margin-top: 8px; padding-top: 12px; border-top: 1px dashed var(--rule); }
 table.sheet.words td.num { text-align: right; white-space: nowrap; }
 table.sheet.words td .cite { display: block; margin-top: 4px; font-size: 13px; }
 
@@ -369,6 +390,7 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .explore { display: grid; gap: 12px; }
 .explore > .note { margin-bottom: 8px; }
 .exploretools { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+.exploremeta { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: baseline; flex: 1 1 100%; }
 .exploretools .search { flex: 1 1 280px; max-width: 30rem; }
 .exploretools input[type="search"], .exploretools select { font: inherit; font-family: var(--data); font-size: 15px; padding: 7px 10px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); width: 100%; box-sizing: border-box; }
 .exploretools select { width: auto; }

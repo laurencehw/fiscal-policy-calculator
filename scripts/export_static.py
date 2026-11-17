@@ -11,7 +11,10 @@ once a night, and written as JSON under ``site_data/``:
   per preset: whether its ``cbo_score`` is a published figure. It is false when
   the scorecard row behind it is this repository's own estimate
   (``model_estimate`` provenance) or a retired target, so the site never labels
-  either one "published".
+  either one "published". ``policy_status`` is the curated legal-status record
+  from ``fiscal_model.policy_status`` (or null): the site uses it to badge
+  presets whose score is a pre-2025-law reconstruction of a P.L. 119-21
+  question, and to withhold the "CBO Feb 2026 baseline" label from them.
 - ``presets/<id>.json``: one preset, ``{"conventional": …, "dynamic": …}``,
   each the API's ``/score/preset`` answer for that id.
 - ``build-catalog.json``: the Build page's checkable rows, in catalog order.
@@ -33,6 +36,10 @@ once a night, and written as JSON under ``site_data/``:
 - ``baseline.json``: CBO's February 2026 deficit, debt held by the public and
   nominal GDP by fiscal year, so a proposal page can draw the policy on the
   baseline. Deficit keeps CBO's sign.
+- ``law-baselines.json``: the three current-law yardsticks Explore can switch
+  (current = CBO Feb 2026 including P.L. 119-21; pre-2025 law; current law
+  with P.L. 119-21's temporary provisions extended), with sourced published
+  differences and per-preset presentation rules. No preset is rescored.
 - ``changes.json``: what moved since the previous export, kept for a year:
   preset scores that moved by more than 0.5% (old and new figures), new CBO
   estimates in the tracker, and a baseline vintage change. Each item says
@@ -225,6 +232,7 @@ def preset_views_payload(preset_id: str, comparison_models: dict[bool, Any] | No
 
 def preset_index_payload() -> dict[str, Any]:
     import api
+    from fiscal_model.policy_status import get_policy_status
     from fiscal_model.ui.preset_validation import (
         PRESET_ID_TO_SCORECARD_ID,
         get_validation_badge,
@@ -242,6 +250,8 @@ def preset_index_payload() -> dict[str, Any]:
             if badge is not None and badge.get("provenance") == MODEL_ESTIMATE:
                 published = False
         info["cbo_published"] = published
+        status = get_policy_status(info["id"])
+        info["policy_status"] = None if status is None else status.to_export()
     return payload
 
 
@@ -691,6 +701,9 @@ def export(out: Path, *, today: str | None = None) -> dict[str, Any]:
     _write(out / "states.json", states)
     _write(out / "ranges.json", estimator_strips_payload(headlines))
     _write(out / "baseline.json", baseline_payload())
+    from fiscal_model.law_baselines import to_export as law_baselines_payload
+
+    _write(out / "law-baselines.json", law_baselines_payload())
     social_security = social_security_payload()
     _write(out / "social-security.json", social_security, compact=True)
     classroom = classroom_payloads()

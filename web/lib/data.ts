@@ -2,10 +2,12 @@
 // build time, so the site never waits for the engine to show a preset.
 import fs from "node:fs";
 import path from "node:path";
+import { PRE_2025_BASELINE_PHRASE } from "./identity";
 import type { ClassroomAssignment, ClassroomIndexRow } from "./classroom";
 import type { HouseStripData } from "./houses";
 import type { SSData } from "./socialSecurity";
 import type { BaselineFile } from "./baseline";
+import type { LawCatalog } from "./lawBaseline";
 import type { ChangesFile } from "./changes";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
@@ -75,6 +77,11 @@ export function houseStrip(id: string): HouseStripData | null {
 
 export function baseline(): BaselineFile {
   return read<BaselineFile>("baseline.json");
+}
+
+/** Three current-law yardsticks Explore can switch, with sourced differences. */
+export function lawCatalog(): LawCatalog {
+  return read<LawCatalog>("law-baselines.json");
 }
 
 export function scorecardEntries(): ScorecardEntry[] {
@@ -159,10 +166,11 @@ const CSV_COLUMNS: (keyof YearlyEffect)[] = [
 ];
 
 /** One row per fiscal year: the conventional path, then the dynamic view's columns. */
-export function yearCsv(conventional: ScoreResult, dynamic: ScoreResult): string {
+export function yearCsv(conventional: ScoreResult, dynamic: ScoreResult, onCurrentBaseline = true): string {
+  const baseline = onCurrentBaseline ? conventional.baseline_vintage : PRE_2025_BASELINE_PHRASE;
   const lines = [
     `# ${conventional.policy_name.replace(/\\\$/g, "$")}`,
-    `# Baseline ${conventional.baseline_vintage}, ${conventional.budget_window}. Billions of dollars.`,
+    `# Baseline ${baseline}, ${conventional.budget_window}. Billions of dollars.`,
     "# final_effect and dynamic_effect: positive increases the deficit. revenue_effect and dynamic_feedback: positive is more revenue.",
     CSV_COLUMNS.join(","),
   ];

@@ -563,6 +563,20 @@ def test_a_pick_the_values_argue_against_says_so(catalog):
         assert "for the arithmetic, not for your values" in pick.why
 
 
+def test_starting_packages_omit_pre_2025_reconstructions(catalog):
+    """P.L. 119-21 is already in the Feb 2026 baseline; those scores stay
+    on Explore and on the checklist, but are not a starting pick."""
+    from fiscal_model.policy_status import scored_on_current_baseline
+
+    off = {pid for pid in catalog if not scored_on_current_baseline(pid)}
+    assert "ira-clean-energy-repeal" in off
+    assert "ev-credit-repeal" in off
+    assert "tcja-full-extension" in off
+    for archetype_id in archetype_ids():
+        picked = set(_package(archetype_id, catalog).policy_ids)
+        assert picked.isdisjoint(off), f"{archetype_id} picked {picked & off}"
+
+
 def test_coverage_matches_the_scoreboard_arithmetic(catalog):
     package = _package("deficit-hawk", catalog)
     assert package.gap_billions == pytest.approx(gap_to_target_billions(3.0))

@@ -59,6 +59,20 @@ export type ScoreResult = {
 
 export type PresetFile = { id: string; conventional: ScoreResult; dynamic: ScoreResult };
 
+/** Curated legal status from fiscal_model.policy_status, or null when uncurated. */
+export type PolicyStatusInfo = {
+  status: "proposed" | "enacted" | "superseded" | "partially";
+  badge: string;
+  note: string;
+  /** False when the score is a pre-2025-law reconstruction of a P.L. 119-21 question. */
+  on_current_baseline: boolean;
+  /** The one sentence Explore prints when on_current_baseline is false. */
+  baseline_sentence: string | null;
+};
+
+/** Three current-law yardsticks. Shapes match site_data/law-baselines.json. */
+export type { LawCatalog, LawId, LawInfo, Presentation, PresetRole, SourcedFigure } from "./lawBaseline";
+
 export type PresetInfo = {
   id: string;
   name: string;
@@ -68,6 +82,7 @@ export type PresetInfo = {
   cbo_date: string | null;
   /** False when cbo_score is this repository's own estimate or a retired target. */
   cbo_published: boolean;
+  policy_status?: PolicyStatusInfo | null;
 };
 
 export type BuildRow = {
@@ -80,6 +95,7 @@ export type BuildRow = {
   exclusive_groups: string[];
   subsumes: string[];
   illustrative: boolean;
+  policy_status?: PolicyStatusInfo | null;
 };
 
 export type ValuesPick = { policy_id: string; label: string; score: number; why: string; tags: Record<string, string> };
