@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { estimateIdentity, identityLine, publishedWindow, shortProducer, withoutTier } from "./identity";
+import { PRE_2025_BASELINE_PHRASE, estimateIdentity, identityLine, publishedWindow, shortProducer, withoutTier } from "./identity";
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
@@ -77,6 +77,19 @@ test("sections the tier does not grade carry the producer and window but no tier
   const bare = withoutTier(full);
   assert.doesNotMatch(identityLine(bare), /Calibrated reference|out-of-sample|reconstruction/i);
   assert.match(identityLine(bare), /This calculator · conventional · FY2026-2035/);
+});
+
+test("a P.L. 119-21 reconstruction does not claim the CBO Feb 2026 baseline", () => {
+  const tcja = JSON.parse(
+    readFileSync(new URL("../../site_data/presets/tcja-full-extension.json", import.meta.url), "utf8"),
+  ) as PresetFile;
+  const identity = estimateIdentity({ ...tcja.conventional, on_current_baseline: false }, "model");
+  assert.equal(identity.baseline, PRE_2025_BASELINE_PHRASE);
+  const line = identityLine(identity);
+  assert.match(line, /pre-2025 law/);
+  assert.doesNotMatch(line, /CBO Feb 2026/);
+  const stillClaims = identityLine(estimateIdentity(tcja.conventional, "model"));
+  assert.match(stillClaims, /CBO Feb 2026 baseline/);
 });
 
 test("the published tag carries the published figure's own window, not the page's", () => {

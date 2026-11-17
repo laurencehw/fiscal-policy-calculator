@@ -3,6 +3,7 @@
 // ids stand, the shared axis, and whether a difference can be stated.
 import { zeroAxis } from "./chartaxis";
 import { money } from "./format";
+import type { PolicyStatusInfo } from "./types";
 
 export const MAX_COMPARE = 3;
 
@@ -23,6 +24,7 @@ export type CompareItem = {
   baseline: string;
   tenYear: number;
   years: CompareYear[];
+  status?: PolicyStatusInfo | null;
 };
 
 export type ParsedIds = {

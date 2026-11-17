@@ -20,7 +20,12 @@ export type IdentityResult = {
   baseline_vintage?: string;
   credibility?: Credibility | null;
   cbo_source?: string | null;
+  /** False when the figure is a pre-2025-law reconstruction, not the named vintage. */
+  on_current_baseline?: boolean;
 };
+
+/** What the tag says instead of "CBO Feb 2026 baseline" for those reconstructions. */
+export const PRE_2025_BASELINE_PHRASE = "pre-2025 law";
 
 const TIER_LABELS: Record<string, string> = {
   fitted: "Calibrated reference",
@@ -63,7 +68,8 @@ export function publishedWindow(cred: Credibility | null | undefined): string {
 }
 
 /** "February 2026" → "CBO Feb 2026 baseline". Empty when the vintage is unknown. */
-export function baselinePhrase(vintage: string | undefined): string {
+export function baselinePhrase(vintage: string | undefined, onCurrentBaseline = true): string {
+  if (onCurrentBaseline === false) return PRE_2025_BASELINE_PHRASE;
   const text = (vintage ?? "").trim();
   if (!text) return "";
   const [month, year] = text.split(/\s+/);
@@ -136,6 +142,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
       limitation: result.credibility ? limitation : "The producer is named on each proposal.",
     };
   }
+  const onCurrent = result.on_current_baseline !== false;
   if (kind === "model-dynamic") {
     // The scorecard's tiers grade conventional scores. A fitted conventional row
     // does not make the dynamic figure calibrated, and the dynamic tier (B6) is
@@ -144,7 +151,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
       producer: "This calculator",
       kind,
       window: result.budget_window?.trim() ?? "",
-      baseline: baselinePhrase(result.baseline_vintage),
+      baseline: baselinePhrase(result.baseline_vintage, onCurrent),
       tier: "none",
       tierLabel: "not benchmarked",
       limitation: "The macroeconomic feedback is not scored against a published dynamic estimate here.",
@@ -154,7 +161,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
     producer: "This calculator",
     kind,
     window: result.budget_window?.trim() ?? "",
-    baseline: baselinePhrase(result.baseline_vintage),
+    baseline: baselinePhrase(result.baseline_vintage, onCurrent),
     tier,
     tierLabel,
     limitation,

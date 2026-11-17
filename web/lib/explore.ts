@@ -1,11 +1,14 @@
 // Explore's list as plain data, so the page can filter and sort it in the browser.
 
+import type { PolicyStatusInfo } from "./types";
+
 export type ExploreRow = {
   id: string;
   name: string;
   area: string;
   conventional: number | null;
   published: number | null;
+  status?: PolicyStatusInfo | null;
 };
 
 export type ExploreSort = "topic" | "size";

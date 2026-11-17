@@ -10,7 +10,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const { id } = await params;
   const file = preset(id);
   if (!file) return new Response("Not found", { status: 404 });
-  return new Response(yearCsv(file.conventional, file.dynamic), {
+  const onCurrent = presets().find((row) => row.id === id)?.policy_status?.on_current_baseline !== false;
+  return new Response(yearCsv(file.conventional, file.dynamic, onCurrent), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": `attachment; filename="${id}.csv"`,

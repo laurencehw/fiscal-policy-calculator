@@ -69,6 +69,11 @@ section.chart { border-top: 1px solid var(--ink); padding: 14px 0 0; display: gr
 tr[id^="bench-"] { scroll-margin-top: 16px; }
 .head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
 .tag { font-family: var(--label); font-size: 15px; letter-spacing: 0.06em; font-variant-caps: all-small-caps; color: var(--muted); }
+.statusnotice { margin: 0; max-width: 62ch; font-size: 16px; color: var(--ink); }
+.statusnotice .statusbadge { margin-right: 6px; }
+.statusbadge { color: var(--warn); }
+.rowlabel { display: grid; gap: 2px; min-width: 0; }
+.rowlabel .statusbadge, .buildname .statusbadge { display: block; font-size: 12px; }
 .estimatetag { display: block; max-width: 100%; line-height: 1.35; }
 .estimatetag.short { display: inline; font-size: 12px; }
 .identitynote { display: flex; flex-wrap: wrap; gap: 2px 16px; }

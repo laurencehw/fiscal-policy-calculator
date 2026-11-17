@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PackageSummary, type SecondTotal } from "@/components/PackageSummary";
 import { EstimateTag } from "@/components/EstimateTag";
+import { PolicyStatusBadge } from "@/components/PolicyStatusNotice";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
 import { addToPackage, calculatorGap, covered, fromQuery, total, towardTarget, undoReplacement, type Replacement } from "@/lib/package";
@@ -225,6 +226,7 @@ export function PackageBuilder({
                     />
                     <span className="buildname">
                       {shortLabel(r.label)}
+                      <PolicyStatusBadge status={r.policy_status} />
                       <small>
                         {r.source}, {r.source_date}
                         {by ? ` · included in ${label(by)}` : ""}

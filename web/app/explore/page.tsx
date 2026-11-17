@@ -20,6 +20,7 @@ export default function Explore() {
       area: group.area,
       conventional: preset(info.id)?.conventional.ten_year_deficit_impact ?? null,
       published: info.cbo_score !== null && info.cbo_published ? info.cbo_score : null,
+      status: info.policy_status ?? null,
     })),
   );
   return (

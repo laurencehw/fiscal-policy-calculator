@@ -40,6 +40,34 @@ test("grouping keeps every preset once", () => {
   assert.match(areas[areas.length - 1], /^Illustrative/);
 });
 
+test("P.L. 119-21 reconstructions carry status and do not claim the current baseline", () => {
+  const off = [
+    "tcja-full-extension",
+    "tcja-rates-only",
+    "tcja-extension-no-salt-cap",
+    "estate-extend-tcja",
+    "amt-extend-tcja-relief",
+    "ctc-extension",
+    "ev-credit-repeal",
+    "ira-clean-energy-repeal",
+  ];
+  const byId = new Map(presets().map((info) => [info.id, info]));
+  for (const id of off) {
+    const status = byId.get(id)?.policy_status;
+    assert.ok(status, id);
+    assert.equal(status!.on_current_baseline, false, id);
+    assert.match(status!.badge, /P\.L\. 119-21/);
+    assert.match(status!.baseline_sentence ?? "", /pre-2025 law/);
+    const file = preset(id)!;
+    const csv = yearCsv(file.conventional, file.dynamic, false);
+    assert.match(csv, /pre-2025 law/);
+    assert.doesNotMatch(csv.split("\n")[1] ?? "", /February 2026/);
+    assert.doesNotMatch(csv.split("\n")[1] ?? "", /CBO Feb 2026/);
+  }
+  const corp = byId.get("corporate-28pct")?.policy_status;
+  assert.equal(corp?.on_current_baseline, true);
+});
+
 test("the CSV has a row per year and sums to the headline", () => {
   const file = preset("tcja-full-extension")!;
   const csv = yearCsv(file.conventional, file.dynamic).trim().split("\n");
@@ -80,6 +108,24 @@ test("the scorecard splits into the tiers the evidence report counts", () => {
   assert.ok(Math.abs(mean("out_of_sample") - ev.out_of_sample.mean_abs_error) < 0.05);
   assert.ok(Math.abs(mean("fitted") - ev.calibrated.fitted.mean_abs_error) < 0.05);
   assert.ok(Math.abs(mean("reconstruction") - ev.calibrated.reconstruction.mean_abs_error) < 0.05);
+});
+
+test("starting philosophies do not pick P.L. 119-21 reconstructions", async () => {
+  const { valuesArchetypes } = await import("./data");
+  const off = new Set([
+    "tcja-full-extension",
+    "tcja-rates-only",
+    "tcja-extension-no-salt-cap",
+    "estate-extend-tcja",
+    "amt-extend-tcja-relief",
+    "ctc-extension",
+    "ev-credit-repeal",
+    "ira-clean-energy-repeal",
+  ]);
+  for (const a of valuesArchetypes()) {
+    const picked = a.picks.map((p) => p.policy_id);
+    assert.equal(picked.filter((id) => off.has(id)).join(","), "", a.id);
+  }
 });
 
 test("every philosophy's package loads whole into the Build list", async () => {

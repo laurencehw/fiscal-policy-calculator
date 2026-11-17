@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { EstimateTag } from "@/components/EstimateTag";
 import { MAX_COMPARE, compareHref, toggleId } from "@/lib/compare";
 import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow, type ExploreShow, type ExploreSort } from "@/lib/explore";
+import { PolicyStatusBadge } from "@/components/PolicyStatusNotice";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
 
@@ -115,7 +116,10 @@ export function ExploreList({
                   disabled={!picked.includes(row.id) && picked.length >= MAX_COMPARE}
                   onChange={() => setPicked((ids) => toggleId(ids, row.id))}
                 />
-                <Link href={`/explore/${row.id}`}>{row.name}</Link>
+                <span className="rowlabel">
+                  <Link href={`/explore/${row.id}`}>{row.name}</Link>
+                  <PolicyStatusBadge status={row.status} />
+                </span>
               </span>
               <span className="figcell">
                 {row.conventional === null ? null : (

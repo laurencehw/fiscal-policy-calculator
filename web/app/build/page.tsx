@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PackageBuilder } from "@/components/PackageBuilder";
-import { buildCatalog, manifest, preset, valuesArchetypes } from "@/lib/data";
+import { buildCatalog, manifest, preset, presets, valuesArchetypes } from "@/lib/data";
 import { estimateIdentity, type EstimateIdentity } from "@/lib/identity";
 import { siteUrl } from "@/lib/site";
 import { StaleLink } from "@/components/StaleLink";
@@ -22,12 +22,15 @@ export default function Build() {
     budget_window: frame.budget_windows[0] ?? "",
     baseline_vintage: frame.baseline_vintages[0] ?? "",
   };
-  for (const row of ordered) {
+  const statusById = new Map(presets().map((info) => [info.id, info.policy_status ?? null]));
+  const listed = ordered.map((row) => ({ ...row, policy_status: statusById.get(row.build_id) ?? null }));
+  for (const row of listed) {
     const scored = preset(row.build_id)?.conventional ?? null;
+    const onCurrent = statusById.get(row.build_id)?.on_current_baseline;
     if (scored && typeof scored.ten_year_deficit_impact === "number") calculator[row.build_id] = scored.ten_year_deficit_impact;
     identities[row.build_id] = {
       published: estimateIdentity(scored ? { ...scored, cbo_source: row.source } : { ...site, credibility: null, cbo_source: row.source }, "published"),
-      model: scored ? estimateIdentity(scored, "model") : null,
+      model: scored ? estimateIdentity({ ...scored, on_current_baseline: onCurrent }, "model") : null,
     };
   }
   return (
@@ -46,7 +49,7 @@ export default function Build() {
         <StaleLink scoresDate={frame.scores_date ?? ""} />
       </header>
       <PackageBuilder
-        rows={ordered}
+        rows={listed}
         calculator={calculator}
         identities={identities}
         packageIdentity={estimateIdentity(site, "package-sum")}
