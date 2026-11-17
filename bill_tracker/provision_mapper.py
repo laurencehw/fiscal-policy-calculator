@@ -101,6 +101,29 @@ class MappingResult:
     raw_llm_response: str = ""
 
 
+#: A bill whose CRS summary has at least this many titles is an omnibus.
+OMNIBUS_MIN_TITLES = 3
+
+
+def summary_title_count(summary: str | None) -> int:
+    """Distinct "TITLE <roman numeral>" headings in a CRS summary."""
+    if not summary:
+        return 0
+    return len(set(re.findall(r"\bTITLE\s+([IVXLC]+)\b", summary)))
+
+
+def covers_part_of_bill(summary: str | None, policies: list[dict]) -> bool:
+    """True when a mapping is too thin for the bill it claims to score.
+
+    An omnibus bill (three or more titles in its CRS summary) mapped to fewer
+    provisions than it has titles leaves most of the bill unscored, so its
+    calculator reading cannot carry "high" or "medium" confidence. H.R. 1
+    (P.L. 119-21) has a dozen titles and was mapped to two provisions.
+    """
+    titles = summary_title_count(summary)
+    return titles >= OMNIBUS_MIN_TITLES and len(policies) < titles
+
+
 class ProvisionMapper:
     """
     Maps bill summaries to calculator Policy parameter dicts via LLM + regex validation.
@@ -142,11 +165,19 @@ class ProvisionMapper:
         # Check for manual override first
         override = self._load_override(bill_id)
         if override:
+            confidence = "high"
+            reason = "Manual override by " + override.get("mapped_by", "unknown")
+            partial = override.get("coverage") == "partial" or covers_part_of_bill(
+                summary, override["policies"]
+            )
+            if partial:
+                confidence = "low"
+                reason += "; the mapped provisions cover only part of the bill"
             return MappingResult(
                 bill_id=bill_id,
                 policies=override["policies"],
-                confidence="high",
-                confidence_reason="Manual override by " + override.get("mapped_by", "unknown"),
+                confidence=confidence,
+                confidence_reason=reason,
                 mapping_notes=override.get("override_reason", ""),
                 extraction_method="manual",
             )
@@ -184,6 +215,10 @@ class ProvisionMapper:
             if confidence == "high":
                 confidence = "medium"
             reason += f"; {len(warnings)} validation warning(s)"
+
+        if policies and covers_part_of_bill(summary, policies):
+            confidence = "low"
+            reason += "; the mapped provisions cover only part of the bill"
 
         unmapped = [
             p["provision_text"]

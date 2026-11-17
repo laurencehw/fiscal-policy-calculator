@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
-import { adjustable, TAILOR_SHAPES, tailorHref } from "./adjust";
+import { adjustable, matchingPreset, TAILOR_SHAPES, tailorHref } from "./adjust";
+import { DEFAULT_INPUT } from "./tailor";
 import type { PresetFile } from "./types";
 
 const dir = new URL("../../site_data/presets/", import.meta.url);
@@ -21,4 +22,11 @@ test("adjustable is true only for presets Tailor reproduces to within rounding",
   assert.equal(adjustable("corporate-15pct"), false);
   assert.equal(adjustable("tcja-full-extension"), false);
   assert.equal(tailorHref("tcja-full-extension"), null);
+});
+
+test("Tailor's default request is the Biden 2025 preset (review B8)", () => {
+  assert.equal(matchingPreset(DEFAULT_INPUT), "top-rate-39-6");
+  assert.equal(matchingPreset({ ...DEFAULT_INPUT, rate: 2.5 }), null);
+  assert.equal(matchingPreset({ ...DEFAULT_INPUT, duration: 5 }), null);
+  for (const [id, shape] of Object.entries(TAILOR_SHAPES)) assert.equal(matchingPreset(shape), id);
 });

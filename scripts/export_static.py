@@ -294,6 +294,7 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
     """``(index, scored)`` for the tracker, read from the nightly database."""
     import sqlite3
 
+    from bill_tracker.cbo_fetcher import carries_cost_estimate
     from bill_tracker.ingestor import congress_gov_url
 
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
@@ -324,7 +325,9 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
     scored = {}
     for bill in bills:
         bill_id = bill["bill_id"]
-        estimate = cbo.get(bill_id)
+        # A resolution never has a CBO cost estimate; a row matched to one is
+        # another bill's publication (H.Con.Res. 14 drew two about P.L. 119-21).
+        estimate = cbo.get(bill_id) if carries_cost_estimate(bill_id) else None
         score = auto.get(bill_id)
         rows.append(
             {

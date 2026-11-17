@@ -8,6 +8,7 @@ import { baseline, houseStrip, manifest, preset, presets, views } from "@/lib/da
 import { ResultSections } from "@/components/ResultSections";
 import { EstimateTag } from "@/components/EstimateTag";
 import { Checked, YearTable } from "@/components/ScoreParts";
+import { yearRows } from "@/lib/scoreparts";
 import { direction, money, plainDescription, shortLabel } from "@/lib/format";
 import { adjustable, tailorHref } from "@/lib/adjust";
 import { againstPre2025Law, estimateIdentity, identityLine, type EstimateIdentity } from "@/lib/identity";
@@ -126,7 +127,12 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
       </section>
 
       {v ? (
-        <ResultSections views={v} conventional={modelIdentity} dynamic={dynamicIdentity} />
+        <ResultSections
+          views={v}
+          conventional={modelIdentity}
+          dynamic={dynamicIdentity}
+          firstYear={yearRows(c, d)[0]}
+        />
       ) : null}
 
       {c.credibility?.limitations.length ? (
