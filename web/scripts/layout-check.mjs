@@ -202,6 +202,19 @@ async function checkPage(browser, route, viewport) {
       }).length,
     );
     if (visible < 12) problems.push(`only ${visible} proposals visible on first load`);
+    const badges = await page.evaluate(() => document.querySelectorAll(".explorelist .statusbadge").length);
+    if (badges === 0) problems.push("Explore list has no P.L. 119-21 status badges");
+  }
+  if (route === "/explore/tcja-full-extension") {
+    const status = await page.evaluate(() => ({
+      eyebrow: document.querySelector(".work header .eyebrow")?.textContent ?? "",
+      notice: document.querySelector(".statusnotice")?.textContent ?? "",
+      tag: document.querySelector(".headline .estimatetag")?.textContent ?? "",
+    }));
+    if (!/Superseded by P\.L\. 119-21/.test(status.notice)) problems.push("TCJA page has no superseded notice");
+    if (!/pre-2025 law/.test(status.notice)) problems.push("TCJA notice does not say the score is pre-2025 law");
+    if (!/pre-2025 law/i.test(status.eyebrow)) problems.push("TCJA eyebrow still claims the current CBO baseline");
+    if (/CBO Feb 2026/i.test(status.tag)) problems.push("TCJA identity tag still claims the CBO Feb 2026 baseline");
   }
   const wideProse = await page.evaluate(() => {
     const nodes = [...document.querySelectorAll(".work .sentence, .work .lede, .work .note, .work header p, .work .checked p")];
