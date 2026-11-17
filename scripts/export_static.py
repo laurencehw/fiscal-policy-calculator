@@ -13,7 +13,9 @@ once a night, and written as JSON under ``site_data/``:
   (``model_estimate`` provenance) or a retired target, so the site never labels
   either one "published"; and ``status``, the preset's curated legal status
   (``fiscal_model.policy_status``) or null, with ``pre_2025_law`` true when the
-  score is measured against law before P.L. 119-21.
+  score is measured against law before P.L. 119-21. Such a status also carries
+  ``current_law`` (``fiscal_model.current_law_view``): what the preset scores on
+  the site's own current-law baseline.
 - ``presets/<id>.json``: one preset, ``{"conventional": …, "dynamic": …}``,
   each the API's ``/score/preset`` answer for that id.
 - ``build-catalog.json``: the Build page's checkable rows, in catalog order,
@@ -228,17 +230,20 @@ def preset_views_payload(preset_id: str, comparison_models: dict[bool, Any] | No
 
 def law_status_payload(label: str) -> dict[str, Any] | None:
     """The curated legal status of a preset (``fiscal_model.policy_status``), or None."""
+    from fiscal_model.current_law_view import current_law_answer
     from fiscal_model.policy_status import STATUS_AS_OF, get_policy_status
 
     status = get_policy_status(label)
     if status is None:
         return None
+    answer = current_law_answer(label)
     return {
         "status": status.status,
         "label": status.label,
         "note": status.note.replace("\\$", "$"),
         "pre_2025_law": status.pre_2025_law,
         "as_of": STATUS_AS_OF,
+        "current_law": None if answer is None else answer.to_export(),
     }
 
 

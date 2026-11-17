@@ -7,7 +7,7 @@ import { MAX_COMPARE, compareHref, toggleId } from "@/lib/compare";
 import { arrange, byDirection, filterRows, scaleOf, viewFromQuery, type ExploreRow, type ExploreShow, type ExploreSort } from "@/lib/explore";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
-import { chipWorthy } from "@/lib/lawStatus";
+import { chipWorthy, currentLawLine } from "@/lib/lawStatus";
 import { LawChip } from "@/components/LawStatus";
 
 function Bar({ value, scale, published }: { value: number; scale: number; published?: boolean }) {
@@ -122,6 +122,9 @@ export function ExploreList({
                   <>
                     {" "}
                     <LawChip status={row.status} />
+                    {currentLawLine(row.status, row.currentLaw ?? null) ? (
+                      <span className="currentlaw"> {currentLawLine(row.status, row.currentLaw ?? null)}</span>
+                    ) : null}
                   </>
                 ) : null}
               </span>

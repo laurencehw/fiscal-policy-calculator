@@ -4,6 +4,7 @@ import { manifest, preset, presetsByArea } from "@/lib/data";
 import type { ExploreRow } from "@/lib/explore";
 import { shortLabel } from "@/lib/format";
 import { estimateIdentity } from "@/lib/identity";
+import { currentLawFigure } from "@/lib/lawStatus";
 
 export const metadata: Metadata = {
   title: "Explore",
@@ -21,6 +22,7 @@ export default function Explore() {
       conventional: preset(info.id)?.conventional.ten_year_deficit_impact ?? null,
       published: info.cbo_score !== null && info.cbo_published ? info.cbo_score : null,
       status: info.status ?? null,
+      currentLaw: currentLawFigure(info.status, (id) => preset(id)?.conventional.ten_year_deficit_impact ?? null),
     })),
   );
   return (

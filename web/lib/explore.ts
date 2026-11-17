@@ -8,6 +8,8 @@ export type ExploreRow = {
   conventional: number | null;
   published: number | null;
   status?: LawStatus | null;
+  /** For a pre-2025-law row: its figure on the current-law baseline (see lawStatus.currentLawFigure). */
+  currentLaw?: number | null;
 };
 
 export type ExploreSort = "topic" | "size";

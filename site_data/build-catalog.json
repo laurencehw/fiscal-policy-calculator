@@ -28,7 +28,16 @@
       "label": "Superseded by later law",
       "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
       "pre_2025_law": true,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": {
+        "kind": "already_law",
+        "billions": 0.0,
+        "same_as": null,
+        "already_ended_billions": null,
+        "reason": "P.L. 119-21 made the individual TCJA provisions permanent (JCX-35-25 chapter 1, items 1-7), so they are in the baseline already. Current law is more generous than this preset on two pieces: the child tax credit is $2,200 and indexed, and the SALT cap is $40,000 through 2029 before returning to $10,000. The preset's tighter versions would raise revenue against current law; that is not scored here.",
+        "source": "JCT JCX-35-25 (1 July 2025)",
+        "url": "https://www.jct.gov/publications/2025/jcx-35-25/"
+      }
     }
   },
   {
@@ -61,7 +70,16 @@
       "label": "Superseded by later law",
       "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed. The July 2025 law also modified the SALT cap, so the no-cap variant modeled here differs from what was enacted.",
       "pre_2025_law": true,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": {
+        "kind": "same_as",
+        "billions": null,
+        "same_as": "salt-cap-repeal",
+        "already_ended_billions": null,
+        "reason": "TCJA is already permanent, so on current law this proposal is a repeal of the SALT cap. That is the Repeal SALT Cap preset, which is scored against the current-law cap path: $40,000 rising 1% a year through 2029, then $10,000 (P.L. 119-21 sec. 70120). The figure is that preset's score.",
+        "source": "This model, on CBO's February 2026 baseline",
+        "url": "/explore/salt-cap-repeal"
+      }
     }
   },
   {
@@ -89,7 +107,16 @@
       "label": "Superseded by later law",
       "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
       "pre_2025_law": true,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": {
+        "kind": "already_law",
+        "billions": 0.0,
+        "same_as": null,
+        "already_ended_billions": null,
+        "reason": "P.L. 119-21 made the TCJA rate schedule permanent (JCX-35-25 chapter 1, item 1).",
+        "source": "JCT JCX-35-25 (1 July 2025)",
+        "url": "https://www.jct.gov/publications/2025/jcx-35-25/"
+      }
     }
   },
   {
@@ -117,7 +144,8 @@
       "label": "Proposed — not enacted",
       "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -145,7 +173,8 @@
       "label": "Proposed — not enacted",
       "note": "2024 campaign proposal; not enacted — the corporate rate remains 21%.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -173,7 +202,8 @@
       "label": "Proposed — not enacted",
       "note": "Proposal to make the temporary 2021 ARP expansion permanent; not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -201,7 +231,16 @@
       "label": "Superseded by later law",
       "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
       "pre_2025_law": true,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": {
+        "kind": "already_law",
+        "billions": 0.0,
+        "same_as": null,
+        "already_ended_billions": null,
+        "reason": "P.L. 119-21 made the child tax credit permanent at $2,200, indexed (JCX-35-25 chapter 1, item 4). That is more generous than the $2,000 this preset extends; cutting back to $2,000 would raise revenue, which is not scored here.",
+        "source": "JCT JCX-35-25 (1 July 2025)",
+        "url": "https://www.jct.gov/publications/2025/jcx-35-25/"
+      }
     }
   },
   {
@@ -227,7 +266,8 @@
       "label": "Proposed — not enacted",
       "note": "Proposal to make the temporary 2021 ARP expansion permanent; not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -255,7 +295,16 @@
       "label": "Superseded by later law",
       "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
       "pre_2025_law": true,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": {
+        "kind": "already_law",
+        "billions": 0.0,
+        "same_as": null,
+        "already_ended_billions": null,
+        "reason": "P.L. 119-21 set the estate and gift exemption at $15 million from 2026, indexed (JCX-35-25 chapter 1, item 6). That is more generous than the TCJA exemption this preset extends; going back to the preset's level would raise revenue, which is not scored here.",
+        "source": "JCT JCX-35-25 (1 July 2025)",
+        "url": "https://www.jct.gov/publications/2025/jcx-35-25/"
+      }
     }
   },
   {
@@ -283,7 +332,8 @@
       "label": "Proposed — not enacted",
       "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -333,7 +383,8 @@
       "label": "Proposed — not enacted",
       "note": "Social Security solvency option from SSA/CBO options analyses; not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -361,7 +412,8 @@
       "label": "Proposed — not enacted",
       "note": "Social Security solvency option from SSA/CBO options analyses; not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -389,7 +441,8 @@
       "label": "Proposed — not enacted",
       "note": "Social Security solvency option from SSA/CBO options analyses; not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -415,7 +468,8 @@
       "label": "Proposed — not enacted",
       "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -443,7 +497,16 @@
       "label": "Superseded by later law",
       "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
       "pre_2025_law": true,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": {
+        "kind": "already_law",
+        "billions": 0.0,
+        "same_as": null,
+        "already_ended_billions": null,
+        "reason": "P.L. 119-21 made the higher AMT exemptions permanent, with new phase-out thresholds (JCX-35-25 chapter 1, item 7).",
+        "source": "JCT JCX-35-25 (1 July 2025)",
+        "url": "https://www.jct.gov/publications/2025/jcx-35-25/"
+      }
     }
   },
   {
@@ -513,7 +576,8 @@
       "label": "Proposed — not enacted",
       "note": "Extension proposal for the enhanced credits that were scheduled to lapse after 2025; not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -541,7 +605,8 @@
       "label": "Proposed — not enacted",
       "note": "Legislative proposal; not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -603,7 +668,8 @@
       "label": "Partially overtaken by later law",
       "note": "The July 2025 reconciliation law (P.L. 119-21) raised the SALT cap to $40,000 in 2025, rising 1% a year through 2029 and reverting to $10,000 in 2030. This preset scores full repeal against that current-law path; the published figure in its label prices repeal of a permanent $10K cap.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -665,7 +731,8 @@
       "label": "Proposed — not enacted",
       "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -693,7 +760,8 @@
       "label": "Proposed — not enacted",
       "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -721,7 +789,8 @@
       "label": "Proposed — not enacted",
       "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -749,7 +818,8 @@
       "label": "Proposed — not enacted",
       "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -797,7 +867,8 @@
       "label": "Proposed — not enacted",
       "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -825,7 +896,8 @@
       "label": "Enacted",
       "note": "Enacted in the Inflation Reduction Act (2022); later laws rescinded part of the funding. This preset reconstructs CBO's 2022 score of the provision as enacted, so it is not new revenue on top of current law.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -939,7 +1011,8 @@
       "label": "Partially overtaken by later law",
       "note": "Broad tariff actions were imposed by executive order in 2025; this preset models a stylized schedule, not the enacted structure.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -965,7 +1038,8 @@
       "label": "Partially overtaken by later law",
       "note": "China-focused tariff actions were imposed by executive order in 2025; this preset models a stylized schedule, not the enacted structure.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -1033,7 +1107,8 @@
       "label": "Partially overtaken by later law",
       "note": "Reciprocal-tariff actions were imposed by executive order in 2025; this preset models a stylized schedule, not the enacted structure.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -1063,7 +1138,16 @@
       "label": "Partially overtaken by later law",
       "note": "The July 2025 reconciliation law curtailed several IRA clean-energy credits. This preset models full repeal as scored before that law.",
       "pre_2025_law": true,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": {
+        "kind": "not_computed",
+        "billions": null,
+        "same_as": null,
+        "already_ended_billions": -542.653,
+        "reason": "P.L. 119-21 already ended or cut back many of these credits. JCT puts those terminations at $542.7 billion of revenue over FY2025-2034 (JCX-35-25 chapter 5, subchapter A). Repealing what is left would save less than the full-repeal figure, but this model has not scored the remainder. Subtracting JCT's number from Tax Foundation's would mix two estimators, so it is not done here.",
+        "source": "JCT JCX-35-25 (1 July 2025)",
+        "url": "https://www.jct.gov/publications/2025/jcx-35-25/"
+      }
     }
   },
   {
@@ -1091,7 +1175,8 @@
       "label": "Proposed — not enacted",
       "note": "Analytic option scored by CBO; never enacted.",
       "pre_2025_law": false,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": null
     }
   },
   {
@@ -1117,7 +1202,16 @@
       "label": "Superseded by later law",
       "note": "The July 2025 reconciliation law (P.L. 119-21) ended the clean-vehicle credits (secs. 30D and 45W) for vehicles acquired after 30 September 2025; JCT's estimate of that law (JCX-35-25) is the published figure in this preset's label. This preset scores repeal against pre-2025 law, where the credits continue.",
       "pre_2025_law": true,
-      "as_of": "2026-11-17"
+      "as_of": "2026-11-17",
+      "current_law": {
+        "kind": "already_law",
+        "billions": 0.0,
+        "same_as": null,
+        "already_ended_billions": null,
+        "reason": "P.L. 119-21 ended the clean-vehicle credits (secs. 30D and 45W) for vehicles acquired after 30 September 2025 (JCX-35-25 chapter 5, items A.2 and A.3). There is nothing left to repeal.",
+        "source": "JCT JCX-35-25 (1 July 2025)",
+        "url": "https://www.jct.gov/publications/2025/jcx-35-25/"
+      }
     }
   }
 ]

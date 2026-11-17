@@ -14,6 +14,8 @@ import { adjustable, tailorHref } from "@/lib/adjust";
 import { againstPre2025Law, estimateIdentity, identityLine, type EstimateIdentity } from "@/lib/identity";
 import { baselineEyebrow } from "@/lib/lawStatus";
 import { LawStatusNote } from "@/components/LawStatus";
+import { CurrentLawAnswer } from "@/components/CurrentLawAnswer";
+import { currentLawFigure } from "@/lib/lawStatus";
 import { citation } from "@/lib/share";
 import { CiteBlock } from "@/components/CiteBlock";
 import { StaleLink } from "@/components/StaleLink";
@@ -57,6 +59,9 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const modelIdentity = lawAware(estimateIdentity(c, "model"));
   const dynamicIdentity = lawAware(estimateIdentity(d, "model-dynamic"));
   const cite = citation({ title: name, identity: modelIdentity, path: `/explore/${id}`, scoresDate, site: siteUrl() });
+  const lawNow = currentLawFigure(status, (other) => preset(other)?.conventional.ten_year_deficit_impact ?? null);
+  const sameAs = status?.current_law?.same_as ?? null;
+  const sameAsName = sameAs ? shortLabel(preset(sameAs)?.conventional.policy_name ?? sameAs) : null;
   const published =
     info?.cbo_published && info.cbo_source ? estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published") : null;
   return (
@@ -69,9 +74,11 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         <StaleLink scoresDate={scoresDate} />
       </header>
 
+      {status ? <CurrentLawAnswer status={status} figure={lawNow} vintage={c.baseline_vintage} sameAsName={sameAsName} /> : null}
+
       <div className="headline">
         <div className="stage">
-          <span className="q">Ten-year deficit effect, conventional</span>
+          <span className="q">{status?.pre_2025_law ? "Against pre-2025 law: ten-year deficit effect, conventional" : "Ten-year deficit effect, conventional"}</span>
           <span className={`v ${headline > 0 ? "adds" : "reduces"}`}>{money(headline)}</span>
           <EstimateTag identity={modelIdentity} />
           <span className="q">{direction(headline)}</span>

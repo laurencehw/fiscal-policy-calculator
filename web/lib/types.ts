@@ -67,6 +67,22 @@ export type LawStatus = {
   /** The score is measured against law before P.L. 119-21, not the current baseline. */
   pre_2025_law: boolean;
   as_of: string;
+  /** For a pre-2025-law score: what the preset scores on the current-law baseline (fiscal_model/current_law_view.py). */
+  current_law?: CurrentLaw | null;
+};
+
+/**
+ * One pre-2025-law preset on the current-law baseline. "already_law" is $0;
+ * "same_as" is another preset's stored score; "not_computed" has no figure.
+ */
+export type CurrentLaw = {
+  kind: "already_law" | "same_as" | "not_computed";
+  billions: number | null;
+  same_as: string | null;
+  already_ended_billions: number | null;
+  reason: string;
+  source: string;
+  url: string;
 };
 
 export type PresetInfo = {
