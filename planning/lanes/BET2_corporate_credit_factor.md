@@ -112,3 +112,76 @@ The figure without the lane stays 15.1%, and both are printed.
 ## Outturn
 
 *(appended after implementation)*
+
+Appended 2026-11-17, after implementation. Nothing above the line was edited.
+
+### Predictions: every scored figure landed
+
+γ = 0.5974 / 0.8084 = **0.7390** (`marginal_credit_factor()` returns 0.739035).
+
+| Item | Predicted | Outturn |
+|---|--:|--:|
+| `cbo2019_opt24` | −$109.2B, 13.4% | −$109.2B, **13.4%** |
+| `cbo2021_opt19` | −$89.3B, 10.0% (under) | −$89.4B, **10.0%** |
+| `cbo2023_opt50` | −$135.3B, 4.6% | −$135.3B, **4.7%** |
+| `cbo_opt64` | −$144.9B, 6.8% | −$144.9B, **6.8%** |
+| Corporate class mean | 8.7% | **8.7%** (4 of 4 within 15%, mass 34.9) |
+| Pooled out-of-sample | 12.2% (±0.2), 30 within 15, 39 within 25 | **12.2%**, **30**, **39** (median 10.3%, mass 538.8) |
+| Pooled without the lane | 15.1% | **15.1%**, 26, 36, printed by `cold_holdout.py` beside the live figure |
+| `biden_corporate_28` | 29.1% (±1.5) | **29.1%** (−$955.3B) |
+| `biden_corporate_28_fy2022` | 11.4% (±1.5) | **11.4%**, still `calibrated_to_target=False` |
+| `trump_corporate_15` | 81.1% (±3) | **80.9%** (+$1,217.4B) |
+| 🏢 Biden Corporate 28% | about −$969B (±$15B) | **−$968.8B** |
+| 🏢 Trump Corporate 15% | about +$1,232B (±$25B) | **+$1,230.2B** |
+
+Decision 1's comparison on the three published corporate targets: `derived`
+**40.43%** against `reported` 62.75% (unmoved). At +7pp the derived path scores
+−$955.3B, inside the four-house span and near its Tax Foundation end, at a 56.3%
+share of the average base.
+
+### Falsification tests
+
+- **No non-corporate out-of-sample row moved.** Checked against `main`'s
+  `cold_holdout.py --json`: the only model figures that changed are the four
+  corporate rows and the three corporate calibrated-tier rows.
+- **`run_loo.py --donor-matrix` is byte-identical** to `main`.
+- **No calibration figure is a scorecard or preset target**, and none comes
+  from the four holdout rows: `tests/test_corporate_credit_factor.py` checks
+  both, and checks that the excluded Treasury figure really is a target.
+- **γ is more than 2pp from 0.80 and 0.85** (0.739).
+- **The +1pp share against 0.5785:** 1.9pp away, passes.
+- **The +1pp share against JCT's 0.590: FIRED.** The share is 0.5974, 0.74pp
+  from 0.590, inside the 1pp band §4 set. This was a drafting error in this
+  pre-registration, not something the code did. §2 itself predicts 59.74%, so
+  the prediction and the guard could never both hold. Nothing in the calibration
+  reads JCT: the share is the mean of Tax Foundation and PWBM, fixed before any
+  code. Laurence was asked (decision card, 2026-11-17) and chose to keep the lane
+  and record the miss. The test now pins the closeness as a finding
+  (0.70–0.80pp), so a later change cannot move the share nearer JCT without
+  failing. Read the corporate holdout result with this in mind. Two non-JCT
+  houses happen to average out within a point of JCT, and that is a large part
+  of why the four JCT rows land at 8.7%.
+
+### Departures from §5
+
+- **Two CI gates moved in this PR**: the corporate class ceiling 51 → **11** (`ceil(8.72 × 1.25)`) and the pooled within-25 floor 35 → **38** (`39 − 1`).
+  §5 left gates to a follow-up PR. `tests/test_ci_workflow.py` fails any class
+  ceiling more than twice its live mean, so leaving 51 would have turned CI
+  red, and `test_no_gate_is_looser_than_the_workflow_rule_derives` does the same for the pooled floor. The pooled mean ceiling stays 20.
+- **`biden_corporate_28` left the fitted tier** (fitted 15 → 14,
+  reconstructions 38 → 39), as PR #254 had it. The rule is PR #119's:
+  `BASELINE_TAXABLE_PROFITS_BILLIONS` is fitted so `reported` hits that target,
+  but the scorecard scores `derived`. No constant was retuned.
+
+### Surfaces
+
+- `cold_holdout.py` prints the pooled figure with and without the factor and
+  says the corporate class is a cross-house transfer test.
+- The corporate house strips mark Tax Foundation and PWBM "(calibrated to)",
+  and the strip's note says the model's closeness to those two is partly by
+  construction (`estimator_ranges.house_strip`, tested).
+- `corporate.py`, the corporate rows' known-limitations text, the Decision 6
+  caption, CLAUDE.md, README and docs call the factor "calibrated to Tax
+  Foundation and PWBM", never "sourced". Every preset JSON changed because the
+  corporate known-limitations text is embedded in each. Only the two corporate
+  presets changed in number.

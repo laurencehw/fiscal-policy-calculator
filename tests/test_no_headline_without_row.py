@@ -121,7 +121,7 @@ def test_every_badge_names_its_tier():
 
 
 def test_the_tier_composition_is_what_the_lane_registered():
-    """15 fitted / 26 unfitted reconstructions / 3 out-of-sample. If this moves,
+    """14 fitted / 27 unfitted reconstructions / 1 out-of-sample. If this moves,
     a benchmark changed tier and the docs quoting it are stale.
 
     H6 registered 20 / 21 / 3; H9's provenance pass then moved five fitted
@@ -140,12 +140,16 @@ def test_the_tier_composition_is_what_the_lane_registered():
     thin** and the count is pinned here so that reads as a finding rather than
     as a coincidence: R3 is the lane that widens the battery and should widen
     this alongside it.
+
+    The corporate credit-factor lane then moved a seventh, ``corporate-28pct``
+    / ``biden_corporate_28``, on the same H7 rule: ``$1,900B`` is fitted so
+    *reported* hits the target, and the scorecard / app score *derived*.
     """
     counts: dict[str, int] = {}
     for preset_id in PRESET_ID_TO_SCORECARD_ID:
         tier = get_validation_badge(preset_id)["tier"]
         counts[tier] = counts.get(tier, 0) + 1
-    assert counts == {"fitted": 15, "reconstruction": 26, "out_of_sample": 1}
+    assert counts == {"fitted": 14, "reconstruction": 27, "out_of_sample": 1}
 
 
 def test_the_three_tiers_are_never_collapsed_into_one_claim():

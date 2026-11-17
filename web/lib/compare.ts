@@ -9,8 +9,9 @@ export const MAX_COMPARE = 3;
 /**
  * The pair the home page opens on (U6). Both read off the out-of-sample tier:
  * the 39.6% top rate has its own pre-registered row, and the 45% top rate sits
- * in the same eleven-row class. The corporate presets are not used because the
- * 28% row is fitted, so agreement there is by construction.
+ * in the same eleven-row class. The corporate presets are not used: the 28%
+ * row is an unfitted reconstruction (rate-only identity vs a rate-plus-GILTI
+ * target) and the 15% row is a bundled reconstruction.
  */
 export const DEFAULT_PAIR = ["top-rate-39-6", "top-rate-45"] as const;
 

@@ -18,12 +18,12 @@ test("year table columns add across in the deficit convention", () => {
 test("the gap sentence names which figure the scorecard error belongs to", () => {
   const cred = corp.conventional.credibility as Credibility;
   const point = corp.conventional.ten_year_deficit_impact;
-  assert.ok(Math.abs(displayedGapPct(point, -1347) - 2.68) < 0.05);
+  assert.ok(Math.abs(displayedGapPct(point, -1347) - 28.08) < 0.05);
   const text = checkedSentence(cred, point, corp.conventional.budget_window);
-  assert.doesNotMatch(text, /this estimate is 4\.0% away/);
+  assert.doesNotMatch(text, /this estimate is 29\.1% away/);
   assert.match(text, /own window \(FY2025-2034\) and terms/);
-  assert.match(text, /4\.0% away/);
-  assert.match(text, /2\.7% from the published number/);
+  assert.match(text, /29\.1% away/);
+  assert.match(text, /28\.1% from the published number/);
 });
 
 test("when the page figure is the scorecard figure, the short sentence stands", () => {

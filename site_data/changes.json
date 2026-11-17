@@ -2,6 +2,54 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-17",
+      "category": "score",
+      "kind": "preset",
+      "id": "corporate-15pct",
+      "title": "🏢 Trump Corporate 15%",
+      "old": 1266.9,
+      "new": 1230.2,
+      "old_dynamic": 1432.1,
+      "new_dynamic": 1390.3,
+      "href": "/explore/corporate-15pct"
+    },
+    {
+      "date": "2026-11-17",
+      "category": "score",
+      "kind": "preset",
+      "id": "corporate-28pct",
+      "title": "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
+      "old": -1006.6,
+      "new": -968.8,
+      "old_dynamic": -1128.1,
+      "new_dynamic": -1085.9,
+      "href": "/explore/corporate-28pct"
+    },
+    {
+      "date": "2026-11-17",
+      "category": "score",
+      "kind": "preset",
+      "id": "corporate-28pct",
+      "title": "🏢 Biden Corporate 28% (Treasury: -$1.35T)",
+      "old": -1310.9,
+      "new": -1006.6,
+      "old_dynamic": -1467.3,
+      "new_dynamic": -1128.1,
+      "href": "/explore/corporate-28pct"
+    },
+    {
+      "date": "2026-11-17",
+      "category": "score",
+      "kind": "preset",
+      "id": "corporate-15pct",
+      "title": "🏢 Trump Corporate 15%",
+      "old": 1562.8,
+      "new": 1266.9,
+      "old_dynamic": 1768.5,
+      "new_dynamic": 1432.1,
+      "href": "/explore/corporate-15pct"
+    },
+    {
       "date": "2026-11-13",
       "category": "data",
       "kind": "cbo_estimate",

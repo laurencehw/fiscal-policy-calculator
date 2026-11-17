@@ -37,7 +37,7 @@ export function HouseStrip({ strip }: { strip: HouseStripData }) {
         {marks.map((mark) => (
           <span
             key={mark.key}
-            className={mark.kind === "model" ? "model" : mark.fitted ? "dot fitted" : "dot"}
+            className={mark.kind === "model" ? "model" : mark.fitted || mark.calibrated ? "dot fitted" : "dot"}
             style={{ left: `${mark.left}%` }}
             title={`${mark.label} ${money(mark.value)}`}
           />
@@ -46,12 +46,12 @@ export function HouseStrip({ strip }: { strip: HouseStripData }) {
       <ul className="houselist">
         {houses.map((mark) => (
           <li key={mark.key}>
-            <span className={mark.fitted ? "swatch fitted" : "swatch"} />
+            <span className={mark.fitted || mark.calibrated ? "swatch fitted" : "swatch"} />
             <EstimateTag
               short
               identity={estimateIdentity({ cbo_source: mark.label, budget_window: strip.window, credibility: null }, "published")}
             />
-            {mark.fitted ? " (fitted target)" : ""}: {money(mark.value)}
+            {mark.fitted ? " (fitted target)" : mark.calibrated ? " (calibrated to)" : ""}: {money(mark.value)}
           </li>
         ))}
         {model ? (

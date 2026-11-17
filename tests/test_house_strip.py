@@ -8,7 +8,7 @@ from pathlib import Path
 import api
 from fiscal_model.preset_ids import resolve_preset
 from fiscal_model.ui.estimator_ranges import corporate_estimator_range, house_strip
-from fiscal_model.ui.preset_validation import TIER_FITTED, get_validation_badge
+from fiscal_model.ui.preset_validation import TIER_RECONSTRUCTION, get_validation_badge
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,12 +28,16 @@ def test_the_corporate_strip_equals_the_converted_range():
     policy = _policy("corporate-28pct")
     model = _headline("corporate-28pct")
     badge = get_validation_badge("corporate-28pct")
-    assert badge is not None and badge["tier"] == TIER_FITTED
+    assert badge is not None and badge["tier"] == TIER_RECONSTRUCTION
     strip = house_strip(
         policy_id="biden_corporate_28",
         policy=policy,
         model_billions=model,
-        fitted_target_billions=float(badge["official"]),
+        # Reconstruction since the credit-factor lane: `$1,900B` is fitted so
+        # *reported* hits this target, and the scorecard / app score *derived*.
+        # Passing the official figure here would label Treasury a fitted
+        # target, which is the H6 lie this lane closed.
+        fitted_target_billions=None,
     )
     assert strip is not None
     rate = (float(policy._get_reform_rate()) - float(policy.baseline_rate)) * 100.0
@@ -43,7 +47,7 @@ def test_the_corporate_strip_equals_the_converted_range():
         estimate.value_billions for estimate in converted.estimates
     ]
     assert strip["model_billions"] == model
-    assert any(row["fitted"] for row in strip["estimates"])
+    assert not any(row["fitted"] for row in strip["estimates"])
 
 
 def test_the_15pct_strip_is_the_published_range_not_a_scaled_28pct():
@@ -82,3 +86,37 @@ def test_a_published_range_is_exported_for_the_three_range_rows():
         )
         assert strip is not None and strip["range"] is not None, preset_id
         assert strip["range"]["low_billions"] < strip["range"]["high_billions"]
+
+
+def test_the_corporate_strips_name_the_two_houses_the_model_is_calibrated_to():
+    """BET2: the credit factor is fitted to Tax Foundation and PWBM.
+
+    On both corporate strips the model's closeness to those two houses is
+    partly by construction, so they are marked and the caveat says so. JCT and
+    Treasury are not marked.
+    """
+    for preset_id, policy_id in (
+        ("corporate-28pct", "biden_corporate_28"),
+        ("corporate-15pct", "trump_corporate_15"),
+    ):
+        strip = house_strip(
+            policy_id=policy_id,
+            policy=_policy(preset_id),
+            model_billions=_headline(preset_id),
+        )
+        assert strip is not None
+        marked = {row["estimator"] for row in strip["estimates"] if row.get("calibrated")}
+        assert marked, preset_id
+        for name in marked:
+            assert "Tax Foundation" in name or "Penn Wharton" in name, name
+        assert "calibrated to Tax Foundation" in strip["caveat"]
+
+
+def test_a_non_corporate_strip_marks_nothing_calibrated():
+    from fiscal_model.corporate import CORPORATE_MODE_REPORTED, create_corporate_rate_change
+
+    policy = create_corporate_rate_change(0.07, mode=CORPORATE_MODE_REPORTED)
+    strip = house_strip(policy_id="biden_corporate_28", policy=policy, model_billions=-1397.2)
+    assert strip is not None
+    assert not any(row.get("calibrated") for row in strip["estimates"])
+    assert "calibrated to Tax Foundation" not in strip["caveat"]

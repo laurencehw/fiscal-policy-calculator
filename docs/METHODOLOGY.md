@@ -1093,19 +1093,20 @@ favour `derived`, with no tie-break and no re-weighting:
 
 | Metric | `reported` | `derived` |
 |---|---:|---:|
-| Mean abs error over the three published corporate targets | 62.75% | **61.43%** |
-| Position in the four-house estimator span at **+7pp** (−$1,349.9B to −$935.8B) | −$1,397.21B, **$47.27B outside**, larger than all four | **−$1,292.62B, inside** |
-| Implied marginal share of the vintage's average base, +7pp | 82.29% | **76.13%** |
+| Mean abs error over the three published corporate targets | 62.75% | **40.43%** |
+| Position in the four-house estimator span at **+7pp** (−$1,349.9B to −$935.8B) | −$1,397.21B, **$47.27B outside**, larger than all four | **−$955.29B, inside** |
+| Implied marginal share of the vintage's average base, +7pp | 82.29% | **56.3%** |
 
 **Three qualifications belong with the default and the module docstring carries
-all three.** (i) `derived` wins the mean **while losing two rows of three** — it
-takes the FY2022 rate-only Green Book row by 12.19 points and gives up the FY2025
-row by 0.31 and `trump_corporate_15` by 7.94; the row it wins is the only one
-whose *scope* matches what the factory builds, and the row it loses by a whisker
-is one `reported`'s constant is **fitted** to. (ii) **Neither mean is small**:
-61.43% against 62.75% is a choice between two wrong answers taken on a stated
-rule. (iii) **Nothing was retuned** — the fitted constant reads 1900.0 either
-side, asserted by a test.
+all three.** (i) `derived` wins the mean **and two of three rows** — it takes
+the FY2022 rate-only Green Book row and the 15% cut, and gives up the FY2025
+rate-plus-GILTI row whose `reported` constant is **fitted** to it. (ii) **Neither
+mean is small**: 40.43% against 62.75% is a choice between two wrong answers
+taken on a stated rule; the four JCT *Options* +1pp rows were held out of the
+credit-factor calibration. (iii) **Nothing was retuned** — the fitted constant
+reads 1900.0 either side, asserted by a test. The extra absorption is a two-house
+share calibrated to Tax Foundation and PWBM, not a Form 3800 split, and it lands
+0.7pp from JCT's own 59.0% (`planning/lanes/BET2_corporate_credit_factor.md`).
 
 **CBO's published loss-firm haircut is transcribed and deliberately not applied.**
 `dmyrevnfc = 0.85` and `dmyrevx = 0.80`
@@ -2233,11 +2234,11 @@ commit that lands *before* the commit that first scores it.
 | All ordinary rates +1pp | −$1,185B | −$920B | 22% | CBO Options 2025–2034 #45 |
 | Biden capital income at ordinary rates | −$289B | −$383B | 33% | Treasury (Green Book FY2025) |
 | CBO Option 46 alternative 2 (AGI surtax +2pp, $100K) | −$1,051B | −$658B | 37% | CBO Options 2025–2034 #46 |
-| Corporate rate +1pp | −$136B | −$196B | 45% | CBO Options 2025–2034 #64 (a **JCT** estimate) |
+| Corporate rate +1pp | −$136B | −$145B | 7% | CBO Options 2025–2034 #64 (a **JCT** estimate) |
 | CBO Option 46 alternative 1 (AGI surtax +1pp, $20K) | −$1,440B | −$723B | 50% | CBO Options 2025–2034 #46 |
 
-**44 pre-registered cases, mean absolute error 15.1% (median 12.1%); 26 of 44
-within 15%, 36 of 44 within 25%** (`scripts/cold_holdout.py`; full table in
+**44 pre-registered cases, mean absolute error 12.2% (median 10.3%); 30 of 44
+within 15%, 39 of 44 within 25%** (`scripts/cold_holdout.py`; full table in
 [VALIDATION.md](VALIDATION.md)). The same 44 rows read 18.0% and 35 of 44
 until PR #173 priced the three pre-2024 corporate rows on the CBO Outlook
 their own *Options* editions name. The selected rows above are a sample and some

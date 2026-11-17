@@ -380,6 +380,11 @@ def test_no_other_row_left_the_fitted_tier():
     a magnitude a later lane sourced is not a calibration to the target either,
     so the counts read 15/40. `calibrated_to_target` is now threaded through
     the expenditure runner as well, with the same `True` default.
+
+    The corporate credit-factor lane then moved a seventh,
+    `biden_corporate_28`, on the same rule: `$1,900B` is fitted so
+    *reported* hits this target, and the scorecard / app score *derived*.
+    Counts 14/41.
     """
     from fiscal_model.validation import GENERIC_CATEGORY, compute_scorecard
 
@@ -389,12 +394,13 @@ def test_no_other_row_left_the_fitted_tier():
     specialized = [e for e in summary.entries if e.category != GENERIC_CATEGORY]
     fitted = [e for e in specialized if e.calibrated_to_target]
     reconstructions = [e for e in specialized if not e.calibrated_to_target]
-    assert len(fitted) == 15, [e.policy_id for e in fitted]
-    # 40 since 2026-09-11. It was 34 from 2026-09-05, when the corporate/PTC
+    assert len(fitted) == 14, [e.policy_id for e in fitted]
+    # 41 since the credit-factor lane. It was 40 from 2026-09-11 (H7
+    # ``cap_charitable``), 34 from 2026-09-05 when the corporate/PTC
     # provenance lane registered the FY2022 Green Book's rate-only row as a
     # second published corporate benchmark, unfitted by construction; H9's
     # five revised rows are the five that joined it.
-    assert len(reconstructions) == 40, len(reconstructions)
+    assert len(reconstructions) == 41, len(reconstructions)
     # And every row that left is named, so "the tier shrank" can never be a diff
     # nobody had to explain.
     moved_by_h9 = {
@@ -407,6 +413,7 @@ def test_no_other_row_left_the_fitted_tier():
     reconstruction_ids = {e.policy_id for e in reconstructions}
     assert moved_by_h9 <= reconstruction_ids
     assert "cap_charitable" in reconstruction_ids
+    assert "biden_corporate_28" in reconstruction_ids
     assert not (moved_by_h9 & {e.policy_id for e in fitted})
 
 

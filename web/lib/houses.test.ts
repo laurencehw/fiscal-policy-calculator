@@ -17,7 +17,8 @@ test("the corporate strip's dots are the exported house figures, and the model i
     houses.map((mark) => mark.value),
     strip.estimates.map((row) => row.value_billions),
   );
-  assert.ok(houses.some((mark) => mark.fitted));
+  // Reconstruction since the credit-factor lane: no house is a fitted target.
+  assert.ok(houses.every((mark) => !mark.fitted));
   const ordered = [...marks].sort((a, b) => a.value - b.value);
   for (let i = 1; i < ordered.length; i++) assert.ok(ordered[i].left >= ordered[i - 1].left);
   assert.match(money(strip.model_billions), /\$/);

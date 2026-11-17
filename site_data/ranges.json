@@ -1,58 +1,64 @@
 {
   "corporate-28pct": {
     "policy_id": "biden_corporate_28",
-    "model_billions": -1310.9199937081369,
+    "model_billions": -968.8161023011095,
     "subject": "a 7.0pp corporate rate increase",
     "window": "FY2025–2034",
     "basis": "each house's own published ten-year score divided by its own rate step, times this policy's step",
-    "caveat": "Per-point dollars are not comparable across rate levels or scopes, which is why this is a range and not a consensus: Treasury's row moves the GILTI effective rate with the statutory rate, a rate cut is not a rate increase run backwards (Tax Foundation's Options 2.0 is the one edition pricing both directions in one model, and a point of cut costs about 29% more than a point of increase yields), and a run that also extends bonus depreciation prices something none of the four does.",
+    "caveat": "This calculator's corporate rate channel is calibrated to Tax Foundation's and Penn Wharton's rate-only scores of 21% to 28%, so its closeness to those two houses is partly by construction. The four CBO/JCT Options rows were held out of that calibration. Per-point dollars are not comparable across rate levels or scopes, which is why this is a range and not a consensus: Treasury's row moves the GILTI effective rate with the statutory rate, a rate cut is not a rate increase run backwards (Tax Foundation's Options 2.0 is the one edition pricing both directions in one model, and a point of cut costs about 29% more than a point of increase yields), and a run that also extends bonus depreciation prices something none of the four does.",
     "estimates": [
       {
         "estimator": "Treasury OTA",
         "document": "General Explanations of the Administration's FY2025 Revenue Proposals (Green Book), \"Raise the corporate income tax rate to 28 percent\"",
         "value_billions": -1349.9410000000007,
-        "fitted": true
+        "fitted": false,
+        "calibrated": false
       },
       {
         "estimator": "Penn Wharton Budget Model",
         "document": "President Biden's FY2025 Budget Proposal (22 May 2024), \"Raise the corporate income tax rate to 28 percent\"",
         "value_billions": -1093.0000000000005,
-        "fitted": false
+        "fitted": false,
+        "calibrated": true
       },
       {
         "estimator": "JCT",
         "document": "Options for Reducing the Deficit: 2025 to 2034 (pub. 60557), Option 64, \"Increase the Corporate Income Tax Rate by 1 Percentage Point\"",
         "value_billions": -949.9000000000004,
-        "fitted": false
+        "fitted": false,
+        "calibrated": false
       },
       {
         "estimator": "Tax Foundation",
         "document": "Biden Budget Tax Proposals: Details and Analysis (21 June 2024, updated 30 October 2024), \"Raise the corporate income tax rate to 28 percent\"",
         "value_billions": -935.8000000000004,
-        "fitted": false
+        "fitted": false,
+        "calibrated": true
       }
     ],
     "range": null
   },
   "corporate-15pct": {
     "policy_id": "trump_corporate_15",
-    "model_billions": 1562.7532398095523,
+    "model_billions": 1230.2222113432222,
     "subject": "Published scores of this reform",
     "window": "",
     "basis": "",
-    "caveat": "",
+    "caveat": "This calculator's corporate rate channel is calibrated to Tax Foundation's and Penn Wharton's rate-only scores of 21% to 28%, so its closeness to those two houses is partly by construction. The four CBO/JCT Options rows were held out of that calibration.",
     "estimates": [
       {
         "estimator": "Penn Wharton Budget Model",
         "document": "Garrett Watson and Erica York, 'A Lower Corporate Tax Rate Can Be Part of Broader Tax Reform', Tax Foundation (17 July 2024, updated 23 October 2024)",
         "value_billions": 595.0,
-        "fitted": false
+        "fitted": false,
+        "calibrated": true
       },
       {
         "estimator": "Tax Foundation",
         "document": "Garrett Watson and Erica York, 'A Lower Corporate Tax Rate Can Be Part of Broader Tax Reform', Tax Foundation (17 July 2024, updated 23 October 2024)",
         "value_billions": 673.1,
-        "fitted": false
+        "fitted": false,
+        "calibrated": true
       }
     ],
     "range": {

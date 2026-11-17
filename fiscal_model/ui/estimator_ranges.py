@@ -561,6 +561,33 @@ def _direct_range(published: PublishedRange) -> tuple[list[dict[str, Any]], str]
     return [], f"{published.source_name} range"
 
 
+#: The houses the corporate marginal-credit factor is calibrated to
+#: (``fiscal_model.corporate.RATE_ONLY_CALIBRATION_SHARES``,
+#: ``planning/lanes/BET2_corporate_credit_factor.md``). On a corporate strip the
+#: model's agreement with these two is partly by construction, so the strip
+#: marks them and says so.
+_CORPORATE_CALIBRATION_HOUSES = ("Tax Foundation", "Penn Wharton")
+
+_CORPORATE_CALIBRATION_NOTE = (
+    "This calculator's corporate rate channel is calibrated to Tax Foundation's "
+    "and Penn Wharton's rate-only scores of 21% to 28%, so its closeness to "
+    "those two houses is partly by construction. The four CBO/JCT Options "
+    "rows were held out of that calibration."
+)
+
+
+def _calibrated_to(estimator: str, policy: Any) -> bool:
+    """True when the model's corporate rate channel is fitted to this house."""
+    if not _uses_corporate_credit_factor(policy):
+        return False
+    return any(name in estimator for name in _CORPORATE_CALIBRATION_HOUSES)
+
+
+def _uses_corporate_credit_factor(policy: Any) -> bool:
+    uses = getattr(policy, "uses_projected_base", None)
+    return bool(callable(uses) and uses())
+
+
 def house_strip(
     *,
     policy_id: str,
@@ -586,6 +613,8 @@ def house_strip(
     span = None
     if published is not None:
         houses, label = _direct_range(published)
+        for house in houses:
+            house["calibrated"] = _calibrated_to(house["estimator"], policy)
         estimates = houses
         subject = "Published scores of this reform"
         span = {
@@ -625,10 +654,13 @@ def house_strip(
                             "document": estimate.document,
                             "value_billions": estimate.value_billions,
                             "fitted": fitted,
+                            "calibrated": _calibrated_to(estimate.estimator, policy),
                         }
                     )
     if not estimates and span is None:
         return None
+    if any(row.get("calibrated") for row in estimates):
+        caveat = f"{_CORPORATE_CALIBRATION_NOTE} {caveat}".strip()
     return {
         "policy_id": policy_id,
         "model_billions": model_billions,

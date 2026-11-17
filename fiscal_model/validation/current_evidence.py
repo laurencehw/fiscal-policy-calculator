@@ -62,9 +62,9 @@ QUOTED_ROW_IDS: tuple[str, ...] = (
     "cbo_opt46_agi_surtax_2pp_100k",
     "biden_high_income_tax",
     "cbo_opt64_corporate_rate_1pp",
-    # Calibrated (fitted) sample rows.
+    # Calibrated sample rows (fitted unless noted).
     "tcja_full_extension",
-    "biden_corporate_28",
+    "biden_corporate_28",  # reconstruction since the credit-factor lane
     "biden_ctc_2021",
     "biden_estate_reform",
     "repeal_corporate_amt",
