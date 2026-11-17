@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleanLabel, direction, dollars, money, shortLabel } from "./format";
+import { cleanLabel, direction, dollars, money, plainDescription, shortLabel } from "./format";
 
 test("money carries a sign and one decimal", () => {
   assert.equal(money(4581.937589), "+$4,581.9B");
@@ -26,4 +26,12 @@ test("dollars rounds to whole dollars with a sign", () => {
   assert.equal(dollars(28272.51), "+$28,273");
   assert.equal(dollars(-1274.4), "-$1,274");
   assert.equal(dollars(0.3), "$0");
+});
+
+test("plainDescription drops Markdown and status emoji", () => {
+  assert.equal(
+    plainDescription("Raises \\$5B. **No official score**: a *combined* package, a 🟡 reconstruction."),
+    "Raises $5B. No official score: a combined package, a reconstruction.",
+  );
+  assert.equal(plainDescription("2 * 3 and 4 * 5"), "2 * 3 and 4 * 5");
 });

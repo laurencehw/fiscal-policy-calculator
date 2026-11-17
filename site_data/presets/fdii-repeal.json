@@ -2,7 +2,7 @@
   "id": "fdii-repeal",
   "conventional": {
     "policy_name": "🌍 Repeal FDII (-$158B)",
-    "policy_description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~\\$158B over 10 years (Treasury FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
+    "policy_description": "Repeal the deduction for foreign-derived intangible income (FDII). Published estimate: raises about \\$158B over ten years (Treasury, FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -110.69549999999997,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌍 Repeal FDII (-$158B)",
-    "policy_description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~\\$158B over 10 years (Treasury FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
+    "policy_description": "Repeal the deduction for foreign-derived intangible income (FDII). Published estimate: raises about \\$158B over ten years (Treasury, FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -110.69549999999997,

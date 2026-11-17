@@ -783,9 +783,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Repeal federal estate tax entirely. Tax Foundation's *Options 3.0* "
-            "Option 83 puts it at \\$407B over CY2027-2036 -- a row that repeals "
-            "the estate **and gift** taxes, so it is the broader of the two."
+            "Repeal the federal estate tax. Published estimate: about \\$407B over CY2027-2036 (Tax Foundation, Options 3.0, Option 83), which repeals the gift tax too, so it is the broader of the two."
         ),
         "is_tcja": False,
         "is_corporate": False,
@@ -806,11 +804,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Apply SS tax to wages above \\$250K (donut hole). CBO's *Options for "
-            "Reducing the Deficit: 2025 to 2034* Option 62 alternative 2 scores "
-            "the same design at \\$1,427B over FY2025-2034. The model still "
-            "returns \\$2,700B, because its covered-wage band was set from the "
-            "superseded target and retuning it would hide the miss."
+            "Apply the Social Security payroll tax to wages above \\$250K (a donut hole). Published estimate: \\$1,427B over FY2025-2034 (CBO, Options for Reducing the Deficit: 2025 to 2034, Option 62 alternative 2). This calculator's estimate is much larger because of how it sets the taxed wage band, a known miss."
         ),
         "is_tcja": False,
         "is_corporate": False,
@@ -838,7 +832,7 @@ PRESET_POLICIES = {
     "⚖️ AMT: Extend TCJA Relief ($1.36T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. CRS/CBO put the 10-year cost at ~\\$1.36T.",
+        "description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K married filing jointly) past 2025. Published estimate: about \\$1.36T over ten years (CRS R48286 Table 1, transcribing CBO).",
         "is_tcja": False,
         "is_corporate": False,
         "is_amt": True,
@@ -857,10 +851,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA "
-            "2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT "
-            "as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that "
-            "revenue."
+            "Repeal the 15% corporate book minimum tax (CAMT) enacted in the IRA in 2022. Published estimate: JCT scored enacting the CAMT as raising \\$222.2B (JCX-18-22), so repeal costs about that much over ten years."
         ),
         "is_tcja": False,
         "is_corporate": False,
@@ -879,7 +870,7 @@ PRESET_POLICIES = {
     "🏥 Repeal ACA Premium Credits (-$1.1T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal all ACA premium subsidies. Saves ~\\$1.1T but ~19M lose subsidized coverage.",
+        "description": "Repeal all ACA premium tax credits. Published estimate: saves about \\$1.1T over ten years (CBO, 2024), with roughly 19 million people losing subsidized coverage.",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,
@@ -945,13 +936,7 @@ PRESET_POLICIES = {
         # is not left to assume it was read off a source.
         "agi_inclusive_base": True,
         "description": (
-            "5pp surtax on income above \\$1M, scored on the AGI-inclusive "
-            "base — capital gains and qualified dividends included. "
-            "**No official score**: nothing published scores this reform, so "
-            "the model's own estimate is the only number shown, and the "
-            "AGI-inclusive base is a design choice of the preset by analogy "
-            "with the Warren and Medicare surtaxes rather than a reading of a "
-            "source document."
+            "A 5pp surtax on income above \\$1M, scored on the AGI-inclusive base, with capital gains and qualified dividends included. No official score: nothing published scores this reform, so the figure shown is this calculator's own estimate. The AGI-inclusive base is a design choice, by analogy with the Warren and Medicare surtaxes, not something read from a source."
         ),
         "is_tcja": False,
     },
@@ -988,10 +973,7 @@ PRESET_POLICIES = {
         # to read one off. See planning/lanes/HSB_h2b_agi_column.md.
         "income_measure": "agi",
         "description": (
-            "3pp surtax on **AGI** above \\$2M, Warren-style, scored on the "
-            "AGI-inclusive base its TPC source uses — realized capital gains "
-            "and qualified dividends included. Raises roughly \\$300-400B over "
-            "10 years depending on behavioral response."
+            "A 3pp surtax on AGI above \\$2M, Warren-style, scored on the AGI-inclusive base, with realized capital gains and qualified dividends included."
         ),
         "is_tcja": False,
         "ui_category": "Income Tax",
@@ -1000,13 +982,7 @@ PRESET_POLICIES = {
         "rate_change": 8.0,
         "threshold": 609_350,
         "description": (
-            "Raise the top marginal rate from 37% to 45% on income above "
-            "the current 37% bracket floor (\\$609,350 single, 2025). "
-            "Illustrative of the upper end of progressive proposals. "
-            "**No official score**: the \\$420B figure this preset used to "
-            "quote could not be traced to any TPC, CBO or JCT publication and "
-            "was withdrawn in the Phase E provenance pass, so the model's own "
-            "estimate is the only number shown."
+            "Raise the top marginal rate from 37% to 45% on income above the 37% bracket floor (\\$609,350 single, 2025). It sits at the upper end of progressive proposals. No official score exists for it, so the figure shown is this calculator's own estimate."
         ),
         "is_tcja": False,
         "ui_category": "Income Tax",
@@ -1023,11 +999,7 @@ PRESET_POLICIES = {
         # AGI-inclusive row reported 1.5%. A transcription, not a rule.
         "agi_inclusive_base": True,
         "description": (
-            "+2pp Medicare surcharge on wage **and investment** income above "
-            "\\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green "
-            "Book row uses. Extends the NIIT's 3.8% surtax logic to a broader "
-            "base. Similar in structure to the Biden 2025 Medicare surtax "
-            "proposal."
+            "A 2pp Medicare surcharge on wage and investment income above \\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green Book row uses. It extends the logic of the NIIT's 3.8% surtax to a broader base, and is similar in structure to the Biden 2025 Medicare surtax proposal."
         ),
         "is_tcja": False,
         "ui_category": "Income Tax",
@@ -1036,7 +1008,7 @@ PRESET_POLICIES = {
     "🌍 Biden GILTI Reform (-$374B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~\\$374B over 10 years (Treasury FY2025 Green Book).",
+        "description": "Country-by-country GILTI at 21% and no QBAI exemption. Published estimate: raises about \\$374B over ten years (Treasury, FY2025 Green Book).",
         "is_tcja": False,
         "is_international": True,
         "international_type": "biden_gilti",
@@ -1044,7 +1016,7 @@ PRESET_POLICIES = {
     "🌍 Repeal FDII (-$158B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal Foreign-Derived Intangible Income deduction. Raises ~\\$158B over 10 years (Treasury FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
+        "description": "Repeal the deduction for foreign-derived intangible income (FDII). Published estimate: raises about \\$158B over ten years (Treasury, FY2025 Green Book, before the R&D proposal Treasury pairs it with).",
         "is_tcja": False,
         "is_international": True,
         "international_type": "fdii_repeal",
@@ -1052,7 +1024,7 @@ PRESET_POLICIES = {
     "🌍 Pillar Two Adoption (-$80B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Adopt OECD Pillar Two 15% global minimum tax. JCT estimate: raises ~\\$80B.",
+        "description": "Adopt the OECD Pillar Two 15% global minimum tax. Published estimate: raises about \\$80B (JCT).",
         "is_tcja": False,
         "is_international": True,
         "international_type": "pillar_two",
@@ -1060,7 +1032,7 @@ PRESET_POLICIES = {
     "🌍 Biden International Package (-$632B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Full Biden international reform: GILTI at 21% per-country + FDII repeal + UTPR. Raises ~\\$632B (Treasury FY2025 Green Book subtotal).",
+        "description": "The full Biden international package: per-country GILTI at 21%, FDII repeal and the UTPR. Published estimate: raises about \\$632B over ten years (Treasury, FY2025 Green Book subtotal).",
         "is_tcja": False,
         "is_international": True,
         "international_type": "biden_full",
@@ -1078,10 +1050,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises "
-            "~\\$340B with diminishing returns. **Illustrative**: an unfitted "
-            "reconstruction a long way from its published figure, shown for "
-            "the shape of the policy rather than as an estimate of it."
+            "Double IRS enforcement funding beyond IRA levels (about \\$16B a year). Published estimate: about \\$340B over ten years (Treasury and Sarin-Summers, 2021), with diminishing returns. Illustrative: an unfitted reconstruction a long way from that figure, shown for the shape of the policy rather than as an estimate of it."
         ),
         "is_tcja": False,
         "is_enforcement": True,
@@ -1092,12 +1061,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Targeted enforcement for >\\$400K returns and large partnerships. "
-            "\\$5B/year, high ROI. **No official score**: nothing published "
-            "scores a *targeted* high-income enforcement increase. CBO scores "
-            "*untargeted* appropriations only — \\$20B of funding for "
-            "−\\$41B of deficit and \\$40B for −\\$63B (publication 59972, "
-            "FY2024-2034). The model's own estimate is the only number shown."
+            "Targeted enforcement on returns above \\$400K and large partnerships, at \\$5B a year. No official score: nothing published scores a targeted increase. CBO scores untargeted funding only, \\$20B of funding for -\\$41B of deficit and \\$40B for -\\$63B (publication 59972, FY2024-2034). The figure shown is this calculator's own estimate."
         ),
         "is_tcja": False,
         "is_enforcement": True,
@@ -1108,10 +1072,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity "
-            "delays. Saves ~\\$500B. **Illustrative**: an unfitted "
-            "reconstruction a long way from its published figure, shown for "
-            "the shape of the policy rather than as an estimate of it."
+            "Negotiate prices for 50 Medicare drugs (against the IRA's 20) and remove exclusivity delays. No published score of this design exists. Illustrative: an unfitted reconstruction, shown for the shape of the policy rather than as an estimate of it."
         ),
         "is_tcja": False,
         "is_pharma": True,
@@ -1122,11 +1083,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "\\$35/month insulin cap for Medicare and private insurance. A "
-            "cost-sharing cap shifts liability onto plans, so CBO scores it as "
-            "adding ~\\$11B to the deficit over 10 years. **Illustrative**: an "
-            "unfitted reconstruction a long way from its published figure, "
-            "shown for the shape of the policy rather than as an estimate of it."
+            "A \\$35 a month insulin cap for Medicare and private insurance. A cost-sharing cap shifts costs onto plans, so CBO scores it as adding about \\$11B to the deficit over ten years. Illustrative: an unfitted reconstruction a long way from that published figure, shown for the shape of the policy rather than as an estimate of it."
         ),
         "is_tcja": False,
         "is_pharma": True,
@@ -1137,10 +1094,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Cap Medicare drug prices at 120% of OECD international average. "
-            "Saves ~\\$100B. **Illustrative**: an unfitted reconstruction a "
-            "long way from its published figure, shown for the shape of the "
-            "policy rather than as an estimate of it."
+            "Cap Medicare drug prices at 120% of the OECD average. No published budget score of this design exists; the figure it used to be compared with came from a price index, not a cost estimate. Illustrative: an unfitted reconstruction, shown for the shape of the policy rather than as an estimate of it."
         ),
         "is_tcja": False,
         "is_pharma": True,
@@ -1151,14 +1105,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Expanded negotiation + insulin cap + manufacturer discounts. "
-            "**No official score**: nothing published scores a *combined* "
-            "package of these three, and the nearest published figures are "
-            "components an order of magnitude smaller (CBO put the IRA's own "
-            "negotiation at \\$98.5B over FY2022-2031). The model's own "
-            "estimate is the only number shown, and it is a 🟡 reconstruction "
-            "of a channel nobody has scored. **Illustrative**: shown for the "
-            "shape of the policy rather than as an estimate of it."
+            "Expanded negotiation, a universal insulin cap and manufacturer discounts together. No official score: nothing published scores the three combined, and the nearest published figures are much smaller components (CBO put the IRA's own negotiation at \\$98.5B over FY2022-2031). The figure shown is this calculator's own estimate. Illustrative: shown for the shape of the policy rather than as an estimate of it."
         ),
         "is_tcja": False,
         "is_pharma": True,
@@ -1169,7 +1116,7 @@ PRESET_POLICIES = {
     "🏭 Trump Universal 10% Tariff (-$2.17T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "10% tariff on all imports. Raises ~\\$2.17T conventionally (Tax Foundation FF861) but costs ~\\$1,700/household in higher prices.",
+        "description": "A 10% tariff on all imports. Published estimate: raises about \\$2.17T over ten years, conventional (Tax Foundation, FF861).",
         "is_tcja": False,
         "is_trade": True,
         "trade_type": "universal_10",
@@ -1189,7 +1136,7 @@ PRESET_POLICIES = {
     "🏭 25% Auto Tariff (-$386B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "25% tariff on imported vehicles and parts (~\\$380B base). Raises ~\\$386B conventionally (Tax Foundation tariff tracker).",
+        "description": "A 25% tariff on imported vehicles and parts (about \\$380B of imports). Published estimate: raises about \\$386B over ten years, conventional (Tax Foundation tariff tracker).",
         "is_tcja": False,
         "is_trade": True,
         "trade_type": "auto_25",
@@ -1215,11 +1162,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Full repeal of IRA clean energy tax credits. Tax Foundation "
-            "(McBride, House Oversight testimony, May 2025) puts it at "
-            "\\$851B over FY2025-2034. The \\$783B this used to cite to a March "
-            "2024 CBO publication was the model's own output: no CBO or JCT "
-            "document carries it."
+            "Full repeal of the IRA clean energy tax credits. Published estimate: about \\$851B over FY2025-2034 (Tax Foundation, McBride, House Oversight testimony, May 2025)."
         ),
         "is_tcja": False,
         "is_climate": True,
@@ -1228,7 +1171,7 @@ PRESET_POLICIES = {
     "🌱 Carbon Tax \\$50/ton (-$1.7T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "\\$50/ton CO2 tax with 5% annual escalator. Raises ~\\$1.7T over 10 years.",
+        "description": "A \\$50 per ton CO2 tax rising 5% a year. No published score of this design exists. The \\$1.7T on the Build list is a CBO-style estimate, not a CBO or JCT figure, and the figure shown here is this calculator's own estimate.",
         "is_tcja": False,
         "is_climate": True,
         "climate_type": "carbon_50",
@@ -1237,13 +1180,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "\\$25/ton CO2 starter tax with 5% annual escalator. "
-            "**No official score is quoted**: a real document does exist, on a "
-            "different decade — CBO and JCT's *Options for Reducing the "
-            "Deficit: 2023 to 2032* scores \\$25/tonne rising 5% plus "
-            "inflation at −\\$865B over FY2023-2032 — but this repository has "
-            "no scorecard row for it, so the model's own estimate is the only "
-            "number shown."
+            "A \\$25 per ton CO2 tax rising 5% a year. No official score of this design covers this window. CBO and JCT's Options for Reducing the Deficit: 2023 to 2032 scores a \\$25 per tonne tax rising 5% plus inflation at -\\$865B over FY2023-2032, a different decade, so the figure shown is this calculator's own estimate."
         ),
         "is_tcja": False,
         "is_climate": True,
@@ -1252,7 +1189,7 @@ PRESET_POLICIES = {
     "🌱 Repeal EV Credits (-$182B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Saves ~\\$182B over FY2025-2034 (JCT JCX-35-25).",
+        "description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Published estimate: JCT put ending these credits at about \\$182B over FY2025-2034 (JCX-35-25), in its score of P.L. 119-21.",
         "is_tcja": False,
         "is_climate": True,
         "climate_type": "repeal_ev",
@@ -1261,10 +1198,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Extend IRA clean energy credits 5 years beyond the 2032 sunset. "
-            "**No official score**: every published figure scores the credits "
-            "*as enacted* or their *repeal*, never an incremental five-year "
-            "extension. The model's own estimate is the only number shown."
+            "Extend the IRA clean energy credits five years beyond the 2032 sunset. No official score: published figures cover the credits as enacted or their repeal, never a five-year extension. The figure shown is this calculator's own estimate."
         ),
         "is_tcja": False,
         "is_climate": True,

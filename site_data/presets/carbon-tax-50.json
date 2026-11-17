@@ -2,7 +2,7 @@
   "id": "carbon-tax-50",
   "conventional": {
     "policy_name": "🌱 Carbon Tax \\$50/ton (-$1.7T)",
-    "policy_description": "\\$50/ton CO2 tax with 5% annual escalator. Raises ~\\$1.7T over 10 years.",
+    "policy_description": "A \\$50 per ton CO2 tax rising 5% a year. No published score of this design exists. The \\$1.7T on the Build list is a CBO-style estimate, not a CBO or JCT figure, and the figure shown here is this calculator's own estimate.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1714.7797054459088,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌱 Carbon Tax \\$50/ton (-$1.7T)",
-    "policy_description": "\\$50/ton CO2 tax with 5% annual escalator. Raises ~\\$1.7T over 10 years.",
+    "policy_description": "A \\$50 per ton CO2 tax rising 5% a year. No published score of this design exists. The \\$1.7T on the Build list is a CBO-style estimate, not a CBO or JCT figure, and the figure shown here is this calculator's own estimate.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1714.7797054459088,
