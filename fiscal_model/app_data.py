@@ -688,7 +688,7 @@ PRESET_POLICIES = {
     "🏛️ TCJA Extension (No SALT Cap)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Extend TCJA but repeal the \\$10K SALT cap (adds ~\\$1.9T to cost). Popular bipartisan proposal.",
+        "description": "Extend TCJA and let the \\$10,000 SALT cap lapse. No agency scores this package as one row; the list price is this calculator's own decomposition.",
         "is_tcja": True,
         "tcja_type": "no_salt",
     },
@@ -783,9 +783,9 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Repeal federal estate tax entirely. Tax Foundation's *Options 3.0* "
-            "Option 83 puts it at \\$407B over CY2027-2036 -- a row that repeals "
-            "the estate **and gift** taxes, so it is the broader of the two."
+            "Repeal the federal estate tax entirely. Tax Foundation Options 3.0, "
+            "Option 83, puts this at \\$407B over calendar years 2027-2036. That "
+            "row repeals the estate and gift taxes, so it is the broader of the two."
         ),
         "is_tcja": False,
         "is_corporate": False,
@@ -806,11 +806,11 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Apply SS tax to wages above \\$250K (donut hole). CBO's *Options for "
-            "Reducing the Deficit: 2025 to 2034* Option 62 alternative 2 scores "
-            "the same design at \\$1,427B over FY2025-2034. The model still "
-            "returns \\$2,700B, because its covered-wage band was set from the "
-            "superseded target and retuning it would hide the miss."
+            "Apply Social Security tax to wages above \\$250,000 (a donut hole). "
+            "CBO's Options for Reducing the Deficit: 2025 to 2034, Option 62 "
+            "alternative 2, scores the same design at \\$1,427B over FY2025-2034. "
+            "This calculator's figure is larger because it has not been retuned "
+            "to that score."
         ),
         "is_tcja": False,
         "is_corporate": False,
@@ -857,10 +857,10 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA "
-            "2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT "
-            "as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that "
-            "revenue."
+            "Repeal the 15% corporate book minimum tax (CAMT) enacted by the "
+            "Inflation Reduction Act. JCT scored enacting CAMT as a \\$222.2B "
+            "revenue raiser (JCX-18-22), so repeal costs about \\$220B over "
+            "10 years."
         ),
         "is_tcja": False,
         "is_corporate": False,
@@ -879,7 +879,7 @@ PRESET_POLICIES = {
     "🏥 Repeal ACA Premium Credits (-$1.1T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal all ACA premium subsidies. Saves ~\\$1.1T but ~19M lose subsidized coverage.",
+        "description": "Repeal all ACA premium subsidies. CBO scores this at about \\$1.1 trillion over ten years; about 19 million people would lose subsidized coverage.",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,
@@ -947,9 +947,9 @@ PRESET_POLICIES = {
         "description": (
             "5pp surtax on income above \\$1M, scored on the AGI-inclusive "
             "base — capital gains and qualified dividends included. "
-            "**No official score**: nothing published scores this reform, so "
-            "the model's own estimate is the only number shown, and the "
-            "AGI-inclusive base is a design choice of the preset by analogy "
+            "No official score: nothing published scores this reform, so "
+            "this calculator's estimate is the only number shown, and the "
+            "AGI-inclusive base is a design choice of this proposal by analogy "
             "with the Warren and Medicare surtaxes rather than a reading of a "
             "source document."
         ),
@@ -988,10 +988,9 @@ PRESET_POLICIES = {
         # to read one off. See planning/lanes/HSB_h2b_agi_column.md.
         "income_measure": "agi",
         "description": (
-            "3pp surtax on **AGI** above \\$2M, Warren-style, scored on the "
+            "3pp surtax on AGI above \\$2M, Warren-style, scored on the "
             "AGI-inclusive base its TPC source uses — realized capital gains "
-            "and qualified dividends included. Raises roughly \\$300-400B over "
-            "10 years depending on behavioral response."
+            "and qualified dividends included."
         ),
         "is_tcja": False,
         "ui_category": "Income Tax",
@@ -1002,11 +1001,9 @@ PRESET_POLICIES = {
         "description": (
             "Raise the top marginal rate from 37% to 45% on income above "
             "the current 37% bracket floor (\\$609,350 single, 2025). "
-            "Illustrative of the upper end of progressive proposals. "
-            "**No official score**: the \\$420B figure this preset used to "
-            "quote could not be traced to any TPC, CBO or JCT publication and "
-            "was withdrawn in the Phase E provenance pass, so the model's own "
-            "estimate is the only number shown."
+            "No official score: a \\$420B figure previously quoted here could "
+            "not be traced to any TPC, CBO or JCT publication, so this "
+            "calculator's estimate is the only number shown."
         ),
         "is_tcja": False,
         "ui_category": "Income Tax",
@@ -1023,7 +1020,7 @@ PRESET_POLICIES = {
         # AGI-inclusive row reported 1.5%. A transcription, not a rule.
         "agi_inclusive_base": True,
         "description": (
-            "+2pp Medicare surcharge on wage **and investment** income above "
+            "+2pp Medicare surcharge on wage and investment income above "
             "\\$400K, scored on the AGI-inclusive base Treasury's FY2025 Green "
             "Book row uses. Extends the NIIT's 3.8% surtax logic to a broader "
             "base. Similar in structure to the Biden 2025 Medicare surtax "
@@ -1078,10 +1075,10 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises "
-            "~\\$340B with diminishing returns. **Illustrative**: an unfitted "
-            "reconstruction a long way from its published figure, shown for "
-            "the shape of the policy rather than as an estimate of it."
+            "Double IRS enforcement beyond IRA levels (about \\$16B per year). "
+            "Treasury and Sarin-Summers put a similar expansion at about "
+            "\\$340B over ten years. This row is an illustrative reconstruction "
+            "of that policy, not a reproduction of their figure."
         ),
         "is_tcja": False,
         "is_enforcement": True,
@@ -1092,12 +1089,12 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Targeted enforcement for >\\$400K returns and large partnerships. "
-            "\\$5B/year, high ROI. **No official score**: nothing published "
-            "scores a *targeted* high-income enforcement increase. CBO scores "
-            "*untargeted* appropriations only — \\$20B of funding for "
+            "Targeted enforcement for returns above \\$400K and large "
+            "partnerships, at about \\$5B per year. No official score: nothing "
+            "published scores a targeted high-income enforcement increase. "
+            "CBO scores untargeted appropriations only — \\$20B of funding for "
             "−\\$41B of deficit and \\$40B for −\\$63B (publication 59972, "
-            "FY2024-2034). The model's own estimate is the only number shown."
+            "FY2024-2034). This calculator's estimate is the only number shown."
         ),
         "is_tcja": False,
         "is_enforcement": True,
@@ -1108,10 +1105,9 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Negotiate 50 Medicare drugs (vs IRA's 20), remove exclusivity "
-            "delays. Saves ~\\$500B. **Illustrative**: an unfitted "
-            "reconstruction a long way from its published figure, shown for "
-            "the shape of the policy rather than as an estimate of it."
+            "Negotiate 50 Medicare drugs (versus the IRA's 20) and remove "
+            "exclusivity delays. This is an illustrative reconstruction of "
+            "the policy's shape, not a quote of a published score."
         ),
         "is_tcja": False,
         "is_pharma": True,
@@ -1124,9 +1120,8 @@ PRESET_POLICIES = {
         "description": (
             "\\$35/month insulin cap for Medicare and private insurance. A "
             "cost-sharing cap shifts liability onto plans, so CBO scores it as "
-            "adding ~\\$11B to the deficit over 10 years. **Illustrative**: an "
-            "unfitted reconstruction a long way from its published figure, "
-            "shown for the shape of the policy rather than as an estimate of it."
+            "adding about \\$11B to the deficit over 10 years. This row is an "
+            "illustrative reconstruction of that policy."
         ),
         "is_tcja": False,
         "is_pharma": True,
@@ -1137,10 +1132,9 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Cap Medicare drug prices at 120% of OECD international average. "
-            "Saves ~\\$100B. **Illustrative**: an unfitted reconstruction a "
-            "long way from its published figure, shown for the shape of the "
-            "policy rather than as an estimate of it."
+            "Cap Medicare drug prices at 120% of the OECD international "
+            "average. This is an illustrative reconstruction of the policy's "
+            "shape, not a quote of a published score."
         ),
         "is_tcja": False,
         "is_pharma": True,
@@ -1151,14 +1145,12 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Expanded negotiation + insulin cap + manufacturer discounts. "
-            "**No official score**: nothing published scores a *combined* "
+            "Expanded negotiation plus an insulin cap plus manufacturer "
+            "discounts. No official score: nothing published scores a combined "
             "package of these three, and the nearest published figures are "
             "components an order of magnitude smaller (CBO put the IRA's own "
-            "negotiation at \\$98.5B over FY2022-2031). The model's own "
-            "estimate is the only number shown, and it is a 🟡 reconstruction "
-            "of a channel nobody has scored. **Illustrative**: shown for the "
-            "shape of the policy rather than as an estimate of it."
+            "negotiation at \\$98.5B over FY2022-2031). This is an illustrative "
+            "reconstruction of a channel nobody has scored as a package."
         ),
         "is_tcja": False,
         "is_pharma": True,
@@ -1178,9 +1170,10 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "60% tariff on all Chinese imports (~\\$430B base). CRFB's *Options "
-            "to Raise Tariff Revenue* scores it at \\$650B over FY2026-2035, "
-            "and notes savings would run about 15% lower on FY2025-2034."
+            "60% tariff on all Chinese imports (about a \\$430B base). CRFB's "
+            "Options to Raise Tariff Revenue scores it at \\$650B over "
+            "FY2026-2035, and notes savings would run about 15% lower on "
+            "FY2025-2034."
         ),
         "is_tcja": False,
         "is_trade": True,
@@ -1217,9 +1210,7 @@ PRESET_POLICIES = {
         "description": (
             "Full repeal of IRA clean energy tax credits. Tax Foundation "
             "(McBride, House Oversight testimony, May 2025) puts it at "
-            "\\$851B over FY2025-2034. The \\$783B this used to cite to a March "
-            "2024 CBO publication was the model's own output: no CBO or JCT "
-            "document carries it."
+            "\\$851B over FY2025-2034."
         ),
         "is_tcja": False,
         "is_climate": True,
@@ -1237,13 +1228,12 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "\\$25/ton CO2 starter tax with 5% annual escalator. "
-            "**No official score is quoted**: a real document does exist, on a "
-            "different decade — CBO and JCT's *Options for Reducing the "
-            "Deficit: 2023 to 2032* scores \\$25/tonne rising 5% plus "
-            "inflation at −\\$865B over FY2023-2032 — but this repository has "
-            "no scorecard row for it, so the model's own estimate is the only "
-            "number shown."
+            "\\$25/ton CO2 starter tax with a 5% annual escalator. No official "
+            "score is quoted here: CBO and JCT's Options for Reducing the "
+            "Deficit: 2023 to 2032 scores \\$25/tonne rising 5% plus inflation "
+            "at −\\$865B over FY2023-2032, a different decade, and this "
+            "repository has no scorecard row for it. This calculator's "
+            "estimate is the only number shown."
         ),
         "is_tcja": False,
         "is_climate": True,
@@ -1262,9 +1252,9 @@ PRESET_POLICIES = {
         "threshold": 0,
         "description": (
             "Extend IRA clean energy credits 5 years beyond the 2032 sunset. "
-            "**No official score**: every published figure scores the credits "
-            "*as enacted* or their *repeal*, never an incremental five-year "
-            "extension. The model's own estimate is the only number shown."
+            "No official score: every published figure scores the credits as "
+            "enacted or their repeal, never an incremental five-year "
+            "extension. This calculator's estimate is the only number shown."
         ),
         "is_tcja": False,
         "is_climate": True,

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_INPUT, engineRequest, fromQuery, parseWho, toQuery, validate } from "./tailor";
+import { DEFAULT_INPUT, engineRequest, fromQuery, parseWho, scorePayload, toQuery, validate } from "./tailor";
 
 test("who reads the app's spellings", () => {
   assert.equal(parseWho("top400k"), 400_000);
@@ -49,4 +49,6 @@ test("points become the engine's decimal fraction", () => {
   assert.equal(body.income_threshold, 400_000);
   assert.equal(body.policy_type, "income_tax");
   assert.equal(body.dynamic, true);
+  assert.equal(body.name, "Income tax +2.6 points above $400,000");
+  assert.equal(scorePayload(DEFAULT_INPUT, "top-rate-39-6").name, "top-rate-39-6");
 });

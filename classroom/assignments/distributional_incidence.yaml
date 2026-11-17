@@ -32,10 +32,10 @@ exercises:
       income quintile and the share of total tax change going to each group.
 
       Run a 2pp income tax increase on income above $400,000.
-      Then answer: what share of the total tax increase is borne by the
-      top 1% vs. the bottom 60% combined?
+      What share of the total tax increase is borne by the top quintile
+      (the top 20% of tax units)?
 
-      Enter your estimate of the top-quintile (top 20%) share of the tax change.
+      Enter that top-quintile share as a percent.
     parameters:
       - name: rate_change
         label: "Rate change (decimal)"
@@ -90,12 +90,13 @@ exercises:
 
       CBO and JCT split the burden 75% capital / 25% labor.
 
-      Consider a 7pp corporate rate increase (21% → 28%). The model scores
-      this at approximately −$1.35T over 10 years.
+      Consider a 7pp corporate rate increase (21% → 28%).
 
-      Given the 75/25 split, estimate: if annual corporate tax revenue
-      increases by $135B, how much falls on (a) capital income earners
-      and (b) workers?
+      If annual corporate tax revenue increases by $135 billion under the
+      75/25 split, how much of that burden falls on capital-income earners?
+
+      Enter capital's burden as a positive number in billions of dollars
+      (not the site's deficit-score sign, where a revenue gain is negative).
     parameters:
       - name: rate_change
         label: "Corporate rate change (decimal)"
@@ -127,8 +128,9 @@ exercises:
           bear even more. This matters enormously for distributional analysis.
     validation:
       method: range_check
-      min_acceptable: 60.0
-      max_acceptable: 120.0
+      answer_unit: burden_$B
+      min_acceptable: 90.0
+      max_acceptable: 115.0
     expected_insight: >
       Corporate tax incidence is contested because it depends on capital mobility
       and wage determination in general equilibrium. The distributional profile of

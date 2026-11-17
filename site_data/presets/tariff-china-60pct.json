@@ -2,7 +2,7 @@
   "id": "tariff-china-60pct",
   "conventional": {
     "policy_name": "🏭 Trump 60% China Tariff (-$650B)",
-    "policy_description": "60% tariff on all Chinese imports (~\\$430B base). CRFB's *Options to Raise Tariff Revenue* scores it at \\$650B over FY2026-2035, and notes savings would run about 15% lower on FY2025-2034.",
+    "policy_description": "60% tariff on all Chinese imports (about a \\$430B base). CRFB's Options to Raise Tariff Revenue scores it at \\$650B over FY2026-2035, and notes savings would run about 15% lower on FY2025-2034.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -333.8110615585332,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🏭 Trump 60% China Tariff (-$650B)",
-    "policy_description": "60% tariff on all Chinese imports (~\\$430B base). CRFB's *Options to Raise Tariff Revenue* scores it at \\$650B over FY2026-2035, and notes savings would run about 15% lower on FY2025-2034.",
+    "policy_description": "60% tariff on all Chinese imports (about a \\$430B base). CRFB's Options to Raise Tariff Revenue scores it at \\$650B over FY2026-2035, and notes savings would run about 15% lower on FY2025-2034.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -333.8110615585332,

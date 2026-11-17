@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Bar, BarChart, CartesianGrid, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { dollars, money, pct } from "@/lib/format";
-import type { Distribution } from "@/lib/types";
+import { whoPaysReconciliation } from "@/lib/scoreparts";
+import type { Distribution, YearlyEffect } from "@/lib/types";
 
 const GROUPINGS = [
   ["quintile", "Quintiles"],
@@ -18,7 +19,7 @@ const REASONS: Record<string, string> = {
 };
 
 /** Who pays, by income group, in the first year. Tax change is in tax terms: positive means people pay more. */
-export function WhoPays({ dist }: { dist: Distribution }) {
+export function WhoPays({ dist, firstYear }: { dist: Distribution; firstYear?: YearlyEffect }) {
   const [key, setKey] = useState<(typeof GROUPINGS)[number][0]>("quintile");
   if (!dist.available) {
     return <p className="note">{REASONS[dist.reason ?? ""] ?? "No distribution table for this policy."}</p>;
@@ -117,6 +118,7 @@ export function WhoPays({ dist }: { dist: Distribution }) {
           ? "Return-level microsimulation on CPS ASEC tax units calibrated to IRS data: the validated distributional tier."
           : "Approximate bracket method: this policy cannot run through the return-level microsimulation, so read the shape as directional rather than as a validated table."}{" "}
         Groups are ranked by adjusted gross income per return. Average change is in dollars per return; positive means the group pays more tax.
+        {firstYear ? ` ${whoPaysReconciliation(g.total_tax_change_billions, firstYear)}` : ""}
       </p>
     </>
   );

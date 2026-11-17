@@ -2,7 +2,7 @@
   "id": "millionaire-surtax-5pp",
   "conventional": {
     "policy_name": "Progressive Millionaire Tax",
-    "policy_description": "5pp surtax on income above \\$1M, scored on the AGI-inclusive base — capital gains and qualified dividends included. **No official score**: nothing published scores this reform, so the model's own estimate is the only number shown, and the AGI-inclusive base is a design choice of the preset by analogy with the Warren and Medicare surtaxes rather than a reading of a source document.",
+    "policy_description": "5pp surtax on income above \\$1M, scored on the AGI-inclusive base — capital gains and qualified dividends included. No official score: nothing published scores this reform, so this calculator's estimate is the only number shown, and the AGI-inclusive base is a design choice of this proposal by analogy with the Warren and Medicare surtaxes rather than a reading of a source document.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -927.4665602124637,
@@ -229,7 +229,7 @@
   },
   "dynamic": {
     "policy_name": "Progressive Millionaire Tax",
-    "policy_description": "5pp surtax on income above \\$1M, scored on the AGI-inclusive base — capital gains and qualified dividends included. **No official score**: nothing published scores this reform, so the model's own estimate is the only number shown, and the AGI-inclusive base is a design choice of the preset by analogy with the Warren and Medicare surtaxes rather than a reading of a source document.",
+    "policy_description": "5pp surtax on income above \\$1M, scored on the AGI-inclusive base — capital gains and qualified dividends included. No official score: nothing published scores this reform, so this calculator's estimate is the only number shown, and the AGI-inclusive base is a design choice of this proposal by analogy with the Warren and Medicare surtaxes rather than a reading of a source document.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -927.4665602124637,

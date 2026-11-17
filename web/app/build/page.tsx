@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { PackageBuilder } from "@/components/PackageBuilder";
-import { buildCatalog, manifest, preset, valuesArchetypes } from "@/lib/data";
-import { estimateIdentity, type EstimateIdentity } from "@/lib/identity";
+import { buildCatalog, manifest, preset, presets, valuesArchetypes } from "@/lib/data";
+import { estimateIdentity, listPriceKind, type EstimateIdentity } from "@/lib/identity";
 import { siteUrl } from "@/lib/site";
 import { StaleLink } from "@/components/StaleLink";
 
@@ -17,6 +17,7 @@ export default function Build() {
   // The calculator's own ten-year conventional score, for rows that are also Explore presets.
   const calculator: Record<string, number> = {};
   const identities: Record<string, { published: EstimateIdentity; model: EstimateIdentity | null }> = {};
+  const publishedById = new Map(presets().map((info) => [info.id, info.cbo_published]));
   const frame = manifest();
   const site = {
     budget_window: frame.budget_windows[0] ?? "",
@@ -25,8 +26,9 @@ export default function Build() {
   for (const row of ordered) {
     const scored = preset(row.build_id)?.conventional ?? null;
     if (scored && typeof scored.ten_year_deficit_impact === "number") calculator[row.build_id] = scored.ten_year_deficit_impact;
+    const listed = scored ? { ...scored, cbo_source: row.source } : { ...site, credibility: null, cbo_source: row.source };
     identities[row.build_id] = {
-      published: estimateIdentity(scored ? { ...scored, cbo_source: row.source } : { ...site, credibility: null, cbo_source: row.source }, "published"),
+      published: estimateIdentity(listed, listPriceKind(publishedById.get(row.build_id))),
       model: scored ? estimateIdentity(scored, "model") : null,
     };
   }
@@ -36,8 +38,8 @@ export default function Build() {
         <span className="eyebrow">Build</span>
         <h1>Build a package</h1>
         <p className="sentence">
-          Each row is a published ten-year list price, and where I also score the policy I show that conventional
-          estimate under the name.
+          Each row is a ten-year list price, published where a document exists. Where I also score the policy I show
+          that conventional estimate under the name.
         </p>
         <p className="note">
           A tick that conflicts with one already ticked swaps them. A positive figure adds to the deficit and a

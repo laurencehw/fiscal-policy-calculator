@@ -27,7 +27,7 @@
       "title": "Reading a Distributional Table",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "The distribution tab shows the average tax change per household by income quintile and the share of total tax change going to each group.\nRun a 2pp income tax increase on income above $400,000. Then answer: what share of the total tax increase is borne by the top 1% vs. the bottom 60% combined?\nEnter your estimate of the top-quintile (top 20%) share of the tax change.",
+      "prompt": "The distribution tab shows the average tax change per household by income quintile and the share of total tax change going to each group.\nRun a 2pp income tax increase on income above $400,000. What share of the total tax increase is borne by the top quintile (the top 20% of tax units)?\nEnter that top-quintile share as a percent.",
       "parameters": [
         {
           "name": "rate_change",
@@ -70,7 +70,7 @@
       "title": "Corporate Tax Incidence: Workers vs. Capital Owners",
       "type": "comparison",
       "level": "undergraduate",
-      "prompt": "The corporate income tax is paid by corporations, but who bears the economic burden? There are two major views:\nA) Traditional view: shareholders (capital owners) bear the burden\n   → tax falls on top income quintile\nB) Open-economy view: capital is mobile internationally, so workers\n   bear the burden through lower wages → tax is more broadly spread\n\nCBO and JCT split the burden 75% capital / 25% labor.\nConsider a 7pp corporate rate increase (21% → 28%). The model scores this at approximately −$1.35T over 10 years.\nGiven the 75/25 split, estimate: if annual corporate tax revenue increases by $135B, how much falls on (a) capital income earners and (b) workers?",
+      "prompt": "The corporate income tax is paid by corporations, but who bears the economic burden? There are two major views:\nA) Traditional view: shareholders (capital owners) bear the burden\n   → tax falls on top income quintile\nB) Open-economy view: capital is mobile internationally, so workers\n   bear the burden through lower wages → tax is more broadly spread\n\nCBO and JCT split the burden 75% capital / 25% labor.\nConsider a 7pp corporate rate increase (21% → 28%).\nIf annual corporate tax revenue increases by $135 billion under the 75/25 split, how much of that burden falls on capital-income earners?\nEnter capital's burden as a positive number in billions of dollars (not the site's deficit-score sign, where a revenue gain is negative).",
       "parameters": [
         {
           "name": "rate_change",
@@ -105,7 +105,7 @@
       ],
       "checked": true,
       "check": "range_check",
-      "answer_unit": "$B",
+      "answer_unit": "burden_$B",
       "insight": "Corporate tax incidence is contested because it depends on capital mobility and wage determination in general equilibrium. The distributional profile of corporate taxes shifts from regressive to more progressive as you increase the capital-income share — which is why the debate matters for tax reform."
     },
     {

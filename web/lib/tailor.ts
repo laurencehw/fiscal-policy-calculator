@@ -126,3 +126,10 @@ export function engineRequest(input: TailorInput): Record<string, unknown> {
     policy_type: input.kind === "corporate" ? "corporate_tax" : "income_tax",
   };
 }
+
+/** Score payload, using a matching preset id so credibility can find the published row. */
+export function scorePayload(input: TailorInput, presetId: string | null = null): Record<string, unknown> {
+  const body = engineRequest(input);
+  if (presetId) body.name = presetId;
+  return body;
+}

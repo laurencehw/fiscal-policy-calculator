@@ -70,6 +70,9 @@ test("Explore labels a figure published only when the export says it is", () => 
   ]);
   const source = fs.readFileSync(new URL("../app/explore/page.tsx", import.meta.url), "utf8");
   assert.match(source, /cbo_published/);
+  const build = fs.readFileSync(new URL("../app/build/page.tsx", import.meta.url), "utf8");
+  assert.match(build, /cbo_published/);
+  assert.match(build, /listPriceKind/);
 });
 
 test("the home compare never shows a fitted row or an unfitted reconstruction", () => {

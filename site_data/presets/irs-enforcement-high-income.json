@@ -2,7 +2,7 @@
   "id": "irs-enforcement-high-income",
   "conventional": {
     "policy_name": "🔍 High-Income Enforcement",
-    "policy_description": "Targeted enforcement for >\\$400K returns and large partnerships. \\$5B/year, high ROI. **No official score**: nothing published scores a *targeted* high-income enforcement increase. CBO scores *untargeted* appropriations only — \\$20B of funding for −\\$41B of deficit and \\$40B for −\\$63B (publication 59972, FY2024-2034). The model's own estimate is the only number shown.",
+    "policy_description": "Targeted enforcement for returns above \\$400K and large partnerships, at about \\$5B per year. No official score: nothing published scores a targeted high-income enforcement increase. CBO scores untargeted appropriations only — \\$20B of funding for −\\$41B of deficit and \\$40B for −\\$63B (publication 59972, FY2024-2034). This calculator's estimate is the only number shown.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -236.11757484374996,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🔍 High-Income Enforcement",
-    "policy_description": "Targeted enforcement for >\\$400K returns and large partnerships. \\$5B/year, high ROI. **No official score**: nothing published scores a *targeted* high-income enforcement increase. CBO scores *untargeted* appropriations only — \\$20B of funding for −\\$41B of deficit and \\$40B for −\\$63B (publication 59972, FY2024-2034). The model's own estimate is the only number shown.",
+    "policy_description": "Targeted enforcement for returns above \\$400K and large partnerships, at about \\$5B per year. No official score: nothing published scores a targeted high-income enforcement increase. CBO scores untargeted appropriations only — \\$20B of funding for −\\$41B of deficit and \\$40B for −\\$63B (publication 59972, FY2024-2034). This calculator's estimate is the only number shown.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -236.11757484374996,

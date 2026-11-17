@@ -89,7 +89,7 @@ class ValidationSpec:
 
 def format_answer(value: float, unit: str = "$B") -> str:
     """One answer in its own unit: ``-$266.0B``, ``15.8%``, ``3.5 pp``, ``11 policies``."""
-    if unit == "$B":
+    if unit in ("$B", "burden_$B"):
         sign = "-" if value < 0 else ""
         return f"{sign}${abs(value):,.1f}B"
     if unit == "%":

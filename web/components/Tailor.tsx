@@ -246,6 +246,7 @@ export function Tailor({ scoresDate = "" }: { scoresDate?: string }) {
               views={views.views}
               conventional={estimateIdentity(state.result, "model")}
               dynamic={estimateIdentity(state.result, "model-dynamic")}
+              firstYear={state.result.year_by_year[0]}
             />
           ) : null}
         </div>

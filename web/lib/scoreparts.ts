@@ -2,11 +2,12 @@
 // of the component so the sign conventions and the gap sentence can be tested.
 import { money, pct } from "./format";
 import { publishedWindow } from "./identity";
-import type { Credibility, ScoreResult } from "./types";
+import type { Credibility, ScoreResult, YearlyEffect } from "./types";
 
 /**
- * One row of the year table, every column in the deficit convention
- * (positive adds to the deficit), so that
+ * One row of the year table. Revenue and the behavioral offset stay in the
+ * receipts convention (positive is more revenue). Every column after them is
+ * in the deficit convention (positive adds to the deficit), so
  * ``conventional + macro + debt service = dynamic`` reads straight across.
  *
  * ``dynamic_feedback`` arrives in the revenue convention (positive is more
@@ -16,11 +17,17 @@ import type { Credibility, ScoreResult } from "./types";
 export type YearRow = {
   year: number;
   revenue: number;
+  behavioral: number;
   conventional: number;
   macro: number;
   debtService: number | null;
   dynamic: number | null;
 };
+
+/** Conventional deficit effect from the revenue-convention columns: −(revenue − behavioral). */
+export function conventionalFromRevenue(revenue: number, behavioral: number): number {
+  return -(revenue - behavioral);
+}
 
 export function yearRows(c: ScoreResult, d: ScoreResult): YearRow[] {
   return c.year_by_year.map((row, i) => {
@@ -28,12 +35,27 @@ export function yearRows(c: ScoreResult, d: ScoreResult): YearRow[] {
     return {
       year: row.year,
       revenue: row.revenue_effect,
+      behavioral: row.behavioral_offset,
       conventional: row.final_effect,
       macro: -(dyn?.dynamic_feedback ?? 0),
       debtService: dyn?.debt_service ?? null,
       dynamic: dyn?.dynamic_effect ?? null,
     };
   });
+}
+
+/** Why revenue and the conventional deficit column do not add to zero. */
+export function yearTableNote(): string {
+  return "Revenue is extra receipts (positive raises revenue). Subtract the behavioral offset, then flip the sign, to get the conventional deficit effect.";
+}
+
+/** Why the Who-pays total is not the first-year headline. */
+export function whoPaysReconciliation(totalTaxChangeBillions: number, firstYear: YearlyEffect): string {
+  return (
+    `The ${money(totalTaxChangeBillions)} total is first-year static incidence on tax returns (positive means people pay more). ` +
+    `It is not the FY${firstYear.year} conventional budget score of ${money(firstYear.final_effect)}, ` +
+    `which starts from ${money(firstYear.revenue_effect)} of static revenue and subtracts a ${money(firstYear.behavioral_offset)} behavioral offset.`
+  );
 }
 
 /** Gap that a reader would compute from the two figures on the page. */

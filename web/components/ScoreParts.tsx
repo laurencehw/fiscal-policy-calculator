@@ -2,7 +2,7 @@
 import { EstimateTag } from "@/components/EstimateTag";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
-import { checkedSentence, yearRows } from "@/lib/scoreparts";
+import { checkedSentence, yearTableNote, yearRows } from "@/lib/scoreparts";
 import type { Credibility, ScoreResult } from "@/lib/types";
 
 export function Checked({
@@ -38,7 +38,8 @@ export function Checked({
 
 /**
  * One row per fiscal year: the conventional path from ``c``, the dynamic columns from ``d``.
- * Every column after Revenue is in the deficit convention, so conventional + macro + debt service = dynamic.
+ * Revenue and the behavioral offset are in the receipts convention; every column after them is
+ * in the deficit convention, so conventional + macro + debt service = dynamic.
  */
 export function YearTable({ c, d }: { c: ScoreResult; d: ScoreResult }) {
   return (
@@ -48,6 +49,7 @@ export function YearTable({ c, d }: { c: ScoreResult; d: ScoreResult }) {
           <tr>
             <th>Fiscal year</th>
             <th>Revenue</th>
+            <th>Behavioral offset</th>
             <th>Deficit, conventional</th>
             <th>Macro feedback, deficit</th>
             <th>Debt service</th>
@@ -59,6 +61,7 @@ export function YearTable({ c, d }: { c: ScoreResult; d: ScoreResult }) {
             <tr key={row.year}>
               <td>{row.year}</td>
               <td>{money(row.revenue)}</td>
+              <td>{money(row.behavioral)}</td>
               <td>{money(row.conventional)}</td>
               <td>{money(row.macro)}</td>
               <td>{row.debtService === null ? "" : money(row.debtService)}</td>
@@ -67,6 +70,7 @@ export function YearTable({ c, d }: { c: ScoreResult; d: ScoreResult }) {
           ))}
         </tbody>
       </table>
+      <p className="note">{yearTableNote()}</p>
     </div>
   );
 }

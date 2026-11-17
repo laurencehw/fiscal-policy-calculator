@@ -2,7 +2,7 @@
   "id": "drug-reference-pricing",
   "conventional": {
     "policy_name": "💊 International Reference Pricing (-$100B)",
-    "policy_description": "Cap Medicare drug prices at 120% of OECD international average. Saves ~\\$100B. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "Cap Medicare drug prices at 120% of the OECD international average. This is an illustrative reconstruction of the policy's shape, not a quote of a published score.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -801.0472891255658,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "💊 International Reference Pricing (-$100B)",
-    "policy_description": "Cap Medicare drug prices at 120% of OECD international average. Saves ~\\$100B. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "Cap Medicare drug prices at 120% of the OECD international average. This is an illustrative reconstruction of the policy's shape, not a quote of a published score.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -801.0472891255658,

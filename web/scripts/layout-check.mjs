@@ -149,6 +149,14 @@ async function checkPage(browser, route, viewport) {
     if (!fold.chart) problems.push("home: no chart above the fold");
     if (!fold.figure) problems.push("home: no scored figure above the fold");
   }
+  if (route === "/build") {
+    const bad = await page.evaluate(() =>
+      [...document.querySelectorAll('.estimatetag[data-kind="published"]')]
+        .map((el) => el.getAttribute("data-producer") || "")
+        .filter((producer) => /Estimate|CBO-style|decomposition/i.test(producer)),
+    );
+    if (bad.length) problems.push(`unpublished list prices tagged published: ${bad.join("; ")}`);
+  }
   if (route.startsWith("/build?")) {
     const summary = await page.evaluate(() => {
       const block = document.querySelector(".summarytotal");

@@ -18,6 +18,21 @@ export function adjustable(presetId: string): boolean {
   return Object.prototype.hasOwnProperty.call(TAILOR_SHAPES, presetId);
 }
 
+/**
+ * The preset whose Tailor shape this input matches, so a default +2.6pp above
+ * $400,000 is scored against the Biden row rather than as an unpublished custom.
+ * Duration and the rate/threshold/kind have to match; the dynamic flag does not,
+ * because the published score is conventional.
+ */
+export function matchingPresetId(input: Pick<TailorInput, "kind" | "rate" | "who" | "duration">): string | null {
+  for (const [id, shape] of Object.entries(TAILOR_SHAPES)) {
+    if (shape.kind === input.kind && shape.rate === input.rate && shape.who === input.who && shape.duration === input.duration) {
+      return id;
+    }
+  }
+  return null;
+}
+
 export function tailorHref(presetId: string): string | null {
   const shape = TAILOR_SHAPES[presetId];
   if (!shape) return null;

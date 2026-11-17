@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { checkedSentence, displayedGapPct, yearRows } from "./scoreparts";
+import { checkedSentence, conventionalFromRevenue, displayedGapPct, whoPaysReconciliation, yearRows, yearTableNote } from "./scoreparts";
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
+const top45 = JSON.parse(readFileSync(new URL("../../site_data/presets/top-rate-45.json", import.meta.url), "utf8")) as PresetFile;
 
 test("year table columns add across in the deficit convention", () => {
   for (const row of yearRows(corp.conventional, corp.dynamic)) {
@@ -13,6 +14,30 @@ test("year table columns add across in the deficit convention", () => {
   }
   // A tax rise lowers output, so macro feedback adds to the deficit: positive.
   assert.ok(yearRows(corp.conventional, corp.dynamic)[0].macro > 0);
+});
+
+test("revenue minus the behavioral offset is the conventional deficit with the sign flipped", () => {
+  const rows = yearRows(top45.conventional, top45.dynamic);
+  const fy2026 = rows.find((row) => row.year === 2026);
+  assert.ok(fy2026);
+  assert.ok(Math.abs(fy2026.revenue - 98.6) < 0.05, `revenue ${fy2026.revenue}`);
+  assert.ok(Math.abs(fy2026.behavioral - 12.3) < 0.05, `behavioral ${fy2026.behavioral}`);
+  assert.ok(Math.abs(fy2026.conventional + 86.3) < 0.05, `conventional ${fy2026.conventional}`);
+  for (const row of rows) {
+    assert.ok(Math.abs(row.conventional - conventionalFromRevenue(row.revenue, row.behavioral)) < 1e-6, `FY${row.year}`);
+  }
+  assert.match(yearTableNote(), /behavioral offset/i);
+  const table = readFileSync(new URL("../components/ScoreParts.tsx", import.meta.url), "utf8");
+  assert.match(table, /Behavioral offset/);
+});
+
+test("the who-pays note names the first-year budget score beside the incidence total", () => {
+  const first = top45.conventional.year_by_year[0];
+  const text = whoPaysReconciliation(64.0, first);
+  assert.match(text, /static incidence/);
+  assert.match(text, /FY2026/);
+  assert.match(text, /-\$86\.3B/);
+  assert.doesNotMatch(text, /discrepancy|error|mismatch/i);
 });
 
 test("the gap sentence names which figure the scorecard error belongs to", () => {

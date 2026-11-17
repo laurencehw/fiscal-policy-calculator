@@ -37,6 +37,23 @@ export function shortLabel(label: string): string {
   return cleanLabel(label).replace(/\s*\([^)]*\$[^)]*\)\s*$/, "").trim();
 }
 
+/**
+ * Preset descriptions as a reader should see them: no Markdown markers, no
+ * leftover emoji, no escaped dollars. The source copy is plain language; this
+ * is the guard if a marker slips back in.
+ */
+export function plainDescription(text: string): string {
+  return text
+    .replace(/\\\$/g, "$")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, "")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
 /** Whole dollars with a sign, for per-return amounts: "+$28,273", "-$1,274", "$0". */
 export function dollars(value: number): string {
   const rounded = Math.round(value);

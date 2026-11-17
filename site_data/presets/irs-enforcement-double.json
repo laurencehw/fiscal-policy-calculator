@@ -2,7 +2,7 @@
   "id": "irs-enforcement-double",
   "conventional": {
     "policy_name": "🔍 Double IRS Enforcement (-$340B)",
-    "policy_description": "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises ~\\$340B with diminishing returns. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "Double IRS enforcement beyond IRA levels (about \\$16B per year). Treasury and Sarin-Summers put a similar expansion at about \\$340B over ten years. This row is an illustrative reconstruction of that policy, not a reproduction of their figure.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -60.34977175887216,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🔍 Double IRS Enforcement (-$340B)",
-    "policy_description": "Double IRS enforcement beyond IRA levels (~\\$16B/year). Raises ~\\$340B with diminishing returns. **Illustrative**: an unfitted reconstruction a long way from its published figure, shown for the shape of the policy rather than as an estimate of it.",
+    "policy_description": "Double IRS enforcement beyond IRA levels (about \\$16B per year). Treasury and Sarin-Summers put a similar expansion at about \\$340B over ten years. This row is an illustrative reconstruction of that policy, not a reproduction of their figure.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -60.34977175887216,

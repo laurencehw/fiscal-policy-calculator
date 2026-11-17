@@ -75,7 +75,7 @@ export const TYPE_LABELS: Record<ClassroomExercise["type"], string> = {
 
 /** One answer in its own unit, as the engine prints it: -$265.7B, 15.8%, 3.5 pp. */
 export function formatAnswer(value: number, unit = "$B"): string {
-  if (unit === "$B") {
+  if (unit === "$B" || unit === "burden_$B") {
     const body = Math.abs(value).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     return `${value < 0 ? "-" : ""}$${body}B`;
   }
@@ -87,6 +87,7 @@ export function formatAnswer(value: number, unit = "$B"): string {
 /** What the answer box asks for. Dollar answers carry the sign convention. */
 export function answerLabel(unit: string): string {
   if (unit === "$B") return "Your answer, billions of dollars (negative = revenue gain, deficit falls)";
+  if (unit === "burden_$B") return "Your answer, billions of dollars of tax burden (positive = people pay more)";
   if (unit === "%") return "Your answer, percent";
   if (unit === "pp") return "Your answer, percentage points";
   return `Your answer, ${unit}`;

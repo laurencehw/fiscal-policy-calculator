@@ -2,7 +2,7 @@
 // the window, the baseline, and the tier. The tag text is `identityLine`.
 import type { Credibility } from "./types";
 
-export type IdentityKind = "model" | "model-dynamic" | "published" | "package-sum";
+export type IdentityKind = "model" | "model-dynamic" | "published" | "estimate" | "package-sum";
 
 export type EstimateIdentity = {
   producer: string;
@@ -48,8 +48,17 @@ const KIND_WORD: Record<IdentityKind, string> = {
   model: "conventional",
   "model-dynamic": "with macroeconomic feedback",
   published: "published",
+  estimate: "estimate",
   "package-sum": "sum of standalone published scores",
 };
+
+/**
+ * List-price tag: "published" unless the export's ``cbo_published`` flag is
+ * false. Absent (Build-only rows that are not Explore presets) stays published.
+ */
+export function listPriceKind(published: boolean | undefined): IdentityKind {
+  return published === false ? "estimate" : "published";
+}
 
 /**
  * The window of the published figure, from the scorecard's transcription, so a
@@ -121,19 +130,22 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
     };
   }
   const { tier, tierLabel, limitation } = resolveTier(result.credibility);
-  if (kind === "published") {
+  if (kind === "published" || kind === "estimate") {
     // The tier describes this calculator's figure against the published one, not
     // the published figure itself: "Treasury · published · Calibrated reference"
     // would read as Treasury's number being calibrated. The tier stays on the
     // record for code; the tag names only the producer.
+    const producer = result.cbo_source?.trim() || (kind === "published" ? "Published" : "Estimate");
     return {
-      producer: result.cbo_source?.trim() || "Published",
+      producer,
       kind,
-      window: publishedWindow(result.credibility),
+      window: kind === "published" ? publishedWindow(result.credibility) : "",
       baseline: "",
       tier,
       tierLabel: "",
-      limitation: result.credibility ? limitation : "The producer is named on each proposal.",
+      limitation: kind === "estimate"
+        ? "This list price is not a published agency score."
+        : result.credibility ? limitation : "The producer is named on each proposal.",
     };
   }
   if (kind === "model-dynamic") {
@@ -175,6 +187,15 @@ export function identityLine(identity: EstimateIdentity): string {
 export function shortProducer(identity: EstimateIdentity): string {
   if (identity.kind === "model" || identity.kind === "model-dynamic") return "calc.";
   if (identity.kind === "package-sum") return "sum";
+  if (identity.kind === "estimate") {
+    const name = identity.producer.trim();
+    if (/cbo-style/i.test(name)) return "CBO-style";
+    if (/^cbo\b/i.test(name)) return "CBO est.";
+    if (/rand/i.test(name)) return "RAND est.";
+    if (/model estimate|decomposition|this repository/i.test(name)) return "model";
+    const brief = name.split(/[;(]/)[0].trim();
+    return brief.length > 22 ? `${brief.slice(0, 20)}…` : brief;
+  }
   const name = identity.producer.trim();
   if (/^published$/i.test(name)) return "published";
   if (/treasury/i.test(name)) return "Treasury";

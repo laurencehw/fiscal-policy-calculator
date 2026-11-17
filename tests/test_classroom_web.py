@@ -75,6 +75,31 @@ def test_answers_print_in_their_units():
     assert format_answer(15.77, "%") == "15.8%"
     assert format_answer(11, "policies") == "11 policies"
     assert format_answer(3.5, "pp") == "3.5 pp"
+    assert format_answer(101.25, "burden_$B") == "$101.2B"
+
+
+def test_incidence_ex1_asks_for_the_top_quintile_share():
+    assignment = LOADER.load("distributional_incidence")
+    exercise = next(e for e in assignment.exercises if e.id == "dist_ug_ex1")
+    prompt = exercise.prompt.lower()
+    assert "top quintile" in prompt
+    assert "bottom 60" not in prompt
+    assert "top 1%" not in prompt
+    assert check_exercise("distributional_incidence", "dist_ug_ex1", {}, 95.0)["correct"]
+    assert not check_exercise("distributional_incidence", "dist_ug_ex1", {}, 50.0)["correct"]
+
+
+def test_incidence_ex2_rejects_the_wrong_sign_and_the_wrong_quantity():
+    assignment = LOADER.load("distributional_incidence")
+    exercise = next(e for e in assignment.exercises if e.id == "dist_ug_ex2")
+    prompt = exercise.prompt.lower()
+    assert "capital" in prompt
+    assert "(b) workers" not in prompt
+    assert exercise.validation.answer_unit == "burden_$B"
+    assert check_exercise("distributional_incidence", "dist_ug_ex2", {}, 101.25)["correct"]
+    assert not check_exercise("distributional_incidence", "dist_ug_ex2", {}, -101.25)["correct"]
+    assert not check_exercise("distributional_incidence", "dist_ug_ex2", {}, 86.28)["correct"]
+    assert not check_exercise("distributional_incidence", "dist_ug_ex2", {}, 33.75)["correct"]
 
 
 def test_the_endpoint(monkeypatch):

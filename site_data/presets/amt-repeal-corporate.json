@@ -2,7 +2,7 @@
   "id": "amt-repeal-corporate",
   "conventional": {
     "policy_name": "⚖️ Repeal Corporate AMT (+$220B)",
-    "policy_description": "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA 2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that revenue.",
+    "policy_description": "Repeal the 15% corporate book minimum tax (CAMT) enacted by the Inflation Reduction Act. JCT scored enacting CAMT as a \\$222.2B revenue raiser (JCX-18-22), so repeal costs about \\$220B over 10 years.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 220.10648278023803,
@@ -145,7 +145,7 @@
   },
   "dynamic": {
     "policy_name": "⚖️ Repeal Corporate AMT (+$220B)",
-    "policy_description": "Repeal the 15% corporate book minimum tax (CAMT) enacted by IRA 2022. **Costs** ~\\$220B over 10 years: JCT scored enacting CAMT as a \\$222.2B revenue raiser (JCX-18-22), so repeal loses that revenue.",
+    "policy_description": "Repeal the 15% corporate book minimum tax (CAMT) enacted by the Inflation Reduction Act. JCT scored enacting CAMT as a \\$222.2B revenue raiser (JCX-18-22), so repeal costs about \\$220B over 10 years.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 220.10648278023803,

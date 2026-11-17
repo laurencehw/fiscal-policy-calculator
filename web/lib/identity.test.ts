@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { estimateIdentity, identityLine, publishedWindow, shortProducer, withoutTier } from "./identity";
+import { estimateIdentity, identityLine, listPriceKind, publishedWindow, shortProducer, withoutTier } from "./identity";
+import { buildCatalog, presets } from "./data";
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
@@ -77,6 +78,36 @@ test("sections the tier does not grade carry the producer and window but no tier
   const bare = withoutTier(full);
   assert.doesNotMatch(identityLine(bare), /Calibrated reference|out-of-sample|reconstruction/i);
   assert.match(identityLine(bare), /This calculator · conventional · FY2026-2035/);
+});
+
+test("unpublished list prices are tagged estimate, not published, and not as the agency", () => {
+  assert.equal(listPriceKind(true), "published");
+  assert.equal(listPriceKind(false), "estimate");
+  assert.equal(listPriceKind(undefined), "published");
+  const unpublished = presets()
+    .filter((row) => row.cbo_score !== null && !row.cbo_published)
+    .sort((a, b) => a.id.localeCompare(b.id));
+  assert.deepEqual(
+    unpublished.map((row) => row.id),
+    ["carbon-tax-50", "drug-negotiation-expand", "drug-reference-pricing", "tcja-extension-no-salt-cap"],
+  );
+  const expected = {
+    "carbon-tax-50": "CBO-style",
+    "drug-negotiation-expand": "CBO est.",
+    "drug-reference-pricing": "RAND est.",
+    "tcja-extension-no-salt-cap": "model",
+  };
+  for (const row of unpublished) {
+    const identity = estimateIdentity({ cbo_source: row.cbo_source, credibility: null }, listPriceKind(false));
+    assert.equal(identity.kind, "estimate", row.id);
+    assert.doesNotMatch(identityLine(identity), /\bpublished\b/i, row.id);
+    assert.equal(shortProducer(identity), expected[row.id as keyof typeof expected], row.id);
+  }
+  const byId = new Map(presets().map((info) => [info.id, info.cbo_published]));
+  const kinds = Object.fromEntries(buildCatalog().map((row) => [row.build_id, listPriceKind(byId.get(row.build_id))]));
+  for (const id of unpublished.map((row) => row.id)) assert.equal(kinds[id], "estimate", id);
+  assert.equal(kinds["mortgage-deduction-eliminate"], "published");
+  assert.equal(kinds["salt-deduction-eliminate"], "published");
 });
 
 test("the published tag carries the published figure's own window, not the page's", () => {

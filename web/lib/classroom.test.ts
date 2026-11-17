@@ -12,7 +12,9 @@ test("answers print in their own units, as the engine prints them", () => {
 
 test("dollar answers carry the sign convention", () => {
   assert.match(answerLabel("$B"), /negative = revenue gain/);
+  assert.match(answerLabel("burden_$B"), /positive = people pay more/);
   assert.doesNotMatch(answerLabel("%"), /revenue/);
+  assert.equal(formatAnswer(101.25, "burden_$B"), "$101.3B");
 });
 
 test("a check request is held to ids, finite numbers and a few parameters", () => {
