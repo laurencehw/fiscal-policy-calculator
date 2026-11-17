@@ -32,6 +32,20 @@ export function cleanLabel(label: string): string {
     .trim();
 }
 
+/**
+ * A preset description as plain text. The Streamlit app renders Markdown, so the
+ * shared descriptions may carry **bold**, *italics* or a status emoji; the site
+ * prints them as plain sentences.
+ */
+export function plainDescription(text: string): string {
+  return cleanLabel(text)
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/(^|[^*\w])\*([^*\s][^*]*?)\*(?=[^*\w]|$)/g, "$1$2")
+    .replace(/\p{Extended_Pictographic}\uFE0F?\s?/gu, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 /** The same label without its bracketed figure, for headings. */
 export function shortLabel(label: string): string {
   return cleanLabel(label).replace(/\s*\([^)]*\$[^)]*\)\s*$/, "").trim();

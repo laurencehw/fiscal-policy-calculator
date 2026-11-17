@@ -2,7 +2,7 @@
   "id": "amt-extend-tcja-relief",
   "conventional": {
     "policy_name": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
-    "policy_description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. CRS/CBO put the 10-year cost at ~\\$1.36T.",
+    "policy_description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K married filing jointly) past 2025. Published estimate: about \\$1.36T over ten years (CRS R48286 Table 1, transcribing CBO).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 450.5304569407997,
@@ -145,7 +145,7 @@
   },
   "dynamic": {
     "policy_name": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
-    "policy_description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K MFJ) past 2025. CRS/CBO put the 10-year cost at ~\\$1.36T.",
+    "policy_description": "Extend TCJA's higher AMT exemptions (\\$88K single, \\$137K married filing jointly) past 2025. Published estimate: about \\$1.36T over ten years (CRS R48286 Table 1, transcribing CBO).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": 450.5304569407997,

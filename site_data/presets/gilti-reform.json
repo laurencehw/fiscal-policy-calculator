@@ -2,7 +2,7 @@
   "id": "gilti-reform",
   "conventional": {
     "policy_name": "🌍 Biden GILTI Reform (-$374B)",
-    "policy_description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~\\$374B over 10 years (Treasury FY2025 Green Book).",
+    "policy_description": "Country-by-country GILTI at 21% and no QBAI exemption. Published estimate: raises about \\$374B over ten years (Treasury, FY2025 Green Book).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -230.26500000000001,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌍 Biden GILTI Reform (-$374B)",
-    "policy_description": "Country-by-country GILTI at 21%, eliminate QBAI exemption. Raises ~\\$374B over 10 years (Treasury FY2025 Green Book).",
+    "policy_description": "Country-by-country GILTI at 21% and no QBAI exemption. Published estimate: raises about \\$374B over ten years (Treasury, FY2025 Green Book).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -230.26500000000001,

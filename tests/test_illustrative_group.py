@@ -324,7 +324,7 @@ def test_the_row_note_names_the_tier_and_touches_no_scorecard():
 def test_each_demoted_preset_says_illustrative_in_its_own_description():
     for preset_id in sorted(THE_FIVE):
         description = PRESETS_BY_ID[preset_id]["description"]
-        assert "**Illustrative**" in description, preset_id
+        assert "Illustrative:" in description, preset_id
 
 
 def test_the_new_area_is_declared_in_the_credibility_map_not_defaulted():

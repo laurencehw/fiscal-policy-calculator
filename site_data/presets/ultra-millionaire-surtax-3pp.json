@@ -2,7 +2,7 @@
   "id": "ultra-millionaire-surtax-3pp",
   "conventional": {
     "policy_name": "Warren Ultra-Millionaire Surtax",
-    "policy_description": "3pp surtax on **AGI** above \\$2M, Warren-style, scored on the AGI-inclusive base its TPC source uses — realized capital gains and qualified dividends included. Raises roughly \\$300-400B over 10 years depending on behavioral response.",
+    "policy_description": "A 3pp surtax on AGI above \\$2M, Warren-style, scored on the AGI-inclusive base, with realized capital gains and qualified dividends included.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -483.73805300785494,
@@ -229,7 +229,7 @@
   },
   "dynamic": {
     "policy_name": "Warren Ultra-Millionaire Surtax",
-    "policy_description": "3pp surtax on **AGI** above \\$2M, Warren-style, scored on the AGI-inclusive base its TPC source uses — realized capital gains and qualified dividends included. Raises roughly \\$300-400B over 10 years depending on behavioral response.",
+    "policy_description": "A 3pp surtax on AGI above \\$2M, Warren-style, scored on the AGI-inclusive base, with realized capital gains and qualified dividends included.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -483.73805300785494,

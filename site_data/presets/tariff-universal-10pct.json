@@ -2,7 +2,7 @@
   "id": "tariff-universal-10pct",
   "conventional": {
     "policy_name": "🏭 Trump Universal 10% Tariff (-$2.17T)",
-    "policy_description": "10% tariff on all imports. Raises ~\\$2.17T conventionally (Tax Foundation FF861) but costs ~\\$1,700/household in higher prices.",
+    "policy_description": "A 10% tariff on all imports. Published estimate: raises about \\$2.17T over ten years, conventional (Tax Foundation, FF861).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1380.9748052721804,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🏭 Trump Universal 10% Tariff (-$2.17T)",
-    "policy_description": "10% tariff on all imports. Raises ~\\$2.17T conventionally (Tax Foundation FF861) but costs ~\\$1,700/household in higher prices.",
+    "policy_description": "A 10% tariff on all imports. Published estimate: raises about \\$2.17T over ten years, conventional (Tax Foundation, FF861).",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -1380.9748052721804,

@@ -2,7 +2,7 @@
   "id": "ev-credit-repeal",
   "conventional": {
     "policy_name": "🌱 Repeal EV Credits (-$182B)",
-    "policy_description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Saves ~\\$182B over FY2025-2034 (JCT JCX-35-25).",
+    "policy_description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Published estimate: JCT put ending these credits at about \\$182B over FY2025-2034 (JCX-35-25), in its score of P.L. 119-21.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -228.41683017809316,
@@ -230,7 +230,7 @@
   },
   "dynamic": {
     "policy_name": "🌱 Repeal EV Credits (-$182B)",
-    "policy_description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Saves ~\\$182B over FY2025-2034 (JCT JCX-35-25).",
+    "policy_description": "Repeal the \\$7,500 clean-vehicle credit (sec. 30D) and the commercial clean-vehicle credit (sec. 45W). Published estimate: JCT put ending these credits at about \\$182B over FY2025-2034 (JCX-35-25), in its score of P.L. 119-21.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -228.41683017809316,
