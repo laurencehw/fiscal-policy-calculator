@@ -24,3 +24,22 @@ export function tailorHref(presetId: string): string | null {
   const { tenYear: _tenYear, ...input } = shape;
   return `/tailor?${toQuery(input)}`;
 }
+
+/**
+ * The preset a Tailor request reproduces, if any: same kind, rate, threshold and
+ * duration (the dynamic switch does not change the policy). Tailor uses it to
+ * show the preset's published score instead of saying none is on file.
+ */
+export function matchingPreset(input: Pick<TailorInput, "kind" | "rate" | "who" | "duration">): string | null {
+  for (const [id, shape] of Object.entries(TAILOR_SHAPES)) {
+    if (
+      shape.kind === input.kind &&
+      Math.abs(shape.rate - input.rate) < 1e-9 &&
+      shape.who === input.who &&
+      shape.duration === input.duration
+    ) {
+      return id;
+    }
+  }
+  return null;
+}

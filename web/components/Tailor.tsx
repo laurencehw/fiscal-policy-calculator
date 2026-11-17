@@ -4,13 +4,24 @@ import { useEffect, useRef, useState } from "react";
 import { EstimateTag } from "@/components/EstimateTag";
 import { ResultSections } from "@/components/ResultSections";
 import { Checked, YearTable } from "@/components/ScoreParts";
+import { yearRows } from "@/lib/scoreparts";
 import { YearChart } from "@/components/YearChart";
 import { direction, money } from "@/lib/format";
-import { estimateIdentity } from "@/lib/identity";
+import { estimateIdentity, type EstimateIdentity } from "@/lib/identity";
+import { matchingPreset } from "@/lib/adjust";
 import { withVersion } from "@/lib/share";
 import { frozenFrom, frozenQuery, frozenRefusal, type Frozen } from "@/lib/frozen";
 import { DEFAULT_INPUT, RATE_MAX, RATE_MIN, WHO_CHOICES, describe, fromQuery, toQuery, type TailorInput } from "@/lib/tailor";
-import type { ScoreResult, Views } from "@/lib/types";
+import type { Credibility, ScoreResult, Views } from "@/lib/types";
+
+/** A preset Tailor can reproduce, with its page's published-score record. */
+export type PresetMatch = {
+  id: string;
+  name: string;
+  tenYear: number;
+  credibility: Credibility | null;
+  published: EstimateIdentity | null;
+};
 
 /** One-tap rate changes, in percentage points. */
 const RATE_PICKS = [-2, -1, 1, 2, 5];
@@ -19,7 +30,13 @@ type ViewsState = { status: "idle" | "loading" } | { status: "done"; views: View
 
 type State = { status: "idle" } | { status: "scoring" } | { status: "done"; result: ScoreResult; input: TailorInput } | { status: "error"; message: string };
 
-export function Tailor({ scoresDate = "" }: { scoresDate?: string }) {
+export function Tailor({
+  scoresDate = "",
+  presetMatches = {},
+}: {
+  scoresDate?: string;
+  presetMatches?: Record<string, PresetMatch>;
+}) {
   const [input, setInput] = useState<TailorInput>(DEFAULT_INPUT);
   const [state, setState] = useState<State>({ status: "idle" });
   const [views, setViews] = useState<ViewsState>({ status: "idle" });
@@ -235,7 +252,7 @@ export function Tailor({ scoresDate = "" }: { scoresDate?: string }) {
           </div>
         ) : null}
         {state.status === "error" ? <p className="note warn">{state.message}</p> : null}
-        {state.status === "done" ? <Result result={state.result} input={state.input} scoresDate={scoresDate} /> : null}
+        {state.status === "done" ? <Result result={state.result} input={state.input} scoresDate={scoresDate} presetMatches={presetMatches} /> : null}
       </div>
       {state.status === "done" ? (
         <div aria-live="polite">
@@ -246,6 +263,7 @@ export function Tailor({ scoresDate = "" }: { scoresDate?: string }) {
               views={views.views}
               conventional={estimateIdentity(state.result, "model")}
               dynamic={estimateIdentity(state.result, "model-dynamic")}
+              firstYear={yearRows(state.result, state.result)[0]}
             />
           ) : null}
         </div>
@@ -254,8 +272,22 @@ export function Tailor({ scoresDate = "" }: { scoresDate?: string }) {
   );
 }
 
-function Result({ result, input, scoresDate }: { result: ScoreResult; input: TailorInput; scoresDate: string }) {
+function Result({
+  result,
+  input,
+  scoresDate,
+  presetMatches,
+}: {
+  result: ScoreResult;
+  input: TailorInput;
+  scoresDate: string;
+  presetMatches: Record<string, PresetMatch>;
+}) {
   const headline = result.ten_year_deficit_impact;
+  // The same policy as a preset, scored to the same figure: show that preset's published score.
+  const candidate = presetMatches[matchingPreset(input) ?? ""];
+  const match =
+    candidate && Math.abs(candidate.tenYear - headline) <= 0.005 * Math.max(1, Math.abs(candidate.tenYear)) ? candidate : null;
   const dyn = result.dynamic_adjusted_impact;
   const name = describe(input);
   const years = result.year_by_year.length;
@@ -282,7 +314,18 @@ function Result({ result, input, scoresDate }: { result: ScoreResult; input: Tai
           <span className="q">{result.dynamic_model ?? result.error_message ?? ""}</span>
         </div>
       </div>
-      <Checked cred={result.credibility} point={headline} window={result.budget_window} />
+      {match ? (
+        <p className="note">
+          This is the same policy as the <a href={`/explore/${match.id}`}>{match.name}</a> preset, so its published score
+          applies.
+        </p>
+      ) : null}
+      <Checked
+        cred={match?.credibility ?? result.credibility}
+        point={headline}
+        window={result.budget_window}
+        published={match?.published ?? null}
+      />
       <section className="chart">
         <div className="head">
           <h2>Year by year</h2>

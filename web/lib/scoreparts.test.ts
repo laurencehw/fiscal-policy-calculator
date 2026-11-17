@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { checkedSentence, displayedGapPct, yearRows } from "./scoreparts";
+import { checkedSentence, displayedGapPct, hasOther, whoPaysReconciliation, yearRows } from "./scoreparts";
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
@@ -31,4 +31,27 @@ test("when the page figure is the scorecard figure, the short sentence stands", 
   assert.equal(checkedSentence(cred, -95, "FY2026-2035"), "Published score -$100.0B; this estimate is 5.0% away (out-of-sample).");
   const none = { own_row_official_billions: null } as Credibility;
   assert.equal(checkedSentence(none, -95, "FY2026-2035"), "No published score for this exact policy is on file.");
+});
+
+const top45 = JSON.parse(readFileSync(new URL("../../site_data/presets/top-rate-45.json", import.meta.url), "utf8")) as PresetFile;
+
+test("the conventional deficit is minus revenue and the behavioural response (review B6)", () => {
+  for (const file of [top45, corp]) {
+    const rows = yearRows(file.conventional, file.dynamic);
+    assert.equal(hasOther(rows), false);
+    for (const row of rows) {
+      assert.ok(Math.abs(-(row.revenue + row.behavioural) - row.conventional) < 1e-6, `FY${row.year}`);
+    }
+  }
+  // A rate rise: the response takes some of the static revenue back.
+  const first = yearRows(top45.conventional, top45.dynamic)[0];
+  assert.ok(first.revenue > 0 && first.behavioural < 0);
+});
+
+test("the Who pays note names both first-year figures", () => {
+  const first = yearRows(top45.conventional, top45.dynamic)[0];
+  const text = whoPaysReconciliation(first, 2026, 63.99);
+  assert.match(text, /\+\$98\.6B before the behavioural response/);
+  assert.match(text, /\+\$86\.3B after it/);
+  assert.match(text, /totals \+\$64\.0B/);
 });
