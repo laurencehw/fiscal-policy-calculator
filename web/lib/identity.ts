@@ -87,7 +87,7 @@ function resolveTier(cred: Credibility | null | undefined): { tier: string; tier
     return {
       tier: "out_of_sample",
       tierLabel: `out-of-sample, n=${n}`,
-      limitation: `No row of its own. The class band is ${n} out-of-sample cases.`,
+      limitation: classBandSentence(n, cred.class_label),
     };
   }
   return {
@@ -95,6 +95,18 @@ function resolveTier(cred: Credibility | null | undefined): { tier: string; tier
     tierLabel: TIER_LABELS.none,
     limitation: cred.no_band_reason || "No published benchmark is scored against this policy.",
   };
+}
+
+/**
+ * What a class band means, for a policy no agency has scored. Same statistic
+ * as before (the band is the error spread on the class's pre-registered
+ * cases), said for a reader rather than for the benchmark table.
+ */
+export function classBandSentence(n: number, classLabel: string | null | undefined): string {
+  const cls = classLabel?.trim();
+  const cases = n === 1 ? "proposal" : "proposals";
+  const similar = cls ? `${n} ${cls} ${cases}` : `${n} similar ${cases}`;
+  return `No published score for this exact proposal. Its range comes from how far off the calculator was on ${similar} it predicted before their published scores came out.`;
 }
 
 function limitationForTier(tier: string, cred: Credibility): string {

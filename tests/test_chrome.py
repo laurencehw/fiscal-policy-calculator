@@ -384,3 +384,44 @@ def test_chrome_seeds_session_state_defaults(monkeypatch):
     st_module, _ = _render(monkeypatch, _HEALTH_OK)
     missing = [key for key in ALL_KEYS if key not in st_module.session_state]
     assert missing == []
+
+
+# ---------------------------------------------------------------------------
+# Moved notice (second external review, 2026-11-17)
+# ---------------------------------------------------------------------------
+
+
+def test_the_moved_notice_is_the_first_thing_on_every_page(monkeypatch):
+    """Search still sends people to the frozen Streamlit app.
+
+    The reviewer landed here from Google and read diagnostic notices and stale
+    counts before the one line saying the calculator had moved, which sat below
+    the title, the status pill and any data notice. It now opens the page.
+    """
+    order: list[str] = []
+    monkeypatch.setattr(chrome, "get_health_snapshot", lambda: _HEALTH_DEGRADED)
+    monkeypatch.setattr(chrome, "render_data_status", lambda **kwargs: None)
+
+    st_module = _ChromeStreamlit()
+    original_warning = st_module.warning
+    original_markdown = st_module.markdown
+
+    def _warning(text, *args, **kwargs):
+        order.append("moved" if text == chrome.MOVED_NOTICE else "other-warning")
+        return original_warning(text, *args, **kwargs)
+
+    def _markdown(text="", *args, **kwargs):
+        if str(text).startswith("### "):
+            order.append("brand")
+        return original_markdown(text, *args, **kwargs)
+
+    st_module.warning = _warning
+    st_module.markdown = _markdown
+    chrome.render_chrome(st_module=st_module, deps=SimpleNamespace())
+
+    assert order[0] == "moved", order
+    assert order.index("moved") < order.index("brand")
+    assert chrome.NEW_SITE_URL in chrome.MOVED_NOTICE
+    # Drawn once, not repeated further down the page.
+    assert st_module.warnings.count(chrome.MOVED_NOTICE) == 1
+    assert not [m for m in st_module.markdowns if "has moved to" in m]

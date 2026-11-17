@@ -361,7 +361,7 @@ CBO_SCORE_MAP = {
         "notes": "Tax unrealized gains at death (with exemptions)",
     },
     # Income Tax
-    "Biden 2025 Proposal": {
+    "Top Rate to 39.6% (Biden FY2025)": {
         # Wave 4 Tier 1 revision (biden_high_income_tax.v2): the Green Book row
         # this record already cites prints $245,924M, not $252,000M.
         "official_score": -245.9,
@@ -912,7 +912,7 @@ PRESET_POLICIES = {
         "is_expenditure": True,
         "expenditure_type": "cap_charitable",
     },
-    "Biden 2025 Proposal": {
+    "Top Rate to 39.6% (Biden FY2025)": {
         "rate_change": 2.6,
         "threshold": 400000,
         "description": (

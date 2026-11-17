@@ -512,7 +512,7 @@ _QUICK_START_CARDS: tuple[dict[str, Any], ...] = (
         "preset": {
             "sidebar_analysis_mode": "📋 Tax proposal (preset)",
             "sidebar_policy_area": "TCJA / Individual",
-            "sidebar_preset_choice": "Biden 2025 Proposal",
+            "sidebar_preset_choice": "Top Rate to 39.6% (Biden FY2025)",
         },
     },
     {

@@ -511,7 +511,7 @@ def test_score_preset_internal_error_returns_500(monkeypatch):
     monkeypatch.setattr(api_module, "FiscalPolicyScorer", _ExplodingScorer)
     response = _client().post(
         "/score/preset",
-        json={"preset_name": "Biden 2025 Proposal", "dynamic": False},
+        json={"preset_name": "Top Rate to 39.6% (Biden FY2025)", "dynamic": False},
     )
     assert response.status_code == 500
     assert response.json()["detail"] == "Internal scoring error"
@@ -572,7 +572,7 @@ def test_score_preset_routes_simple_income_tax_policy(monkeypatch):
     monkeypatch.setattr(api_module, "FiscalPolicyScorer", _RecordingScorer)
     response = _client().post(
         "/score/preset",
-        json={"preset_name": "Biden 2025 Proposal", "dynamic": False},
+        json={"preset_name": "Top Rate to 39.6% (Biden FY2025)", "dynamic": False},
     )
     assert response.status_code == 200
     assert _RecordingScorer.last_policy.__class__.__name__ == "TaxPolicy"
@@ -623,7 +623,7 @@ def test_a_real_score_reports_the_vintage_it_was_scored_on():
 
 def test_a_real_preset_score_reports_the_vintage_too():
     response = _client().post(
-        "/score/preset", json={"preset_name": "Biden 2025 Proposal", "dynamic": False}
+        "/score/preset", json={"preset_name": "Top Rate to 39.6% (Biden FY2025)", "dynamic": False}
     )
     assert response.status_code == 200
     assert response.json()["baseline_vintage"] not in {"", "unknown"}

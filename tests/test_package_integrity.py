@@ -63,9 +63,9 @@ def test_excel_export_dependency_declared():
 
 
 def test_biden_2025_proposal_in_tcja_dropdown():
-    """Regression: Biden 2025 Proposal must appear in the TCJA / Individual category dropdown.
+    """Regression: Top Rate to 39.6% (Biden FY2025) must appear in the TCJA / Individual category dropdown.
 
-    Biden 2025 Proposal uses ui_category="TCJA / Individual" (not is_tcja=True) so it
+    Top Rate to 39.6% (Biden FY2025) uses ui_category="TCJA / Individual" (not is_tcja=True) so it
     shows alongside TCJA extension options without routing through TCJA scoring.
     """
     from fiscal_model.ui.policy_input import _preset_category, _short_display_name
@@ -75,16 +75,16 @@ def test_biden_2025_proposal_in_tcja_dropdown():
         n for n, d in PRESET_POLICIES.items()
         if n != "Custom Policy" and _preset_category(d) == "TCJA / Individual"
     ]
-    assert "Biden 2025 Proposal" in tcja_presets, (
-        "Biden 2025 Proposal is missing from PRESET_POLICIES TCJA / Individual category"
+    assert "Top Rate to 39.6% (Biden FY2025)" in tcja_presets, (
+        "Top Rate to 39.6% (Biden FY2025) is missing from PRESET_POLICIES TCJA / Individual category"
     )
 
     # Simulate the short_names dict the selectbox uses
     short_names = {_short_display_name(n): n for n in tcja_presets}
-    assert "Biden 2025 Proposal" in short_names, (
-        "Biden 2025 Proposal short display name collides with another preset and was overwritten"
+    assert "Top Rate to 39.6% (Biden FY2025)" in short_names, (
+        "Top Rate to 39.6% (Biden FY2025) short display name collides with another preset and was overwritten"
     )
-    assert short_names["Biden 2025 Proposal"] == "Biden 2025 Proposal"
+    assert short_names["Top Rate to 39.6% (Biden FY2025)"] == "Top Rate to 39.6% (Biden FY2025)"
 
     # Ensure no collisions exist for any TCJA / Individual preset
     seen: dict[str, str] = {}
@@ -98,7 +98,7 @@ def test_biden_2025_proposal_in_tcja_dropdown():
 
 
 def test_biden_2025_not_scored_as_tcja():
-    """Regression: Biden 2025 Proposal must NOT route through TCJA scoring.
+    """Regression: Top Rate to 39.6% (Biden FY2025) must NOT route through TCJA scoring.
 
     With is_tcja=True, create_policy_from_preset() returned a TCJAExtensionPolicy
     scoring ~$4,582B instead of the correct ~-$252B income tax result.
@@ -106,11 +106,11 @@ def test_biden_2025_not_scored_as_tcja():
     """
     from fiscal_model import FiscalPolicyScorer, TaxPolicy
 
-    preset = PRESET_POLICIES["Biden 2025 Proposal"]
+    preset = PRESET_POLICIES["Top Rate to 39.6% (Biden FY2025)"]
 
     # is_tcja must be False so the preset handler doesn't route through TCJA scoring
     assert not preset.get("is_tcja"), (
-        "Biden 2025 Proposal has is_tcja=True, which causes TCJA extension scoring. "
+        "Top Rate to 39.6% (Biden FY2025) has is_tcja=True, which causes TCJA extension scoring. "
         "Use ui_category='TCJA / Individual' for dropdown placement instead."
     )
 
@@ -118,14 +118,14 @@ def test_biden_2025_not_scored_as_tcja():
     policy_from_preset = create_policy_from_preset(preset)
     assert policy_from_preset is None, (
         f"create_policy_from_preset returned {type(policy_from_preset).__name__} for "
-        "Biden 2025 Proposal — it should return None so the caller builds a TaxPolicy."
+        "Top Rate to 39.6% (Biden FY2025) — it should return None so the caller builds a TaxPolicy."
     )
 
     # Score via TaxPolicy and verify result is near -$252B (not the $4,582B TCJA score)
     from fiscal_model.policies import PolicyType
     scorer = FiscalPolicyScorer(use_real_data=True)
     policy = TaxPolicy(
-        name="Biden 2025 Proposal",
+        name="Top Rate to 39.6% (Biden FY2025)",
         description=preset["description"],
         policy_type=PolicyType.INCOME_TAX,
         rate_change=preset["rate_change"] / 100,

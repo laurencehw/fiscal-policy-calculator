@@ -187,7 +187,7 @@ def test_build_share_round_trips():
 
 def test_decode_build_share_resolves_legacy_labels():
     decoded = decode_build_share(
-        {"policies": "💰 SS Donut Hole $250K (-$1.43T),Biden 2025 Proposal"}
+        {"policies": "💰 SS Donut Hole $250K (-$1.43T),Top Rate to 39.6% (Biden FY2025)"}
     )
     assert decoded["preset_ids"] == ["ss-donut-250k", "top-rate-39-6"]
 
