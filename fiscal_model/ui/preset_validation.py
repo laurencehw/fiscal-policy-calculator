@@ -50,7 +50,7 @@ PRESET_ID_TO_SCORECARD_ID: dict[str, str] = {
     "tcja-full-extension": "tcja_full_extension",  # fitted, 0.4%
     "tcja-extension-no-salt-cap": "tcja_no_salt_cap",  # fitted, 13.9%
     "tcja-rates-only": "tcja_rates_only",  # fitted, 2.2%
-    "corporate-28pct": "biden_corporate_28",  # fitted, 3.7%
+    "corporate-28pct": "biden_corporate_28",  # reconstruction, 26.3% (derived)
     "corporate-15pct": "trump_corporate_15",  # reconstruction, 121.6% (range)
     "ctc-expansion-2021": "biden_ctc_2021",  # fitted, 0.0%
     "ctc-extension": "ctc_extension",  # fitted, 0.0%
@@ -188,28 +188,24 @@ HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
     # untouched.
     "corporate-28pct": (
         "runner_shape",
-        "app -1,310.9 vs row -1,292.6 (1.42%): the whole of it is the window "
-        "and none of it is the runner's policy build -- the runner's own "
-        "policy re-scored on the app's FY2026-2035 window returns -1,310.92, "
-        "the app's figure to the cent. It appeared on 2026-09-11 when "
-        "CORPORATE_APP_MODE flipped to `derived`, and its appearance is the "
-        "flip working rather than failing: `reported` prices a rate change "
-        "against a fitted profits aggregate the engine grows from the "
-        "policy's own start year, so the same reform scores -1,397.21 "
-        "whichever decade is asked about and a one-year window shift cancels "
-        "exactly. `derived` prices it against CBO's projected corporate "
-        "receipts path indexed by fiscal year, so FY2026-2035 is a different "
-        "decade from FY2025-2034 and is worth -18.30. The row stays on its "
-        "target's window because that is what a benchmark is for. See "
-        "planning/lanes/R5_h3b_corporate.md.",
+        "app vs row on the FY2026-2035 vs FY2025-2034 windows: the whole of "
+        "it is the window and none of it is the runner's policy build. It "
+        "appeared on 2026-09-11 when CORPORATE_APP_MODE flipped to `derived`. "
+        "`reported` prices a rate change against a fitted profits aggregate "
+        "the engine grows from the policy's own start year, so the same "
+        "reform scores the same whichever decade is asked about. `derived` "
+        "prices it against CBO's projected corporate receipts path indexed by "
+        "fiscal year, so FY2026-2035 is a different decade from FY2025-2034. "
+        "The credit-factor lane scaled both sides; the window gap remains. "
+        "The row stays on its target's window because that is what a "
+        "benchmark is for. See planning/lanes/R5_h3b_corporate.md.",
     ),
     "corporate-15pct": (
         "runner_shape",
-        "app +1,562.8 vs row +1,545.2 (1.13%): the same mechanism as "
-        "corporate-28pct and the same decomposition -- the runner's policy on "
-        "the app's window returns +1,562.75 to the cent, so +17.51 is the "
-        "window and nothing is the policy build. Opposite sign because this "
-        "is a rate cut.",
+        "app vs row on the FY2026-2035 vs FY2025-2034 windows: the same "
+        "mechanism as corporate-28pct. Opposite sign because this is a rate "
+        "cut. The credit-factor lane scaled the rate leg; bonus depreciation "
+        "is unmoved.",
     ),
     "salt-cap-repeal": (
         "baseline",

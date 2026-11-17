@@ -2158,7 +2158,7 @@ def corporate_mode_flip_caption(policy: Any, result: Any) -> str:
     Owner decision ⑤ held ``CORPORATE_APP_MODE`` at ``reported`` until lane R5
     could re-measure Decision 1 once, and on the finished tree ``derived`` won
     both metrics the repository records: the mean absolute error over the three
-    published corporate targets (**61.43% against 62.75%**), and H3a's
+    published corporate targets (**42.75% against 62.75%**), and H3a's
     four-house estimator span, where at the +7pp step every shipped corporate
     preset uses ``derived`` lands **inside** the published range and
     ``reported`` lands $47.3B outside it. So the app now scores the corporate
@@ -2167,10 +2167,10 @@ def corporate_mode_flip_caption(policy: Any, result: Any) -> str:
     with their explanation rather than in silence (Decision 6).
 
     Neither mode was retuned to win: ``BASELINE_TAXABLE_PROFITS_BILLIONS`` is
-    untouched and still the constant ``reported`` reads. And the flip is not an
-    accuracy claim — ``derived`` is nearer on the mean while *losing* two of the
-    three rows head to head, winning the one whose scope matches what the
-    factory builds.
+    untouched and still the constant ``reported`` reads.     And the flip is not an
+    accuracy claim — ``derived`` is nearer on the mean and wins two of the
+    three rows head to head, losing the FY2025 rate-plus-GILTI target whose
+    ``reported`` constant is fitted to it.
 
     Computed from the scored result and the policy's own parameters, so it
     cannot drift from the figure above it. Returns ``""`` for any policy whose
@@ -2200,9 +2200,13 @@ def corporate_mode_flip_caption(policy: Any, result: Any) -> str:
         f"path converted at one ratio measured on completed history, instead of "
         f"a profits aggregate the module's own comment calls calibrated. It was "
         f"changed because `derived` is nearer on the three published corporate "
-        f"targets (61.4% against 62.8% mean absolute error) **and** lands inside "
+        f"targets (42.8% against 62.8% mean absolute error) **and** lands inside "
         f"the four-house estimator range at this step where `reported` lands "
-        f"outside it. No constant was retuned in either mode."
+        f"outside it. The rate channel is then scaled by a sourced extra "
+        f"section 38(c) absorption factor so a +1pp step matches the mean "
+        f"implied share of Tax Foundation, PWBM and Treasury's rate-only row "
+        f"(the four JCT Options +1pp rows held out). No constant was retuned "
+        f"in either mode."
     )
 
 

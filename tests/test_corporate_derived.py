@@ -68,6 +68,7 @@ from fiscal_model.corporate import (
     credit_realized_base_billions,
     latest_soi_tax_year,
     load_soi_table11,
+    marginal_credit_factor,
     projected_statutory_base,
     section_904_realization_ratio,
     soi_row,
@@ -245,10 +246,10 @@ def test_the_marginal_base_never_exceeds_the_average_base(scorer):
 
     assert max(shares) < 1.0
     # And it is flat rather than drifting, because numerator and denominator are
-    # now the same series: (1 - beta x 0.22) x the anchor wedge.
+    # now the same series: (1 - beta x 0.22) x the anchor wedge x γ.
     steady = shares[1:]
     assert max(steady) - min(steady) < 0.02
-    assert sum(steady) / len(steady) == pytest.approx(0.829, abs=0.01)
+    assert sum(steady) / len(steady) == pytest.approx(0.636, abs=0.01)
 
 
 # ---------------------------------------------------------------------------
@@ -314,14 +315,17 @@ def test_reported_mode_keeps_the_base_class_phase_factor():
 def test_derived_reproduces_the_identity_year_by_year(scorer):
     """The whole derived identity, recomputed here from the published inputs.
 
-    Four factors and nothing else: CBO's projected receipts, the anchor ratio,
-    IRC section 6655's convolution, and one frozen profit-shifting
-    semi-elasticity applied at the reform rate level.
+    Five factors and nothing else: CBO's projected receipts, the anchor ratio,
+    the calibrated marginal-credit factor, IRC section 6655's convolution, and
+    one frozen profit-shifting semi-elasticity applied at the reform rate
+    level. The phase is computed on the unscaled statutory base — γ cancels
+    in the prior/current ratio — and then scales the revenue.
     """
     delta = 0.01
     policy = create_corporate_rate_change(delta, mode=CORPORATE_MODE_DERIVED)
     reform_rate = CURRENT_CORPORATE_RATE + delta
     carry = 1.0 - ESTIMATED_PAYMENT_SAME_FY_SHARE
+    factor = marginal_credit_factor()
 
     expected = 0.0
     for t in range(10):
@@ -333,11 +337,11 @@ def test_derived_reproduces_the_identity_year_by_year(scorer):
             else ESTIMATED_PAYMENT_SAME_FY_SHARE
             + carry * projected_statutory_base(year - 1) / base
         )
-        revenue = delta * base * phase
+        revenue = delta * base * factor * phase
         expected += -revenue + revenue * PROFIT_SHIFTING_SEMI_ELASTICITY * reform_rate
 
     assert _ten_year(scorer, policy) == pytest.approx(expected, rel=1e-9)
-    assert _ten_year(scorer, policy) == pytest.approx(-196.08, abs=0.01)
+    assert _ten_year(scorer, policy) == pytest.approx(-150.56, abs=0.01)
 
 
 def test_the_engine_does_not_regrow_the_projected_path(scorer):
@@ -533,10 +537,12 @@ def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
     Foundation's +$673.1B, and the FY2022 Green Book's rate-only row joined the
     suite as a second published corporate benchmark. On published targets,
     measured on the tree where PR #121's base projection and PR #122's targets
-    both apply, **derived leads narrowly** — 61.43% against 62.75% — because
-    it wins the one rate-only published row (FY2022) and loses a little on the
-    other two. Neither figure is small, which is the honest reading of a module
-    whose implied marginal base sits above every published estimator's.
+    both apply, **derived led narrowly** — 61.43% against 62.75% — because
+    it won the one rate-only published row (FY2022) and lost a little on the
+    other two. The marginal-credit factor moved derived to **42.75%** against
+    reported's unmoved 62.75%: it still wins the mean, now on two of three
+    rows (FY2022 rate-only and the 15% cut), and loses the FY2025 rate-plus-
+    GILTI row it is no longer close to. Neither figure is small.
 
     **That re-measure happened on 2026-09-11** and the mode flipped with it
     (``planning/lanes/R5_h3b_corporate.md`` §6). The rule it was decided by --
@@ -556,7 +562,7 @@ def test_decision_1_ranks_the_two_modes_on_the_registered_targets(scorer):
         means[mode] = sum(errors) / len(errors)
     assert means[CORPORATE_MODE_DERIVED] < means[CORPORATE_MODE_REPORTED]
     assert means[CORPORATE_MODE_REPORTED] == pytest.approx(0.6275, abs=0.0002)
-    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.6143, abs=0.0002)
+    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(0.4275, abs=0.0005)
     assert CORPORATE_APP_MODE == CORPORATE_MODE_DERIVED
 
 
@@ -572,12 +578,22 @@ def test_the_option_64_shape_is_pinned_to_derived():
     assert policy.start_year == 2025
 
 
-def test_the_uncalibrated_path_never_reads_the_fitted_aggregate():
-    """The leakage guard for this shape, stated directly."""
+def test_the_uncalibrated_path_never_reads_the_fitted_aggregate(scorer):
+    """The leakage guard for this shape, stated directly.
+
+    First-year static can sit near the fitted $19B by coincidence once the
+    credit factor lands; the ten-year path is the quantity that would leak
+    if derived were secretly reading ``BASELINE_TAXABLE_PROFITS_BILLIONS``.
+    """
     policy = create_policy_from_score(KNOWN_SCORES["cbo_opt64_corporate_rate_1pp"])
-    static = policy.estimate_static_revenue_effect(0.0)
-    fitted = policy.rate_change * BASELINE_TAXABLE_PROFITS_BILLIONS
-    assert abs(static - fitted) / abs(fitted) > 0.15
+    assert policy.mode == CORPORATE_MODE_DERIVED
+    assert policy.uses_projected_base() is True
+    derived_10yr = _ten_year(scorer, policy)
+    fitted_10yr = _ten_year(
+        scorer,
+        create_corporate_rate_change(0.01, mode=CORPORATE_MODE_REPORTED),
+    )
+    assert abs(derived_10yr - fitted_10yr) / abs(fitted_10yr) > 0.15
 
 
 def test_the_corporate_runner_prints_both_modes():
@@ -596,7 +612,7 @@ def test_the_corporate_runner_prints_both_modes():
     # 13.02% after it; both readings scored `trump_corporate_15` against this
     # model's own +$1,920B. These are the figures against published targets.
     assert means[CORPORATE_MODE_REPORTED] == pytest.approx(62.75, abs=0.01)
-    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(61.43, abs=0.01)
+    assert means[CORPORATE_MODE_DERIVED] == pytest.approx(42.75, abs=0.05)
 
     default = validate_all_corporate(verbose=False)
     reported = validate_all_corporate(verbose=False, mode=CORPORATE_APP_MODE)

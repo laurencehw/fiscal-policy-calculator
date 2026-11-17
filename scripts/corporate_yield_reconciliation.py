@@ -295,8 +295,8 @@ LABELS = (
 MODEL_ROWS = (
     ("model reported +1pp", 1.0, -199.60, "rate_only"),
     ("model reported +7pp", 7.0, -1397.21, "rate_only"),
-    ("model derived +1pp", 1.0, -196.08, "rate_only"),
-    ("model derived +7pp", 7.0, -1292.62, "rate_only"),
+    ("model derived +1pp", 1.0, -150.56, "rate_only"),
+    ("model derived +7pp", 7.0, -992.54, "rate_only"),
     ("model derived +1pp (pre-W6)", 1.0, -220.28, "rate_only"),
     ("model derived +7pp (pre-W6)", 7.0, -1452.14, "rate_only"),
 )
@@ -473,10 +473,11 @@ def print_same_window(rows: list[dict]) -> None:
         f"Excluding Treasury, the published shares on this window span "
         f"{min(shares):.1%} to {max(shares):.1%}. Treasury's is 79.5% and it is\n"
         "the only one of the four whose scope is not rate-only. The model's "
-        "derived path is 80.8% since lane\nW6 projected its base off CBO's own "
-        "receipts path - Treasury's neighbourhood, and above every other "
-        "estimator\non the record. It was 90.8% before, higher than all four, "
-        "and the benchmark it is fitted to is the second highest."
+        "derived path is 62.1% at +1pp since the calibrated marginal-credit "
+        "factor scaled the mechanical 80.8% share - inside the published "
+        "55.1-79.5% span, above Tax Foundation and below PWBM and Treasury, "
+        "and not a JCT fit (the four Options rows were held out). It was 90.8% "
+        "before W6 and 80.8% after it, higher than all four at the small step."
     )
     print(
         "\nRead the shares with the denominator in mind. Only the JCT/CBO rows "

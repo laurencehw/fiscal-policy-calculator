@@ -66,8 +66,11 @@ class TestBidenCorporateRateCBORange:
     factory's default mode now prices the rate change against CBO's own
     projected corporate receipts path rather than the fitted profits aggregate,
     so the fallback-data regression value went **-$1,397B -> -$1,293B**. The
-    band keeps its old relative width around the new centre, and the ``reported``
-    figure is pinned separately in
+    credit-factor lane then scaled the rate channel so a +1pp step matches the
+    mean implied share of Tax Foundation, PWBM and Treasury's rate-only row
+    (JCT Options held out), taking the same factory **-$1,293B -> -$993B**.
+    The band keeps its old relative width (~±5%) around the new centre, and
+    the ``reported`` figure is pinned separately in
     ``tests/test_corporate_derived.py::test_reported_mode_pins`` so that both
     remain checkable.
     """
@@ -77,8 +80,8 @@ class TestBidenCorporateRateCBORange:
         result = scorer.score_policy(policy)
         total = result.total_10_year_cost
         # Revenue raiser: total_10_year_cost should be negative (reduces deficit)
-        assert -1355 <= total <= -1230, (
-            f"Biden corporate {total:.0f}B outside regression band [-1355, -1230]"
+        assert -1045 <= total <= -940, (
+            f"Biden corporate {total:.0f}B outside regression band [-1045, -940]"
         )
 
     def test_biden_corporate_reduces_deficit(self, scorer):

@@ -6,13 +6,16 @@ import { money } from "./format";
 /**
  * Three out-of-sample scorecard rows, not fitted reproductions.
  * One within 5% of its published score, one beside the ordinary-rate class
- * mean, and one corporate miss. Dollars are read from the nightly scorecard.
+ * mean, and one larger miss. Dollars are read from the nightly scorecard.
  * None of the three has a preset page, so each links to its row on Methods.
+ * The third used to be ``cbo_opt64_corporate_rate_1pp`` (44.5%); the
+ * credit-factor lane took that row to 11.0%, so the miss is now the
+ * worst remaining held-out row.
  */
 export const WORKED_POLICY_IDS = [
   "cbo_opt45_all_rates_1pp",
   "cbo2021_opt1_all_rates_1pp",
-  "cbo_opt64_corporate_rate_1pp",
+  "cbo2021_opt1_top4_brackets_1pp",
 ] as const;
 
 export type WorkedRow = {

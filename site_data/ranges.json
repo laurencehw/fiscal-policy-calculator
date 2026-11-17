@@ -1,7 +1,7 @@
 {
   "corporate-28pct": {
     "policy_id": "biden_corporate_28",
-    "model_billions": -1310.9199937081369,
+    "model_billions": -1006.5981362133755,
     "subject": "a 7.0pp corporate rate increase",
     "window": "FY2025–2034",
     "basis": "each house's own published ten-year score divided by its own rate step, times this policy's step",
@@ -11,7 +11,7 @@
         "estimator": "Treasury OTA",
         "document": "General Explanations of the Administration's FY2025 Revenue Proposals (Green Book), \"Raise the corporate income tax rate to 28 percent\"",
         "value_billions": -1349.9410000000007,
-        "fitted": true
+        "fitted": false
       },
       {
         "estimator": "Penn Wharton Budget Model",
@@ -36,7 +36,7 @@
   },
   "corporate-15pct": {
     "policy_id": "trump_corporate_15",
-    "model_billions": 1562.7532398095523,
+    "model_billions": 1266.9470160296664,
     "subject": "Published scores of this reform",
     "window": "",
     "basis": "",

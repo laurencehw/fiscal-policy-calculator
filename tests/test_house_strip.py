@@ -8,7 +8,7 @@ from pathlib import Path
 import api
 from fiscal_model.preset_ids import resolve_preset
 from fiscal_model.ui.estimator_ranges import corporate_estimator_range, house_strip
-from fiscal_model.ui.preset_validation import TIER_FITTED, get_validation_badge
+from fiscal_model.ui.preset_validation import TIER_RECONSTRUCTION, get_validation_badge
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,12 +28,16 @@ def test_the_corporate_strip_equals_the_converted_range():
     policy = _policy("corporate-28pct")
     model = _headline("corporate-28pct")
     badge = get_validation_badge("corporate-28pct")
-    assert badge is not None and badge["tier"] == TIER_FITTED
+    assert badge is not None and badge["tier"] == TIER_RECONSTRUCTION
     strip = house_strip(
         policy_id="biden_corporate_28",
         policy=policy,
         model_billions=model,
-        fitted_target_billions=float(badge["official"]),
+        # Reconstruction since the credit-factor lane: `$1,900B` is fitted so
+        # *reported* hits this target, and the scorecard / app score *derived*.
+        # Passing the official figure here would label Treasury a fitted
+        # target, which is the H6 lie this lane closed.
+        fitted_target_billions=None,
     )
     assert strip is not None
     rate = (float(policy._get_reform_rate()) - float(policy.baseline_rate)) * 100.0
@@ -43,7 +47,7 @@ def test_the_corporate_strip_equals_the_converted_range():
         estimate.value_billions for estimate in converted.estimates
     ]
     assert strip["model_billions"] == model
-    assert any(row["fitted"] for row in strip["estimates"])
+    assert not any(row["fitted"] for row in strip["estimates"])
 
 
 def test_the_15pct_strip_is_the_published_range_not_a_scaled_28pct():

@@ -358,21 +358,23 @@ def test_the_corporate_ceiling_records_the_outlook_vintage_tightening():
     the CBO Outlook its own *Options* volume was priced against -- so the class
     reads 40.3% and ``ceil(40.33 x 1.25) = 51``.
 
-    Pinned rather than left to the one-sided invariant above because a ceiling
-    set around a *named* cause must move when that cause is removed. 90 fails
-    both invariants at a class mean of 40.33%: looser than the rule's 51, and
-    more than twice the live mean.
+    The class-recalibration lane then scaled the derived rate channel by a
+    factor calibrated to three non-holdout rate-only houses, holding out the
+    four JCT Options rows, so the class reads 11.0% and
+    ``ceil(11.01 x 1.25) = 14``.
 
-    51 is still wide, and deliberately so. What is left under it is one
-    quantity read four times -- the module reaches about 80.8% of the statutory
-    base its receipts path implies where JCT reaches 53-57% -- and no vintage
-    fix touches it, so a later pass must not read 90 -> 51 as the marginal-share
-    gap closing.
+    Pinned rather than left to the one-sided invariant above because a ceiling
+    set around a *named* cause must move when that cause is removed. 51 fails
+    both invariants at a class mean of 11.0%: looser than the rule's 14, and
+    more than twice the live mean.
     """
     workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
-    assert _per_class_ceilings(workflow)["corporate"] == 51
+    assert _per_class_ceilings(workflow)["corporate"] == 14
     assert "ceil(40.33 x 1.25) = 51" in workflow, (
-        "the corporate ceiling's re-derivation arithmetic is not recorded"
+        "the corporate ceiling's Outlook-vintage re-derivation is not recorded"
+    )
+    assert "ceil(11.01 x 1.25) = 14" in workflow, (
+        "the corporate ceiling's credit-factor re-derivation is not recorded"
     )
 
 
@@ -412,7 +414,11 @@ def test_the_pooled_gate_records_the_battery_that_shrank():
     # priced on: mean 18.0% -> 15.2%, within-25 35 -> 36.
     #   ceiling  ceil(15.2 x 1.25) = 19 -> nearest 5 = 20. Lowered 25 -> 20.
     #   floor    36 - 1 = 35. Raised 34 -> 35.
-    assert "--max-mean-error 20 --min-within-25pct 35" in workflow
+    #
+    # The corporate class-recalibration lane then took three more corporate
+    # rows inside 25% (within-25 36 -> 39) without changing the battery:
+    #   floor    39 - 1 = 38. Raised 35 -> 38.
+    assert "--max-mean-error 20 --min-within-25pct 38" in workflow
     assert "86.4%" in workflow, "the within-25 share must be recorded beside the count"
     assert "shrinking battery" in workflow
 

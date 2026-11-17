@@ -260,13 +260,17 @@ _SPENDING_OUTLAY_CLASS: dict[str, str] = {
 #: -$192.9B, -$196.1B). PR #122 inferred that flatness from a single second
 #: target on a second decade; four editions of one option measure it directly.
 _CORPORATE_MULTI_VOLUME_LIMITATIONS = [
-    "The module answers a 1pp corporate rate increase with nearly the same "
-    "figure on every decade: -$192.3B, -$191.8B, -$192.9B and -$196.1B across "
-    "the four Options volumes, a 2.2% spread, where CBO's own estimates for "
-    "the identical reform span 41.0% ($96.3B to $135.7B). The residual on any "
-    "one of these rows is therefore mostly a level (the implied marginal share "
-    "of the statutory base, 80.8% against a published 55.1-79.5%), not a "
-    "decade. See planning/memos/CORPORATE_PER_POINT_YIELD.md and lane R5/H3b.",
+    "The module answers a 1pp corporate rate increase with a 33% spread "
+    "across the four Options volumes (-$113.5B, -$92.8B, -$140.6B and "
+    "-$150.6B), where CBO's own estimates for the identical reform span "
+    "41.0% ($96.3B to $135.7B). The residual on any one of these rows is "
+    "therefore mostly a level (the implied marginal share of the statutory "
+    "base, 62.1% against JCT's 52.6-57.1% on the three non-COVID vintages), "
+    "not a decade. The 62.1% is the mean of three published rate-only houses "
+    "that are not in this battery (Tax Foundation 55.1%, PWBM 64.4%, "
+    "Treasury FY2022 66.7%); the four JCT Options rows were held out. See "
+    "planning/memos/CORPORATE_PER_POINT_YIELD.md and "
+    "planning/lanes/CORP_class_recalibration.md.",
 ]
 
 #: The second cause, which used to dominate the two rows whose decade opens
@@ -308,22 +312,25 @@ _CORPORATE_MULTI_VOLUME_LIMITATIONS = [
 #: What survives on all four rows is the **marginal-share level**, which is one
 #: quantity read four times rather than four findings.
 _CORPORATE_MARGINAL_SHARE_LEVEL = [
-    "The residual on every edition of this reform is one number, not an "
-    "edition-specific mechanism. The derived path reaches about 80.8% of the "
-    "credit-realized statutory base its receipts path implies (CBO receipts x "
-    "4.80133, after the 17.6% profit-shifting offset and the IRC section 6655 "
-    "phase), where JCT's own implied marginal share is 52.6% on the April 2018 "
-    "baseline, 57.1% on May 2022 and 55.9% on February 2024 - and 66.1% on the "
-    "COVID-depressed September 2020 one. `0.808 / share - 1` reproduces each "
-    "row's error to within a tenth of a point, which is what makes the four "
-    "residuals four readings of one gap. The channel that points it downward "
-    "and is entirely unbooked is IRC section 38(c): a general-business-credit "
-    "carryforward stock of $124.47B against $72.17B of claims, under a "
-    "statutory cap that RISES with the rate. The share of the base held by "
-    "taxpayers who are both capped and holding stock is published for no "
-    "post-2010 year (SOI's excess-position tables stop at TY2010), so nothing "
-    "here multiplies one. See planning/memos/CORPORATE_PER_POINT_YIELD.md and "
-    "planning/lanes/CORP_class_accuracy.md section 2.2.",
+    "The residual on every edition of this reform is still one number, not "
+    "an edition-specific mechanism. After the Outlook-vintage install the "
+    "derived path reached about 80.8% of the credit-realized statutory base "
+    "(CBO receipts x 4.80133, after the 17.6% profit-shifting offset and the "
+    "IRC section 6655 phase). A later pass scaled that path by a "
+    "marginal-credit factor calibrated to the mean implied share of three "
+    "published rate-only houses that are not in this battery - Tax Foundation "
+    "2024 55.1%, PWBM 2024 64.4%, Treasury FY2022 rate-only 66.7%, mean "
+    "62.1% - taking the +1pp share from 80.8% to 62.1%. JCT's own implied "
+    "marginal share is 52.6% on the April 2018 baseline, 57.1% on May 2022 "
+    "and 55.9% on February 2024 - and 66.1% on the COVID-depressed September "
+    "2020 one. Those four rows were held out of the calibration; the leftover "
+    "against them is the published houses disagreeing with JCT, not a second "
+    "unbooked channel. The factor is not JCT's 0.559 and is not the 0.5785 "
+    "that would reproduce Option 64. Form 3800 still cannot identify the "
+    "constrained-tax share (SOI's excess-position tables stop at TY2010), so "
+    "the factor is not multiplied from those columns. See "
+    "planning/memos/CORPORATE_PER_POINT_YIELD.md and "
+    "planning/lanes/CORP_class_recalibration.md.",
 ]
 
 _CORPORATE_COVID_DENOMINATOR = [
@@ -1079,8 +1086,9 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "receipts, 4.80133, which is 1.0083 / 0.21 - and settled on IRC "
         "section 6655's estimated-payment calendar. That base is about a "
         "quarter larger than the fitted one in the window's first year, so "
-        "the derived path over-predicts this row by MORE than the fitted path "
-        "did, while reproducing the 21%->28% benchmark to 4.04%.",
+        "the derived path over-predicts this row by LESS than the fitted path "
+        "did once the marginal-credit factor shipped, while the 21%->28% "
+        "benchmark (a rate-plus-GILTI row) moved from 4.04% to 26.3%.",
         "The residual is an ESTIMATOR difference and a SCOPE difference, not "
         "the 42% document gap an earlier version of this note claimed. Both "
         "halves are corrected by "
@@ -1096,10 +1104,10 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "(|total| / step / 10, as a share of the vintage's own average base) "
         "the record is four estimators clustered and one high - Tax "
         "Foundation 55.1%, JCT 55.9%, PWBM 64.4%, Treasury (rate + GILTI) "
-        "79.5% - and this model reads 80.8% at +1pp and 76.1% at +7pp since "
-        "PR #121 projected the base off the vintage's own receipts path, above "
-        "all four at the small step and above three of the four at the large "
-        "one. "
+        "79.5% - and this model reads 62.1% at +1pp and 58.5% at +7pp, inside "
+        "that span at both steps, above Tax Foundation and below PWBM and "
+        "Treasury. The 62.1% is calibrated to the three non-JCT rate-only "
+        "houses; JCT's four Options rows were held out. "
         "There is also NOTHING in the record supporting a per-point yield "
         "that rises with the step: where one estimator prices a big step and "
         "a small one, JCT's 14-point cut from 35% and its 1-point increase "
@@ -1134,9 +1142,12 @@ _KNOWN_LIMITATIONS_BY_POLICY_ID: dict[str, list[str]] = {
         "`fiscal_model/data_files/corporate/credit_carryforward_stocks.csv`. "
         "The bound is informative: the section 904 channel at its own upper "
         "bound absorbs 28.85% of a marginal pre-credit dollar against the "
-        "29.15% the derived path already books by substituting the average "
-        "credit ratio for the marginal one, so the section 38(c) channel is "
-        "ENTIRELY unbooked and points this row DOWN. CAMT: for a "
+        "29.15% the receipts identity already books, so the leftover channel "
+        "is section 38(c). That channel is now priced as a calibrated factor "
+        "(γ = 0.768 on the credit-realized base, extra absorption 16.4% of "
+        "pre-credit tax, between the average GBC claim rate and the 75% cap) "
+        "rather than identified from Form 3800, because the constrained-tax "
+        "share is still unpublished. CAMT: for a "
         "book-minimum payer a point of regular rate raises nothing until the "
         "regular tax clears the minimum; it began in TY2023, after the last "
         "SOI year on file, and no source publishes the taxable income of "
@@ -1454,14 +1465,15 @@ def create_policy_from_score(
     ``corporate_rate``
         :class:`CorporateTaxPolicy` in the module's **derived** mode: the rate
         change applied to IRS SOI Table 11's published *income subject to tax*,
-        realized at SOI's own after-credits/before-credits ratio, offset by one
-        frozen profit-shifting semi-elasticity and settled on IRC section
-        6655's estimated-payment calendar. Deliberately *not* the fitted
-        ``BASELINE_TAXABLE_PROFITS_BILLIONS`` profits aggregate, which the
-        module's own comment describes as calibrated to reproduce
-        ``biden_corporate_28`` - routing an out-of-sample prediction through it
-        would be leakage, which is why the mode is pinned here rather than left
-        to the module's ``reported`` app default.
+        realized at SOI's own after-credits/before-credits ratio, then scaled
+        by a marginal-credit factor calibrated to three non-holdout rate-only
+        houses, offset by one frozen profit-shifting semi-elasticity and
+        settled on IRC section 6655's estimated-payment calendar. Deliberately
+        *not* the fitted ``BASELINE_TAXABLE_PROFITS_BILLIONS`` profits
+        aggregate, which the module's own comment describes as calibrated to
+        reproduce ``biden_corporate_28`` - routing an out-of-sample prediction
+        through it would be leakage, which is why the mode is pinned here
+        rather than left to the module's ``reported`` app default.
     ``payroll_rate``
         :class:`PayrollTaxPolicy` levying the rate as a **new flat tax on
         covered earnings** - all earnings with no taxable maximum, which CBO

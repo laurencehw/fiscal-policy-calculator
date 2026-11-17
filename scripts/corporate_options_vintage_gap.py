@@ -59,6 +59,7 @@ from fiscal_model.corporate import (  # noqa: E402
     cbo_corporate_receipts,
     corporate_receipts_document,
     corporate_receipts_sourcing,
+    marginal_credit_factor,
 )
 from fiscal_model.validation.cbo_scores import KNOWN_SCORES  # noqa: E402
 from fiscal_model.validation.core import validate_policy  # noqa: E402
@@ -134,15 +135,23 @@ def _pre_install_receipts(fiscal_year: int) -> float:
     return cbo_corporate_receipts(fiscal_year, PRE_INSTALL_VINTAGE)
 
 
-def _score_on_path(window: tuple[int, ...], receipts_at) -> dict:
-    """Reproduce the derived +1pp identity on an arbitrary receipts path."""
+def _score_on_path(
+    window: tuple[int, ...], receipts_at, *, credit_factor: float = 1.0
+) -> dict:
+    """Reproduce the derived +1pp identity on an arbitrary receipts path.
+
+    ``credit_factor=1.0`` is the mechanical identity (average credit
+    realization only) — what every row scored after the Outlook-vintage
+    install and before the marginal-credit factor. Pass
+    :func:`marginal_credit_factor` to reconstruct the live score.
+    """
     start = window[0]
     years = []
     net_total = 0.0
     receipts_total = 0.0
     for year in window:
         receipts = receipts_at(year)
-        static = RATE_STEP * receipts * BASE_PER_DOLLAR_OF_RECEIPTS
+        static = RATE_STEP * receipts * BASE_PER_DOLLAR_OF_RECEIPTS * credit_factor
         phase = _phase_factor(year, start, receipts_at)
         net = static * phase * (1.0 - OFFSET_SHARE)
         net_total += net
@@ -186,8 +195,13 @@ def _row_report(policy_id: str) -> dict:
     live = _live_row(policy_id)
     window = _window(policy_id)
     contemporaneous = _contemporaneous_path(policy_id)
-    pre_install = _score_on_path(window, _pre_install_receipts)
-    vintage = _score_on_path(window, contemporaneous.__getitem__)
+    pre_install = _score_on_path(window, _pre_install_receipts, credit_factor=1.0)
+    mechanical = _score_on_path(
+        window, contemporaneous.__getitem__, credit_factor=1.0
+    )
+    vintage = _score_on_path(
+        window, contemporaneous.__getitem__, credit_factor=marginal_credit_factor()
+    )
 
     first_year = window[0]
     shipped_first = _pre_install_receipts(first_year)
@@ -241,6 +255,8 @@ def _row_report(policy_id: str) -> dict:
         ),
         "reconstruction_10yr": vintage["model_10yr_billions"],
         "reconstruction_gap": reconstruction_gap,
+        "mechanical_model_10yr": mechanical["model_10yr_billions"],
+        "mechanical_error_pct": _err(mechanical["model_10yr_billions"]),
         "pre_install_model_10yr": pre_install["model_10yr_billions"],
         "pre_install_error_pct": _err(pre_install["model_10yr_billions"]),
         "pre_install_receipts_10yr": pre_install["receipts_billions_total"],
@@ -276,21 +292,25 @@ def _row_report(policy_id: str) -> dict:
 def build_report() -> dict:
     rows = [_row_report(policy_id) for policy_id in POLICY_IDS]
     live_mass = sum(row["error_pct"] for row in rows)
+    mechanical_mass = sum(row["mechanical_error_pct"] for row in rows)
     pre_install_mass = sum(row["pre_install_error_pct"] for row in rows)
     return {
         "rows": rows,
         "n": len(rows),
         "live_class_mean_pct": live_mass / len(rows),
         "live_error_mass": live_mass,
-        # Retained keys: the live column IS the contemporaneous one since the
-        # install, and a reader comparing this report with the lane docs that
-        # predicted it should not have to translate names to see that.
+        # The Outlook-vintage contemporaneous identity (own path, γ = 1).
+        # Live diverges from this once the marginal-credit factor ships.
+        "mechanical_class_mean_pct": mechanical_mass / len(rows),
+        "mechanical_error_mass": mechanical_mass,
         "contemporaneous_class_mean_pct": live_mass / len(rows),
         "contemporaneous_error_mass": live_mass,
         "pre_install_class_mean_pct": pre_install_mass / len(rows),
         "pre_install_error_mass": pre_install_mass,
+        "vintage_install_mass_reduction": pre_install_mass - mechanical_mass,
         "mass_reduction": pre_install_mass - live_mass,
         "offset_share": OFFSET_SHARE,
+        "credit_factor": marginal_credit_factor(),
         "base_per_dollar_of_receipts": BASE_PER_DOLLAR_OF_RECEIPTS,
         "reconstruction_tolerance_billions": 0.15,
     }
@@ -307,7 +327,8 @@ def render(report: dict) -> str:
         "Corporate +1pp Options rows — each on the Outlook its own volume names",
         "",
         f"Derived identity: Δτ × receipts × {report['base_per_dollar_of_receipts']:.5f} "
-        f"× (1 − {report['offset_share']:.3f}) × §6655 phase.",
+        f"× γ={report['credit_factor']:.4f} × (1 − {report['offset_share']:.3f}) "
+        f"× §6655 phase.",
         "LIVE: each row reads the block CBOScore.corporate_receipts_vintage "
         "names, from cbo_corporate_receipts.csv.",
         "PRE-INSTALL (history): what every row scored when all four windows "
@@ -332,10 +353,12 @@ def render(report: dict) -> str:
     lines += [
         "",
         f"class mean  live {report['live_class_mean_pct']:.1f}%   "
+        f"mechanical (γ=1) {report['mechanical_class_mean_pct']:.1f}%   "
         f"pre-install {report['pre_install_class_mean_pct']:.1f}%",
         f"error mass  live {report['live_error_mass']:.1f}   "
+        f"mechanical {report['mechanical_error_mass']:.1f}   "
         f"pre-install {report['pre_install_error_mass']:.1f}   "
-        f"the install was worth {report['mass_reduction']:.1f}",
+        f"vintage install was worth {report['vintage_install_mass_reduction']:.1f}",
         "",
         "Receipts 10-year totals (pre-install vs the row's own Outlook) and "
         "first-year MTS",

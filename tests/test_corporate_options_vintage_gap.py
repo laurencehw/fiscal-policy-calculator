@@ -65,12 +65,19 @@ def test_the_install_landed_on_its_pre_registered_figures() -> None:
     row_2022 = _row(report, "cbo2023_opt50_corporate_rate_1pp")
     row_2024 = _row(report, "cbo_opt64_corporate_rate_1pp")
 
-    # The live figures ``CORP_outlook_vintages.md`` §3.1 registered before
-    # ``corporate.py`` was opened.
-    assert round(row_2018["error_pct"], 1) == 53.4
-    assert round(row_2020["error_pct"], 1) == 21.8
-    assert round(row_2022["error_pct"], 1) == 41.6
-    assert round(row_2024["error_pct"], 1) == 44.5
+    # MECHANICAL (γ = 1, own Outlook): the figures
+    # ``CORP_outlook_vintages.md`` §3.1 registered, kept so the vintage
+    # install cannot be rewritten by a later credit-factor lane.
+    assert round(row_2018["mechanical_error_pct"], 1) == 53.4
+    assert round(row_2020["mechanical_error_pct"], 1) == 21.8
+    assert round(row_2022["mechanical_error_pct"], 1) == 41.6
+    assert round(row_2024["mechanical_error_pct"], 1) == 44.5
+
+    # LIVE, after the calibrated marginal-credit factor.
+    assert round(row_2018["error_pct"], 1) == 17.8
+    assert round(row_2020["error_pct"], 1) == 6.5
+    assert round(row_2022["error_pct"], 1) == 8.7
+    assert round(row_2024["error_pct"], 1) == 11.0
 
     # HISTORY: what the same four rows read on the February 2024 block alone.
     assert round(row_2018["pre_install_error_pct"], 1) == 99.7
@@ -88,33 +95,35 @@ def test_the_install_landed_on_its_pre_registered_figures() -> None:
     assert row_2020["error_pct"] < row_2020["first_year_mts_deflated_error_pct"]
 
 
-def test_the_2024_row_did_not_move_and_that_is_the_falsification_test() -> None:
-    """FY2025-2034 *is* the February 2024 block, so naming it must change nothing.
+def test_the_2024_row_did_not_move_on_the_vintage_install() -> None:
+    """FY2025-2034 *is* the February 2024 block, so naming it changed nothing.
 
-    A lane that installs three older receipts paths and moves the one row that
-    already had its own has changed something else.
+    The credit factor *does* move the live 2024 score; the vintage-install
+    falsification is that the mechanical (γ = 1) figure still equals the
+    pre-install figure, and the receipts path is the same path.
     """
     report = build_report()
     row_2024 = _row(report, "cbo_opt64_corporate_rate_1pp")
-    assert abs(row_2024["model_10yr_billions"] - (-196.081903)) < 0.005
-    # The engine sums its own year path and the script sums its
-    # reconstruction, so they agree to summation order (~2e-13 of a
-    # billion) rather than bit for bit. "To the cent" is 1e-11 here.
+    assert abs(row_2024["mechanical_model_10yr"] - (-196.081903)) < 0.005
+    assert abs(row_2024["model_10yr_billions"] - (-150.563)) < 0.05
     assert abs(
-        row_2024["model_10yr_billions"] - row_2024["pre_install_model_10yr"]
+        row_2024["mechanical_model_10yr"] - row_2024["pre_install_model_10yr"]
     ) < 1e-9
     assert abs(row_2024["receipts_ratio_pre_install_over_contemporaneous"] - 1.0) < 1e-9
 
 
 def test_the_install_was_worth_about_125_error_mass() -> None:
     report = build_report()
-    assert round(report["live_class_mean_pct"], 1) == 40.3
+    assert round(report["mechanical_class_mean_pct"], 1) == 40.3
+    assert round(report["live_class_mean_pct"], 1) == 11.0
     assert round(report["pre_install_class_mean_pct"], 1) == 71.6
-    assert round(report["mass_reduction"], 1) == 125.2
-    # The two older editions do almost all of it; May 2022 is the tidy-up.
+    assert round(report["vintage_install_mass_reduction"], 1) == 125.2
+    # The two older editions do almost all of the vintage install; May 2022
+    # is the tidy-up. Measured on the mechanical (γ = 1) column so a later
+    # credit-factor lane cannot rewrite the install's size.
     by_id = {row["policy_id"]: row for row in report["rows"]}
     older = sum(
-        by_id[pid]["pre_install_error_pct"] - by_id[pid]["error_pct"]
+        by_id[pid]["pre_install_error_pct"] - by_id[pid]["mechanical_error_pct"]
         for pid in (
             "cbo2019_opt24_corporate_rate_1pp",
             "cbo2021_opt19_corporate_rate_1pp",
@@ -123,17 +132,22 @@ def test_the_install_was_worth_about_125_error_mass() -> None:
     assert round(older, 1) == 117.6
 
 
-def test_what_the_install_did_not_close() -> None:
-    """40.3% is one gap read four times, not four findings — and it is still there.
+def test_what_the_install_did_not_close_and_what_the_credit_factor_did() -> None:
+    """40.3% was one gap read four times. The credit factor closed most of it.
 
-    After the vintage is right, ``0.808 / JCT's own implied share - 1``
-    reproduces each row's error, which is why the class mean is still 40%. A
-    later reader must not take 71.6% -> 40.3% as an accuracy claim about the
-    module's marginal share, which did not move by a decimal.
+    After the vintage is right, mechanical (γ = 1) still reads 40.3% because
+    ``0.808 / JCT's own implied share - 1`` reproduces each row. The
+    calibrated factor takes the live class to 11.0% without fitting any of
+    the four holdout rows. A later reader must not take 71.6% -> 40.3% as
+    an accuracy claim about the marginal share, and must not take 40.3% ->
+    11.0% as a JCT fit: the calibration set is TF / PWBM / Treasury
+    rate-only, and 62.1% is 3pp above JCT's 0.590.
     """
     report = build_report()
-    assert report["live_class_mean_pct"] > 35.0
+    assert report["mechanical_class_mean_pct"] > 35.0
+    assert report["live_class_mean_pct"] < 15.0
     assert report["base_per_dollar_of_receipts"] > 4.8
+    assert 0.75 < report["credit_factor"] < 0.79
     # One anchor ratio for all four paths (§1.4): a per-edition anchor would be
     # a fitted degree of freedom per row.
     assert len({row["contemporaneous_vintage"] for row in report["rows"]}) == 4

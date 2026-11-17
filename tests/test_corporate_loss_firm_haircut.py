@@ -147,17 +147,19 @@ def test_the_projected_base_carries_no_haircut():
 
 
 def test_no_score_is_within_reach_of_the_haircut_applied():
-    """§4.2: the score must not look like the haircut was quietly applied.
+    """§4.2: the score must not look like CBO's 0.80/0.85 haircut was applied.
 
-    ``x0.85`` on the derived +1pp path returns about $166.7B against the
-    unhaircut $196.1B, which would read 22.8% against CBO Option 64's $135.7B —
-    *inside* this lane's pre-registered band. So "it landed the band" is not
-    evidence of anything, and this test is what stops it becoming so.
+    The mechanical (pre-factor) +1pp path is $196.08B. ``x0.85`` of that is
+    $166.7B and ``x0.80`` is $156.9B. The live score is the calibrated
+    credit factor, 0.768 of mechanical, and it has to sit more than $5B from
+    both unpublished haircuts so a green Option 64 row cannot be read as
+    having applied one.
     """
     total = _scored_total(0.01, CORPORATE_MODE_DERIVED)
-    for factor in (0.80, 0.85):
-        assert abs(total) > abs(total * factor) + 5.0, factor
-    assert abs(total) == pytest.approx(196.08, abs=1.0)
+    mechanical = 196.08
+    assert abs(total) == pytest.approx(150.56, abs=1.0)
+    for haircut in (0.80, 0.85):
+        assert abs(abs(total) - mechanical * haircut) > 5.0, haircut
 
 
 def test_the_module_never_reads_the_haircut_in_a_scoring_path():

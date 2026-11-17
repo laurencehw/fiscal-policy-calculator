@@ -246,7 +246,7 @@ jobs:
       # receipts path their targets were never priced on.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 35
+          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 38
 
       # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
       # The pooled gate above cannot see one policy class regressing while the
@@ -383,6 +383,18 @@ jobs:
       # 80.8% of the statutory base its receipts path implies where JCT reaches
       # 53-57% -- and no vintage fix touches it.
       #
+      # The corporate class-recalibration lane
+      # (planning/lanes/CORP_class_recalibration.md) scaled the derived rate
+      # channel by a marginal-credit factor calibrated to three non-holdout
+      # rate-only houses (Tax Foundation 55.1%, PWBM 64.4%, Treasury FY2022
+      # rate-only 66.7%, mean 62.1%), holding out the four JCT Options +1pp
+      # rows. Class mean 40.3% -> 11.0% (mass 161.3 -> 44.0, within-15 0 -> 3,
+      # within-25 1 -> 4). Forced by the one-sided invariant:
+      #   corporate  ceil(11.01 x 1.25) = 14, lowered 51 -> 14.
+      # The pooled floor also tightens: within-25 36 -> 39 so 39 - 1 = 38,
+      # raised 35 -> 38. The pooled ceiling re-derives to itself
+      # (ceil(12.45 x 1.25) = 16 -> nearest 5 = 20).
+      #
       # Lane B2a (CBO's own income path, planning/lanes/B2a_cbo_income_path.md)
       # moved ordinary_rate_change 15.3% -> 15.0% (mass 168.8 -> 165.5, median
       # 15.0% -> 16.0%, within-15 6 -> 5, within-25 10 unchanged):
@@ -393,7 +405,7 @@ jobs:
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
             agi_inclusive_surtax=9 ordinary_rate_change=19 \
-            capital_gains=18 corporate=51 \
+            capital_gains=18 corporate=14 \
             enacted_law_spending=10 discretionary_spending=6 \
             payroll=24 tax_expenditure=9
 

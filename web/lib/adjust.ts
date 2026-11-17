@@ -10,7 +10,7 @@ export const TAILOR_SHAPES: Record<string, TailorShape> = {
   "middle-class-rate-cut-2pp": { kind: "income", rate: -2, who: 50_000, duration: 10, dynamic: false, tenYear: 1473.2 },
   "across-the-board-rate-cut-5pp": { kind: "income", rate: -5, who: 0, duration: 10, dynamic: false, tenYear: 6585.02 },
   "top-rate-45": { kind: "income", rate: 8, who: 609_350, duration: 10, dynamic: false, tenYear: -1036.66 },
-  "corporate-28pct": { kind: "corporate", rate: 7, who: 0, duration: 10, dynamic: false, tenYear: -1310.92 },
+  "corporate-28pct": { kind: "corporate", rate: 7, who: 0, duration: 10, dynamic: false, tenYear: -1006.60 },
 };
 
 /** True when Tailor's rate form reproduces this preset's ten-year figure. */
