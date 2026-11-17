@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from bill_tracker.cbo_fetcher import load_fallback_estimates
+from bill_tracker.corrections import apply_pinned_corrections, skip_live_cbo_match
 from bill_tracker.database import BillDatabase
 
 DEFAULT_DB_PATH = Path(__file__).parent.parent / "fiscal_model" / "data_files" / "bills.db"
@@ -47,10 +48,14 @@ def main() -> int:
         if not db.get_bill(estimate.bill_id):
             skipped += 1
             continue
+        if skip_live_cbo_match(estimate.bill_id):
+            skipped += 1
+            continue
         db.upsert_cbo_score(estimate)
         imported += 1
 
-    print(f"Imported {imported} CBO fallback scores. Skipped {skipped} (bill_id not in DB).")
+    apply_pinned_corrections(db, rescore=False)
+    print(f"Imported {imported} CBO fallback scores. Skipped {skipped} (missing or pinned).")
     return 0
 
 

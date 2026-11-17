@@ -252,7 +252,7 @@ def _render_filters(st_module: Any, db: Any) -> dict:
         col1, col2, col3 = st_module.columns(3)
         with col1:
             status_options = [
-                "All", "introduced", "committee", "passed_chamber", "enacted",
+                "All", "introduced", "committee", "passed_chamber", "adopted", "enacted",
             ]
             status_filter = st_module.selectbox(
                 "Status",
@@ -482,7 +482,10 @@ def _render_bill_card(
                 conf = auto_score.get("confidence", "low")
                 cost_str = _format_cost(cost)
                 st_module.markdown(f"**Calc. Estimate:** {cost_str}")
-                st_module.caption(f"Confidence: {conf} · Auto-scored — verify against CBO")
+                st_module.caption(
+                    f"Confidence: {conf} · {_coverage_caption(auto_score)} · "
+                    "Auto-scored — verify against CBO"
+                )
             else:
                 st_module.caption("Calc. Estimate: not scored")
 
@@ -522,9 +525,11 @@ def _render_bill_detail(
                 policy_type = p.get("policy_type", "unknown")
                 provision_text = p.get("provision_text", "")
                 confidence = p.get("confidence", "")
+                mapped = p.get("mapped", policy_type != "other")
                 conf_icon = {"high": "✓", "medium": "~", "low": "⚠"}.get(confidence, "?")
+                tag = "unmapped" if mapped is False or policy_type == "other" else policy_type
                 st_module.markdown(
-                    f"- {conf_icon} **{policy_type}** — {provision_text[:120]}  "
+                    f"- {conf_icon} **{tag}** — {provision_text[:120]}  "
                     f"*(confidence: {confidence})*"
                 )
         except Exception:
@@ -558,7 +563,7 @@ def _render_bill_detail(
             f"Total: **{_format_cost(total)}**"
         )
         st_module.caption(
-            f"Confidence: {conf} · Scored {scored_at} · "
+            f"Confidence: {conf} · {_coverage_caption(auto_score)} · Scored {scored_at} · "
             "Auto-scored — verify against official CBO/JCT estimates"
         )
 
@@ -673,8 +678,23 @@ def _status_label(status: str) -> str:
         "introduced": "Introduced",
         "committee": "In Committee",
         "passed_chamber": "Passed Chamber",
+        "adopted": "Adopted",
         "enacted": "Enacted",
     }.get(status, status.title())
+
+
+def _coverage_caption(auto_score: dict) -> str:
+    try:
+        from bill_tracker.confidence import coverage_from_policies
+
+        policies = auto_score.get("policies_json")
+        if isinstance(policies, str):
+            policies = json.loads(policies)
+        if not isinstance(policies, list) or not policies:
+            return "coverage unknown"
+        return str(coverage_from_policies(policies)["label"])
+    except Exception:
+        return "coverage unknown"
 
 
 def _format_date(date_str: str | None) -> str:

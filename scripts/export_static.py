@@ -279,6 +279,16 @@ def _json_or(text: str | None, default: Any) -> Any:
         return default
 
 
+def _auto_coverage(score: dict[str, Any]) -> str | None:
+    """``N of M provisions mapped`` from the auto-score's stored provision list."""
+    from bill_tracker.confidence import coverage_from_policies
+
+    provisions = _json_or(score.get("policies_json"), [])
+    if not isinstance(provisions, list) or not provisions:
+        return None
+    return str(coverage_from_policies(provisions)["label"])
+
+
 def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str, Any]]:
     """``(index, scored)`` for the tracker, read from the nightly database."""
     import sqlite3
@@ -334,6 +344,7 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
                 "cbo_ten_year_billions": estimate["ten_year_cost_billions"] if estimate else None,
                 "auto_ten_year_billions": score["ten_year_cost_billions"] if score else None,
                 "auto_confidence": score["confidence"] if score else None,
+                "auto_coverage": _auto_coverage(score) if score else None,
             }
         )
         if estimate or score:
@@ -356,6 +367,7 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
                     "ten_year_billions": score["ten_year_cost_billions"],
                     "annual_billions": _json_or(score["annual_effects"], []),
                     "confidence": score["confidence"],
+                    "coverage": _auto_coverage(score),
                     "provisions": _json_or(score["policies_json"], []),
                 },
             }

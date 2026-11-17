@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from bill_tracker.confidence import unmapped_policy_dicts
 from fiscal_model.time_utils import utc_now
 
 if TYPE_CHECKING:
@@ -117,6 +118,10 @@ class AutoScorer:
         if not scored_policies:
             return None
 
+        policies_json = list(scored_policies)
+        policies_json.extend(unmapped_policy_dicts(mapping_result.unmapped_provisions))
+        notes_parts.append(mapping_result.confidence_reason)
+
         return BillScore(
             bill_id=mapping_result.bill_id,
             scored_at=utc_now(),
@@ -125,8 +130,8 @@ class AutoScorer:
             static_cost=total_static,
             behavioral_offset=total_behavioral,
             confidence=mapping_result.confidence,
-            policies_json=scored_policies,
-            notes="; ".join(notes_parts),
+            policies_json=policies_json,
+            notes="; ".join(part for part in notes_parts if part),
         )
 
     # ------------------------------------------------------------------

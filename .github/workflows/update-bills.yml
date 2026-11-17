@@ -46,6 +46,9 @@ jobs:
         env:
           CONGRESS_API_KEY: ${{ secrets.CONGRESS_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        # update_bills.py applies bill_tracker/pinned_corrections.json at the
+        # end of every run so live CBO matching cannot reattach a budget
+        # resolution score or a pre-enactment H.R. 1 figure.
         run: python scripts/update_bills.py --verbose --cbo-fallback-file bill_tracker/cbo_manual_scores.json
 
       - name: Refresh the static export the new site reads

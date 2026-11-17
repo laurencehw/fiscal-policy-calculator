@@ -1,0 +1,30 @@
+{
+  "_comment": "Applied at the end of every update_bills run so the nightly job cannot overwrite these rows. Do not generate this file from the CBO dump.",
+  "public_laws": {
+    "119-21": "hr-1-119"
+  },
+  "cbo_scores": {
+    "hr-1-119": {
+      "title": "Estimated Budgetary Effects of Public Law 119-21, to Provide for Reconciliation Pursuant to Title II of H. Con. Res. 14, Relative to CBO's January 2025 Baseline",
+      "estimate_date": "2025-07-21",
+      "ten_year_cost_billions": 3400.0,
+      "annual_costs": [],
+      "budget_function": "",
+      "dynamic_estimate": null,
+      "pdf_url": "",
+      "cbo_url": "https://www.cbo.gov/publication/61570",
+      "source_note": "CBO publication 61570 (21 July 2025): P.L. 119-21 as enacted 4 July 2025 increases the unified deficit by $3.4 trillion over FY2025-2034 ($1.1T less direct spending, $4.5T less revenue). Publications 61560/61564/61571 are pre-enactment or companion figures, not the as-enacted estimate."
+    }
+  },
+  "no_cbo_score": {
+    "hconres-14-119": "Budget resolutions are concurrent resolutions: they are not law and CBO does not publish a cost estimate for them (CRS R48532). The +$85B figure previously shown was CBO publication 61838, a P.L. 119-21 follow-up whose truncated title cites Title II of H. Con. Res. 14. Publication 61837 (-$886.8B) is the same mis-map. Both are left unassigned so they cannot outrank publication 61570 on H.R. 1."
+  },
+  "status": {
+    "hconres-14-119": {
+      "status": "adopted",
+      "latest_action": "House agreed to the Senate amendment (FY2025 budget resolution adopted).",
+      "latest_action_date": "2025-04-10T00:00:00Z",
+      "source_note": "CRS R48532: Senate agreed 5 April 2025 (51-48); House concurred 10 April 2025 (216-214). congress.gov/bill/119th-congress/house-concurrent-resolution/14. The congress.gov latestAction of 'Star Print ordered on the reported concurrent resolution' (20 May 2025) is clerical and must not map to 'In committee'."
+    }
+  }
+}

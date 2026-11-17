@@ -19,6 +19,8 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from bill_tracker.confidence import mapping_confidence
+
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------
@@ -142,11 +144,16 @@ class ProvisionMapper:
         # Check for manual override first
         override = self._load_override(bill_id)
         if override:
+            policies = list(override.get("policies") or [])
+            unmapped = list(override.get("unmapped_provisions") or [])
+            confidence, reason = mapping_confidence(policies, unmapped)
+            who = override.get("mapped_by", "unknown")
             return MappingResult(
                 bill_id=bill_id,
-                policies=override["policies"],
-                confidence="high",
-                confidence_reason="Manual override by " + override.get("mapped_by", "unknown"),
+                policies=policies,
+                confidence=confidence,
+                confidence_reason=f"Manual override by {who}; {reason}",
+                unmapped_provisions=unmapped,
                 mapping_notes=override.get("override_reason", ""),
                 extraction_method="manual",
             )
@@ -166,34 +173,23 @@ class ProvisionMapper:
         # Regex validation
         warnings = self._validate_with_regex(policies, summary)
 
-        # Compute overall confidence
-        if not policies:
-            confidence = "low"
-            reason = "No fiscal provisions identified"
-        elif any(p.get("confidence") == "low" for p in policies):
-            confidence = "low"
-            reason = "One or more provisions have low confidence"
-        elif all(p.get("confidence") == "high" for p in policies):
-            confidence = "high"
-            reason = f"{len(policies)} provision(s) extracted with high confidence"
-        else:
-            confidence = "medium"
-            reason = f"{len(policies)} provision(s) extracted with mixed confidence"
+        mapped = [p for p in policies if p.get("policy_type") != "other"]
+        unmapped = [
+            p.get("provision_text") or ""
+            for p in policies
+            if p.get("policy_type") == "other"
+        ]
+        unmapped = [text for text in unmapped if text]
+        confidence, reason = mapping_confidence(mapped, unmapped)
 
         if warnings:
             if confidence == "high":
                 confidence = "medium"
             reason += f"; {len(warnings)} validation warning(s)"
 
-        unmapped = [
-            p["provision_text"]
-            for p in policies
-            if p.get("policy_type") == "other"
-        ]
-
         return MappingResult(
             bill_id=bill_id,
-            policies=[p for p in policies if p.get("policy_type") != "other"],
+            policies=mapped,
             confidence=confidence,
             confidence_reason=reason,
             unmapped_provisions=unmapped,
@@ -205,11 +201,20 @@ class ProvisionMapper:
 
     def map_manual(self, bill_id: str, policies: list[dict]) -> MappingResult:
         """Manual override for bills where LLM extraction fails or is wrong."""
+        mapped = [p for p in policies if p.get("policy_type") != "other"]
+        unmapped = [
+            p.get("provision_text") or ""
+            for p in policies
+            if p.get("policy_type") == "other"
+        ]
+        unmapped = [text for text in unmapped if text]
+        confidence, reason = mapping_confidence(mapped, unmapped)
         return MappingResult(
             bill_id=bill_id,
-            policies=policies,
-            confidence="high",
-            confidence_reason="Manual override",
+            policies=mapped,
+            confidence=confidence,
+            confidence_reason=f"Manual override; {reason}",
+            unmapped_provisions=unmapped,
             extraction_method="manual",
         )
 

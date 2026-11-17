@@ -59,6 +59,22 @@ def _normalize_status(latest_action: str) -> str:
     action_lower = latest_action.lower()
     if any(kw in action_lower for kw in ("signed by president", "became public law", "enacted")):
         return "enacted"
+    # Concurrent/simple resolutions are agreed to, not signed. Check before
+    # "reported" so a later clerical star-print does not hide adoption — the
+    # latest *action string* still has to mention agreement; pinned_corrections
+    # covers the case where congress.gov's latestAction is only the star print.
+    if any(
+        kw in action_lower
+        for kw in (
+            "agreed to in house",
+            "agreed to in senate",
+            "resolution agreed to",
+            "agreed to the senate amendment",
+            "agreed to the house amendment",
+            "adopted the concurrent resolution",
+        )
+    ):
+        return "adopted"
     if any(kw in action_lower for kw in ("passed house", "passed senate", "passed chamber")):
         return "passed_chamber"
     if any(kw in action_lower for kw in ("reported", "markup", "ordered to be reported")):

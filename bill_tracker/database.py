@@ -239,29 +239,73 @@ class BillDatabase:
 
     def upsert_cbo_score(self, estimate: CBOCostEstimate) -> None:
         with self._connect() as conn:
+            self._insert_cbo_score(conn, estimate)
+
+    def replace_cbo_score(self, estimate: CBOCostEstimate) -> None:
+        """Drop prior CBO rows for this bill and write the pinned estimate."""
+        with self._connect() as conn:
+            conn.execute("DELETE FROM cbo_estimates WHERE bill_id = ?", (estimate.bill_id,))
+            self._insert_cbo_score(conn, estimate)
+
+    def clear_cbo_score(self, bill_id: str) -> None:
+        """Remove every CBO row for a bill that should not have one."""
+        with self._connect() as conn:
+            conn.execute("DELETE FROM cbo_estimates WHERE bill_id = ?", (bill_id,))
             conn.execute(
-                """
-                INSERT INTO cbo_estimates (
-                    bill_id, estimate_date, ten_year_cost_billions, annual_costs,
-                    budget_function, dynamic_estimate, pdf_url, cbo_url
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    estimate.bill_id,
-                    _dt_str(estimate.estimate_date),
-                    estimate.ten_year_cost_billions,
-                    json.dumps(estimate.annual_costs),
-                    estimate.budget_function,
-                    estimate.dynamic_estimate,
-                    estimate.pdf_url,
-                    estimate.cbo_url,
-                ),
+                "UPDATE bills SET has_cbo_score = 0 WHERE bill_id = ?",
+                (bill_id,),
             )
-            # Mark the bill as having a CBO score
+
+    def update_bill_status(
+        self,
+        bill_id: str,
+        *,
+        status: str,
+        latest_action: str | None = None,
+        latest_action_date: str | datetime | None = None,
+    ) -> None:
+        """Overwrite status (and optional action fields) after a congress.gov upsert."""
+        with self._connect() as conn:
+            fields = ["status = ?"]
+            params: list[Any] = [status]
+            if latest_action is not None:
+                fields.append("latest_action = ?")
+                params.append(latest_action)
+            if latest_action_date is not None:
+                fields.append("latest_action_date = ?")
+                if isinstance(latest_action_date, datetime):
+                    params.append(_dt_str(latest_action_date))
+                else:
+                    params.append(str(latest_action_date))
+            params.append(bill_id)
             conn.execute(
-                "UPDATE bills SET has_cbo_score = 1 WHERE bill_id = ?",
-                (estimate.bill_id,),
+                f"UPDATE bills SET {', '.join(fields)} WHERE bill_id = ?",
+                params,
             )
+
+    def _insert_cbo_score(self, conn: sqlite3.Connection, estimate: CBOCostEstimate) -> None:
+        conn.execute(
+            """
+            INSERT INTO cbo_estimates (
+                bill_id, estimate_date, ten_year_cost_billions, annual_costs,
+                budget_function, dynamic_estimate, pdf_url, cbo_url
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                estimate.bill_id,
+                _dt_str(estimate.estimate_date),
+                estimate.ten_year_cost_billions,
+                json.dumps(estimate.annual_costs),
+                estimate.budget_function,
+                estimate.dynamic_estimate,
+                estimate.pdf_url,
+                estimate.cbo_url,
+            ),
+        )
+        conn.execute(
+            "UPDATE bills SET has_cbo_score = 1 WHERE bill_id = ?",
+            (estimate.bill_id,),
+        )
 
     def get_cbo_score(self, bill_id: str) -> dict | None:
         with self._connect() as conn:
@@ -300,24 +344,33 @@ class BillDatabase:
 
     def upsert_auto_score(self, score: BillScore) -> None:
         with self._connect() as conn:
-            conn.execute(
-                """
-                INSERT INTO auto_scores (
-                    bill_id, scored_at, ten_year_cost_billions, annual_effects,
-                    static_cost, behavioral_offset, confidence, policies_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    score.bill_id,
-                    _dt_str(score.scored_at),
-                    score.ten_year_cost_billions,
-                    json.dumps(score.annual_effects),
-                    score.static_cost,
-                    score.behavioral_offset,
-                    score.confidence,
-                    json.dumps(score.policies_json),
-                ),
-            )
+            self._insert_auto_score(conn, score)
+
+    def replace_auto_score(self, score: BillScore) -> None:
+        """Drop prior auto-scores for this bill and write the current mapping."""
+        with self._connect() as conn:
+            conn.execute("DELETE FROM auto_scores WHERE bill_id = ?", (score.bill_id,))
+            self._insert_auto_score(conn, score)
+
+    def _insert_auto_score(self, conn: sqlite3.Connection, score: BillScore) -> None:
+        conn.execute(
+            """
+            INSERT INTO auto_scores (
+                bill_id, scored_at, ten_year_cost_billions, annual_effects,
+                static_cost, behavioral_offset, confidence, policies_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                score.bill_id,
+                _dt_str(score.scored_at),
+                score.ten_year_cost_billions,
+                json.dumps(score.annual_effects),
+                score.static_cost,
+                score.behavioral_offset,
+                score.confidence,
+                json.dumps(score.policies_json),
+            ),
+        )
 
     def get_auto_score(self, bill_id: str) -> dict | None:
         with self._connect() as conn:

@@ -122,6 +122,7 @@ def main() -> int:
     # Import pipeline components
     from bill_tracker.auto_scorer import AutoScorer
     from bill_tracker.cbo_fetcher import CBOScoreFetcher, load_fallback_estimates
+    from bill_tracker.corrections import apply_pinned_corrections, skip_live_cbo_match
     from bill_tracker.database import BillDatabase
     from bill_tracker.ingestor import BillIngestor
     from bill_tracker.provision_mapper import ProvisionMapper
@@ -184,14 +185,18 @@ def main() -> int:
         if not args.dry_run:
             db.upsert_bill(bill)
 
-        # Match CBO estimate
-        cbo_estimate = cbo.match_to_bill_from_estimates(
-            bill_id=bill.bill_id,
-            bill_title=bill.title,
-            estimates=cbo_estimates,
-        )
-        if cbo_estimate is None:
-            cbo_estimate = fallback_by_bill_id.get(bill.bill_id)
+        # Match CBO estimate. Pinned scores and concurrent resolutions are
+        # applied (or cleared) after the fetch loop so a live match cannot
+        # land on the wrong bill and survive until the next night.
+        cbo_estimate = None
+        if not skip_live_cbo_match(bill.bill_id):
+            cbo_estimate = cbo.match_to_bill_from_estimates(
+                bill_id=bill.bill_id,
+                bill_title=bill.title,
+                estimates=cbo_estimates,
+            )
+            if cbo_estimate is None:
+                cbo_estimate = fallback_by_bill_id.get(bill.bill_id)
         if cbo_estimate:
             if not args.dry_run:
                 db.upsert_cbo_score(cbo_estimate)
@@ -236,6 +241,12 @@ def main() -> int:
         updated += 1
 
     if not args.dry_run:
+        apply_pinned_corrections(
+            db,
+            scorer=scorer,
+            mapper=mapper or ProvisionMapper(),
+            rescore=not args.skip_scoring,
+        )
         db.set_last_update(datetime.utcnow())
 
     # Summary

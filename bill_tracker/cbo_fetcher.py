@@ -20,6 +20,13 @@ from typing import Any
 
 import requests
 
+from bill_tracker.citations import (
+    bill_id_to_ref,
+    congress_from_bill_id,
+    is_concurrent_resolution,
+    ref_in_subject,
+    subject_bill_id,
+)
 from fiscal_model.time_utils import UTC, parse_utc_timestamp, utc_now
 
 logger = logging.getLogger(__name__)
@@ -97,6 +104,9 @@ class CBOScoreFetcher:
         Matching strategy:
         1. Exact bill number match in CBO metadata
         2. Fuzzy title match (threshold: 0.65)
+
+        Concurrent resolutions (budget resolutions) never match: they are not
+        law and CBO does not publish a cost estimate for them.
         """
         estimates = self.fetch_recent_estimates(limit=200)
         return self.match_to_bill_from_estimates(
@@ -116,7 +126,7 @@ class CBOScoreFetcher:
 
         This avoids re-fetching CBO data for every bill in a pipeline run.
         """
-        if not estimates:
+        if not estimates or is_concurrent_resolution(bill_id):
             return None
 
         # Parse bill number from bill_id (e.g. "hr-1234-119" → "H.R. 1234")
@@ -128,9 +138,26 @@ class CBOScoreFetcher:
 
         for est in estimates:
             title_lower = est.title.lower()
+            subject_id = subject_bill_id(est.title, congress=congress_from_bill_id(bill_id))
 
-            # Exact bill number match
-            if bill_ref and bill_ref.lower() in title_lower:
+            # The citation the title is scoring, before any "pursuant to" clause.
+            if subject_id == bill_id:
+                return CBOCostEstimate(
+                    bill_id=bill_id,
+                    title=est.title,
+                    estimate_date=est.estimate_date,
+                    ten_year_cost_billions=est.ten_year_cost_billions,
+                    annual_costs=list(est.annual_costs),
+                    budget_function=est.budget_function,
+                    dynamic_estimate=est.dynamic_estimate,
+                    pdf_url=est.pdf_url,
+                    cbo_url=est.cbo_url,
+                )
+
+            # Exact bill number match, with a digit boundary so H.R. 1 ≠ H.R. 10,
+            # and only in the subject clause so a budget resolution cited as
+            # parent is not treated as the scored measure.
+            if bill_ref and ref_in_subject(bill_ref, est.title):
                 return CBOCostEstimate(
                     bill_id=bill_id,
                     title=est.title,
@@ -301,14 +328,7 @@ def _parse_cost_billions(cost_raw: Any) -> float:
 
 def _bill_id_to_ref(bill_id: str) -> str:
     """Convert 'hr-1234-119' → 'H.R. 1234'."""
-    parts = bill_id.split("-")
-    if len(parts) < 2:
-        return ""
-    bill_type = parts[0].upper()
-    number = parts[1]
-    ref_map = {"HR": "H.R.", "S": "S.", "HJRES": "H.J.Res.", "SJRES": "S.J.Res."}
-    ref = ref_map.get(bill_type, bill_type)
-    return f"{ref} {number}"
+    return bill_id_to_ref(bill_id)
 
 
 def load_fallback_estimates(path: str | Path) -> list[CBOCostEstimate]:

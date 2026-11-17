@@ -130,6 +130,8 @@ export type TrackerRow = {
   cbo_ten_year_billions: number | null;
   auto_ten_year_billions: number | null;
   auto_confidence: string | null;
+  /** ``N of M provisions mapped``; absent in exports before the coverage column. */
+  auto_coverage?: string | null;
 };
 
 export type TrackerIndex = {

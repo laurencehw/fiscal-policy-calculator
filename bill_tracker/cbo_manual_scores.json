@@ -974,28 +974,6 @@
       "cbo_url": "https://www.cbo.gov/publication/61868"
     },
     {
-      "bill_id": "hconres-14-119",
-      "title": "Public Law 119-21, to Provide for Reconciliation Pursuant to Title II of H. Con.",
-      "estimate_date": "2025-10-28",
-      "ten_year_cost_billions": -886.8,
-      "annual_costs": [],
-      "budget_function": "",
-      "dynamic_estimate": null,
-      "pdf_url": "",
-      "cbo_url": "https://www.cbo.gov/publication/61837"
-    },
-    {
-      "bill_id": "hconres-14-119",
-      "title": "Public Law 119-21, to Provide for Reconciliation Pursuant to Title II of H. Con.",
-      "estimate_date": "2025-10-28",
-      "ten_year_cost_billions": 84.95,
-      "annual_costs": [],
-      "budget_function": "",
-      "dynamic_estimate": null,
-      "pdf_url": "",
-      "cbo_url": "https://www.cbo.gov/publication/61838"
-    },
-    {
       "bill_id": "s-1829-119",
       "title": "S. 1829, STOP CSAM Act of 2025",
       "estimate_date": "2025-10-28",
@@ -1635,36 +1613,14 @@
     },
     {
       "bill_id": "hr-1-119",
-      "title": "H.R. 1, One Big, Beautiful Bill Act",
-      "estimate_date": "2025-07-22",
-      "ten_year_cost_billions": 3500.0,
-      "annual_costs": [],
-      "budget_function": "",
-      "dynamic_estimate": null,
-      "pdf_url": "",
-      "cbo_url": "https://www.cbo.gov/publication/61571"
-    },
-    {
-      "bill_id": "hr-1-119",
-      "title": "H.R. 1, One Big, Beautiful Bill Act",
+      "title": "Estimated Budgetary Effects of Public Law 119-21, to Provide for Reconciliation Pursuant to Title II of H. Con. Res. 14, Relative to CBO's January 2025 Baseline",
       "estimate_date": "2025-07-21",
-      "ten_year_cost_billions": 3500.0,
+      "ten_year_cost_billions": 3400.0,
       "annual_costs": [],
       "budget_function": "",
       "dynamic_estimate": null,
       "pdf_url": "",
-      "cbo_url": "https://www.cbo.gov/publication/61564"
-    },
-    {
-      "bill_id": "hr-1-119",
-      "title": "H.R. 1, One Big, Beautiful Bill Act",
-      "estimate_date": "2025-07-21",
-      "ten_year_cost_billions": 3500.0,
-      "annual_costs": [],
-      "budget_function": "",
-      "dynamic_estimate": null,
-      "pdf_url": "",
-      "cbo_url": "https://www.cbo.gov/publication/61560"
+      "cbo_url": "https://www.cbo.gov/publication/61570"
     },
     {
       "bill_id": "s-1339-119",

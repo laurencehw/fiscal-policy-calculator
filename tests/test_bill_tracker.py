@@ -124,6 +124,17 @@ class TestBillIngestor:
         meta = ingestor._parse_bill_metadata(raw, congress=119)
         assert meta.status == "passed_chamber"
 
+    def test_status_adopted_concurrent_resolution(self, sample_bill_raw):
+        from bill_tracker.ingestor import BillIngestor
+        raw = {**sample_bill_raw, "type": "hconres", "number": "14"}
+        raw["latestAction"] = {
+            "text": "Resolution agreed to in Senate with an amendment by Yea-Nay Vote.",
+            "actionDate": "2025-04-05",
+        }
+        ingestor = BillIngestor(api_key="test")
+        meta = ingestor._parse_bill_metadata(raw, congress=119)
+        assert meta.status == "adopted"
+
     def test_status_introduced(self, sample_bill_raw):
         from bill_tracker.ingestor import BillIngestor
         raw = {**sample_bill_raw}
@@ -201,6 +212,7 @@ class TestCBOScoreFetcher:
         from bill_tracker.cbo_fetcher import _bill_id_to_ref
         assert _bill_id_to_ref("hr-7024-118") == "H.R. 7024"
         assert _bill_id_to_ref("s-1-119") == "S. 1"
+        assert _bill_id_to_ref("hconres-14-119") == "H. Con. Res. 14"
 
     def test_fetch_recent_estimates_mocked(self):
         from bill_tracker.cbo_fetcher import CBOScoreFetcher
@@ -355,7 +367,7 @@ class TestProvisionMapper:
         result = mapper.map_bill("hr-7024-118", "Some summary")
 
         assert result.extraction_method == "manual"
-        assert result.confidence == "high"
+        assert result.confidence == "high"  # fully mapped override
         assert result.policies[0]["policy_type"] == "credits"
 
     def test_unmapped_provisions_excluded_from_policies(self):
@@ -370,6 +382,7 @@ class TestProvisionMapper:
         result = mapper.map_bill("hr-9876-119", "Income tax increase 2.6%. Also Medicaid work requirements.")
         assert all(p["policy_type"] != "other" for p in result.policies)
         assert len(result.unmapped_provisions) == 1
+        assert result.confidence != "high"
 
 
 # ==================================================================

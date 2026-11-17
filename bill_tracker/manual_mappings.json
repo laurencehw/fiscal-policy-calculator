@@ -1,6 +1,6 @@
 {
   "_comment": "Manual provision overrides for bills where LLM auto-extraction needs correction.",
-  "_format": "bill_id → {description, policies: [...], override_reason, mapped_by, mapped_date}",
+  "_format": "bill_id → {description, policies: [...], unmapped_provisions: [...], override_reason, mapped_by, mapped_date}",
   "hr-7024-118": {
     "description": "Tax Relief for American Families and Workers Act of 2024",
     "policies": [
@@ -20,7 +20,7 @@
     "mapped_date": "2026-04-01"
   },
   "hr-1-119": {
-    "description": "One Big Beautiful Bill (Reconciliation 2025) — placeholder until CBO scores",
+    "description": "P.L. 119-21 (H.R. 1, 119th Congress) — 2025 reconciliation act as enacted",
     "policies": [
       {
         "policy_type": "tcja_extension",
@@ -30,19 +30,21 @@
           "extension_years": 10
         },
         "confidence": "high",
-        "provision_text": "Extends all TCJA provisions permanently"
-      },
-      {
-        "policy_type": "corporate",
-        "parameters": {
-          "rate_change": -0.01
-        },
-        "confidence": "medium",
-        "provision_text": "Reduces corporate rate from 21% to 20%"
+        "provision_text": "Permanently extends the TCJA individual rate cuts, standard deduction, CTC, 199A, AMT relief, and estate exemption. P.L. 119-21 did not cut the corporate statutory rate; it remains 21%."
       }
     ],
-    "override_reason": "Auto-extraction missed corporate rate cut; TCJA extension confirmed via bill text",
-    "mapped_by": "Laurence Wilse-Samson",
-    "mapped_date": "2026-04-01"
+    "unmapped_provisions": [
+      "SNAP work requirements and other Agriculture title changes",
+      "Medicaid work requirements and other health-coverage changes",
+      "IRA energy-credit terminations and modifications",
+      "Temporary deductions for tips, overtime, and car-loan interest",
+      "SALT cap raised to $40,000 through 2029 (the calculator's TCJA path models the $10,000 cap, not the $40,000 path)",
+      "Statutory debt-limit increase",
+      "Bonus depreciation, R&D expensing, and other cost-recovery changes",
+      "International tax (GILTI/FDII) modifications"
+    ],
+    "override_reason": "P.L. 119-21 as enacted 4 July 2025 did not cut the corporate rate to 20% (IRC §11 remains 21%). Only the TCJA individual extension is mapped; remaining titles are listed unmapped so confidence cannot be high. CBO's as-enacted estimate is publication 61570 ($3.4T over FY2025-2034), not publication 61560.",
+    "mapped_by": "tracker correction",
+    "mapped_date": "2026-11-17"
   }
 }

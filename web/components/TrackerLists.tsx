@@ -10,6 +10,8 @@ const STATUS: Record<string, string> = {
   committee: "In committee",
   passed_house: "Passed House",
   passed_senate: "Passed Senate",
+  passed_chamber: "Passed chamber",
+  adopted: "Adopted",
   enacted: "Enacted",
 };
 
@@ -33,12 +35,16 @@ function billName(row: TrackerRow): string {
  * "Confidence" here is the language model's confidence in its mapping of the text to provisions;
  * it says nothing about how reliable the dollar figure is, so the label says "mapping".
  */
+function coverageNote(row: TrackerRow): string {
+  return row.auto_coverage ? ` · ${row.auto_coverage}` : "";
+}
+
 function reading(row: TrackerRow): string {
   if (row.auto_ten_year_billions === null) return "";
   if (row.auto_confidence === "high" || row.auto_confidence === "medium") {
-    return `${billMoney(row.auto_ten_year_billions, money)} (${row.auto_confidence} mapping confidence)`;
+    return `${billMoney(row.auto_ten_year_billions, money)} (${row.auto_confidence} mapping confidence${coverageNote(row)})`;
   }
-  return "low mapping confidence";
+  return `low mapping confidence${coverageNote(row)}`;
 }
 
 function BillTable({ rows, figure }: { rows: TrackerRow[]; figure: "cbo" | "auto" }) {
@@ -66,7 +72,14 @@ function BillTable({ rows, figure }: { rows: TrackerRow[]; figure: "cbo" | "auto
                   </td>
                   <td>{STATUS[row.status] ?? row.status}</td>
                   <td className={value > 0 ? "adds" : value < 0 ? "reduces" : undefined}>{billMoney(value, money)}</td>
-                  {figure === "cbo" ? <td>{reading(row)}</td> : <td>{row.auto_confidence ?? "none"}</td>}
+                  {figure === "cbo" ? (
+                    <td>{reading(row)}</td>
+                  ) : (
+                    <td>
+                      {row.auto_confidence ?? "none"}
+                      {row.auto_coverage ? ` · ${row.auto_coverage}` : ""}
+                    </td>
+                  )}
                 </tr>
               );
             })}
