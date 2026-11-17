@@ -59,6 +59,16 @@ export type ScoreResult = {
 
 export type PresetFile = { id: string; conventional: ScoreResult; dynamic: ScoreResult };
 
+/** A preset's curated legal status (fiscal_model/policy_status.py). */
+export type LawStatus = {
+  status: "proposed" | "enacted" | "superseded" | "partially";
+  label: string;
+  note: string;
+  /** The score is measured against law before P.L. 119-21, not the current baseline. */
+  pre_2025_law: boolean;
+  as_of: string;
+};
+
 export type PresetInfo = {
   id: string;
   name: string;
@@ -68,6 +78,7 @@ export type PresetInfo = {
   cbo_date: string | null;
   /** False when cbo_score is this repository's own estimate or a retired target. */
   cbo_published: boolean;
+  status?: LawStatus | null;
 };
 
 export type BuildRow = {
@@ -80,6 +91,9 @@ export type BuildRow = {
   exclusive_groups: string[];
   subsumes: string[];
   illustrative: boolean;
+  /** False when score is this repository's own estimate or a retired target. Older exports lack it. */
+  cbo_published?: boolean;
+  status?: LawStatus | null;
 };
 
 export type ValuesPick = { policy_id: string; label: string; score: number; why: string; tags: Record<string, string> };

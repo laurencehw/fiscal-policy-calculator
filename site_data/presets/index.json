@@ -7,7 +7,14 @@
       "cbo_score": 4600.0,
       "cbo_source": "CBO",
       "cbo_date": "May 2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "superseded",
+        "label": "Superseded by later law",
+        "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
+        "pre_2025_law": true,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "tcja-extension-no-salt-cap",
@@ -16,7 +23,14 @@
       "cbo_score": 5700.0,
       "cbo_source": "Model estimate (this repository's own decomposition)",
       "cbo_date": "2024",
-      "cbo_published": false
+      "cbo_published": false,
+      "status": {
+        "status": "superseded",
+        "label": "Superseded by later law",
+        "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed. The July 2025 law also modified the SALT cap, so the no-cap variant modeled here differs from what was enacted.",
+        "pre_2025_law": true,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "tcja-rates-only",
@@ -25,7 +39,14 @@
       "cbo_score": 2158.7,
       "cbo_source": "CRS R48286 Table 1 (transcribing CBO 60114/60271, JCT)",
       "cbo_date": "2024-11",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "superseded",
+        "label": "Superseded by later law",
+        "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
+        "pre_2025_law": true,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "corporate-28pct",
@@ -34,7 +55,14 @@
       "cbo_score": -1347.0,
       "cbo_source": "Treasury",
       "cbo_date": "March 2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "corporate-15pct",
@@ -43,7 +71,14 @@
       "cbo_score": 673.0,
       "cbo_source": "Tax Foundation / PWBM (via CRFB)",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "2024 campaign proposal; not enacted — the corporate rate remains 21%.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "ctc-expansion-2021",
@@ -52,7 +87,14 @@
       "cbo_score": 1600.0,
       "cbo_source": "JCT",
       "cbo_date": "2021",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Proposal to make the temporary 2021 ARP expansion permanent; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "ctc-extension",
@@ -61,7 +103,14 @@
       "cbo_score": 600.0,
       "cbo_source": "CBO",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "superseded",
+        "label": "Superseded by later law",
+        "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
+        "pre_2025_law": true,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "eitc-childless-expansion",
@@ -70,7 +119,14 @@
       "cbo_score": 162.6,
       "cbo_source": "Treasury (FY2025 Green Book)",
       "cbo_date": "2024-03",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Proposal to make the temporary 2021 ARP expansion permanent; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "estate-extend-tcja",
@@ -79,7 +135,14 @@
       "cbo_score": 167.0,
       "cbo_source": "CBO",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "superseded",
+        "label": "Superseded by later law",
+        "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
+        "pre_2025_law": true,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "estate-exemption-3-5m",
@@ -88,7 +151,14 @@
       "cbo_score": -450.0,
       "cbo_source": "JCT (For the 99.5 Percent Act)",
       "cbo_date": "March 2021",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "estate-repeal",
@@ -97,7 +167,8 @@
       "cbo_score": 407.2,
       "cbo_source": "Tax Foundation (Options 3.0, Option 83)",
       "cbo_date": "2026-07",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "ss-cap-90pct",
@@ -106,7 +177,14 @@
       "cbo_score": -800.0,
       "cbo_source": "CBO",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Social Security solvency option from SSA/CBO options analyses; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "ss-donut-250k",
@@ -115,7 +193,14 @@
       "cbo_score": -1426.8,
       "cbo_source": "CBO, Options 2025-2034, Option 62 alternative 2",
       "cbo_date": "2024-12",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Social Security solvency option from SSA/CBO options analyses; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "ss-cap-eliminate",
@@ -124,7 +209,14 @@
       "cbo_score": -3200.0,
       "cbo_source": "SS Trustees",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Social Security solvency option from SSA/CBO options analyses; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "niit-expand",
@@ -133,7 +225,14 @@
       "cbo_score": -250.0,
       "cbo_source": "JCT",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "amt-extend-tcja-relief",
@@ -142,7 +241,14 @@
       "cbo_score": 1357.1,
       "cbo_source": "CRS R48286 Table 1 (transcribing CBO 60114/60271)",
       "cbo_date": "November 2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "superseded",
+        "label": "Superseded by later law",
+        "note": "Individual TCJA provisions were extended by the July 2025 reconciliation law (H.R. 1, P.L. 119-21). This preset reconstructs the pre-enactment official score of extension as then proposed.",
+        "pre_2025_law": true,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "amt-repeal-individual",
@@ -151,7 +257,8 @@
       "cbo_score": 450.0,
       "cbo_source": "CBO",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "amt-repeal-corporate",
@@ -160,7 +267,8 @@
       "cbo_score": 220.0,
       "cbo_source": "JCT (JCX-18-22)",
       "cbo_date": "August 2022",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "aca-ptc-extend-enhanced",
@@ -169,7 +277,14 @@
       "cbo_score": 335.0,
       "cbo_source": "CBO/JCT (pub. 60437)",
       "cbo_date": "2024-06",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Extension proposal for the enhanced credits that were scheduled to lapse after 2025; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "aca-ptc-repeal",
@@ -178,7 +293,14 @@
       "cbo_score": -1100.0,
       "cbo_source": "CBO",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Legislative proposal; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "cap-employer-health-exclusion",
@@ -187,7 +309,8 @@
       "cbo_score": -450.0,
       "cbo_source": "JCT",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "salt-cap-repeal",
@@ -196,7 +319,14 @@
       "cbo_score": 1169.0,
       "cbo_source": "Penn Wharton Budget Model",
       "cbo_date": "2024-02",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "partially",
+        "label": "Partially overtaken by later law",
+        "note": "The July 2025 reconciliation law (P.L. 119-21) raised the SALT cap to $40,000 in 2025, rising 1% a year through 2029 and reverting to $10,000 in 2030. This preset scores full repeal against that current-law path; the published figure in its label prices repeal of a permanent $10K cap.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "step-up-basis-eliminate",
@@ -205,7 +335,14 @@
       "cbo_score": -500.0,
       "cbo_source": "Treasury",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "charitable-deduction-cap",
@@ -214,7 +351,8 @@
       "cbo_score": -200.0,
       "cbo_source": "Treasury",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "top-rate-39-6",
@@ -223,7 +361,14 @@
       "cbo_score": -245.9,
       "cbo_source": "Treasury",
       "cbo_date": "March 2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "millionaire-surtax-5pp",
@@ -232,7 +377,8 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "middle-class-rate-cut-2pp",
@@ -241,7 +387,8 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "across-the-board-rate-cut-5pp",
@@ -250,7 +397,8 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "ultra-millionaire-surtax-3pp",
@@ -259,7 +407,14 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Senate proposal; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "top-rate-45",
@@ -268,7 +423,8 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "medicare-surcharge-2pp",
@@ -277,7 +433,8 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "gilti-reform",
@@ -286,7 +443,14 @@
       "cbo_score": -373.9,
       "cbo_source": "Treasury (FY2025 Green Book)",
       "cbo_date": "2024-03",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "fdii-repeal",
@@ -295,7 +459,14 @@
       "cbo_score": -158.0,
       "cbo_source": "Treasury (FY2025 Green Book)",
       "cbo_date": "2024-03",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "pillar-two-adoption",
@@ -304,7 +475,8 @@
       "cbo_score": -80.0,
       "cbo_source": "JCT",
       "cbo_date": "2023",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "international-package",
@@ -313,7 +485,14 @@
       "cbo_score": -632.2,
       "cbo_source": "Treasury (FY2025 Green Book)",
       "cbo_date": "2024-03",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "FY2025 Treasury Green Book proposal (Biden administration); not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "irs-enforcement-ira",
@@ -322,7 +501,14 @@
       "cbo_score": -180.4,
       "cbo_source": "CBO (pub. 58390)",
       "cbo_date": "2022-08",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "enacted",
+        "label": "Enacted",
+        "note": "Enacted in the Inflation Reduction Act (2022); later laws rescinded part of the funding. This preset reconstructs CBO's 2022 score of the provision as enacted, so it is not new revenue on top of current law.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "irs-enforcement-double",
@@ -331,7 +517,8 @@
       "cbo_score": -340.0,
       "cbo_source": "Treasury/Sarin-Summers",
       "cbo_date": "2021",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "irs-enforcement-high-income",
@@ -340,7 +527,8 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "drug-negotiation-expand",
@@ -349,7 +537,8 @@
       "cbo_score": -500.0,
       "cbo_source": "CBO/Estimate",
       "cbo_date": "2023",
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "insulin-cap-universal",
@@ -358,7 +547,8 @@
       "cbo_score": 11.4,
       "cbo_source": "CBO (publication 57957, H.R. 6833)",
       "cbo_date": "March 2022",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "drug-reference-pricing",
@@ -367,7 +557,8 @@
       "cbo_score": -100.0,
       "cbo_source": "RAND/Estimate",
       "cbo_date": "2021",
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "drug-reform-comprehensive",
@@ -376,7 +567,8 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": null
     },
     {
       "id": "tariff-universal-10pct",
@@ -385,7 +577,14 @@
       "cbo_score": -2171.1,
       "cbo_source": "Tax Foundation (FF861)",
       "cbo_date": "2025-04",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "partially",
+        "label": "Partially overtaken by later law",
+        "note": "Broad tariff actions were imposed by executive order in 2025; this preset models a stylized schedule, not the enacted structure.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "tariff-china-60pct",
@@ -394,7 +593,14 @@
       "cbo_score": -650.0,
       "cbo_source": "CRFB (Options to Raise Tariff Revenue)",
       "cbo_date": "2024-12",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "partially",
+        "label": "Partially overtaken by later law",
+        "note": "China-focused tariff actions were imposed by executive order in 2025; this preset models a stylized schedule, not the enacted structure.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "tariff-auto-25pct",
@@ -403,7 +609,8 @@
       "cbo_score": -386.2,
       "cbo_source": "Tax Foundation (tariff tracker)",
       "cbo_date": "2026-08",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "tariff-steel-aluminum-25pct",
@@ -412,7 +619,8 @@
       "cbo_score": -60.0,
       "cbo_source": "Tax Foundation",
       "cbo_date": "2024",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": null
     },
     {
       "id": "tariff-reciprocal",
@@ -421,7 +629,14 @@
       "cbo_score": -1500.0,
       "cbo_source": "CRFB / Tax Foundation / Yale Budget Lab",
       "cbo_date": "2025-04",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "partially",
+        "label": "Partially overtaken by later law",
+        "note": "Reciprocal-tariff actions were imposed by executive order in 2025; this preset models a stylized schedule, not the enacted structure.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "ira-clean-energy-repeal",
@@ -430,7 +645,14 @@
       "cbo_score": -851.0,
       "cbo_source": "Tax Foundation (McBride, House Oversight testimony)",
       "cbo_date": "2025-05",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "partially",
+        "label": "Partially overtaken by later law",
+        "note": "The July 2025 reconciliation law curtailed several IRA clean-energy credits. This preset models full repeal as scored before that law.",
+        "pre_2025_law": true,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "carbon-tax-50",
@@ -439,7 +661,14 @@
       "cbo_score": -1700.0,
       "cbo_source": "CBO-style estimate",
       "cbo_date": "2024",
-      "cbo_published": false
+      "cbo_published": false,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Analytic option scored by CBO; never enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "carbon-tax-25",
@@ -448,7 +677,14 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Analytic option scored by CBO; never enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "ev-credit-repeal",
@@ -457,7 +693,14 @@
       "cbo_score": -182.3,
       "cbo_source": "JCT (JCX-35-25)",
       "cbo_date": "July 2025",
-      "cbo_published": true
+      "cbo_published": true,
+      "status": {
+        "status": "superseded",
+        "label": "Superseded by later law",
+        "note": "The July 2025 reconciliation law (P.L. 119-21) ended the clean-vehicle credits (secs. 30D and 45W) for vehicles acquired after 30 September 2025; JCT's estimate of that law (JCX-35-25) is the published figure in this preset's label. This preset scores repeal against pre-2025 law, where the credits continue.",
+        "pre_2025_law": true,
+        "as_of": "2026-11-17"
+      }
     },
     {
       "id": "ira-clean-energy-extend",
@@ -466,7 +709,14 @@
       "cbo_score": null,
       "cbo_source": null,
       "cbo_date": null,
-      "cbo_published": false
+      "cbo_published": false,
+      "status": {
+        "status": "proposed",
+        "label": "Proposed — not enacted",
+        "note": "Extension proposal; not enacted.",
+        "pre_2025_law": false,
+        "as_of": "2026-11-17"
+      }
     }
   ],
   "count": 52

@@ -10,7 +10,9 @@ import { EstimateTag } from "@/components/EstimateTag";
 import { Checked, YearTable } from "@/components/ScoreParts";
 import { cleanLabel, direction, money, shortLabel } from "@/lib/format";
 import { adjustable, tailorHref } from "@/lib/adjust";
-import { estimateIdentity, identityLine } from "@/lib/identity";
+import { againstPre2025Law, estimateIdentity, identityLine, type EstimateIdentity } from "@/lib/identity";
+import { baselineEyebrow } from "@/lib/lawStatus";
+import { LawStatusNote } from "@/components/LawStatus";
 import { citation } from "@/lib/share";
 import { CiteBlock } from "@/components/CiteBlock";
 import { StaleLink } from "@/components/StaleLink";
@@ -27,9 +29,10 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const file = preset(id);
   if (!file) return {};
   const c = file.conventional;
+  const against = presets().find((row) => row.id === id)?.status?.pre_2025_law ? " against pre-2025 law" : "";
   return {
     title: shortLabel(c.policy_name),
-    description: `${money(c.ten_year_deficit_impact)} over ${c.budget_window}: ${direction(c.ten_year_deficit_impact)}. ${cleanLabel(c.policy_description)}`.slice(0, 199),
+    description: `${money(c.ten_year_deficit_impact)} over ${c.budget_window}${against}: ${direction(c.ten_year_deficit_impact)}. ${cleanLabel(c.policy_description)}`.slice(0, 199),
     alternates: { canonical: `/explore/${id}` },
   };
 }
@@ -47,17 +50,20 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const strip = houseStrip(id);
   const info = presets().find((row) => row.id === id);
   const scoresDate = manifest().scores_date ?? "";
-  const modelIdentity = estimateIdentity(c, "model");
+  const status = info?.status ?? null;
+  // A score that answers the pre-2025 question never carries the current baseline's name.
+  const lawAware = (identity: EstimateIdentity) => (status?.pre_2025_law ? againstPre2025Law(identity) : identity);
+  const modelIdentity = lawAware(estimateIdentity(c, "model"));
+  const dynamicIdentity = lawAware(estimateIdentity(d, "model-dynamic"));
   const cite = citation({ title: name, identity: modelIdentity, path: `/explore/${id}`, scoresDate, site: siteUrl() });
   const published =
     info?.cbo_published && info.cbo_source ? estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published") : null;
   return (
     <div className="work">
       <header>
-        <span className="eyebrow">
-          {c.budget_window} · CBO {c.baseline_vintage} baseline
-        </span>
+        <span className="eyebrow">{baselineEyebrow(c.budget_window, c.baseline_vintage, status)}</span>
         <h1>{name}</h1>
+        {status ? <LawStatusNote status={status} /> : null}
         <p className="sentence">{cleanLabel(c.policy_description)}</p>
         <StaleLink scoresDate={scoresDate} />
       </header>
@@ -66,13 +72,13 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         <div className="stage">
           <span className="q">Ten-year deficit effect, conventional</span>
           <span className={`v ${headline > 0 ? "adds" : "reduces"}`}>{money(headline)}</span>
-          <EstimateTag identity={estimateIdentity(c, "model")} />
+          <EstimateTag identity={modelIdentity} />
           <span className="q">{direction(headline)}</span>
         </div>
         <div className="stage">
           <span className="q">With macroeconomic feedback and debt service</span>
           <span className="v">{dyn === null ? "Not available" : money(dyn)}</span>
-          <EstimateTag identity={estimateIdentity(d, "model-dynamic")} />
+          <EstimateTag identity={dynamicIdentity} />
           <span className="q">{d.dynamic_model ?? d.error_message ?? ""}</span>
         </div>
       </div>
@@ -97,7 +103,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
       <section className="chart">
         <div className="head">
           <h2>Year by year</h2>
-          <EstimateTag identity={estimateIdentity(c, "model")} />
+          <EstimateTag identity={modelIdentity} />
         </div>
         <YearChart
           plotId="year-chart"
@@ -120,7 +126,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
       </section>
 
       {v ? (
-        <ResultSections views={v} conventional={estimateIdentity(c, "model")} dynamic={estimateIdentity(d, "model-dynamic")} />
+        <ResultSections views={v} conventional={modelIdentity} dynamic={dynamicIdentity} />
       ) : null}
 
       {c.credibility?.limitations.length ? (

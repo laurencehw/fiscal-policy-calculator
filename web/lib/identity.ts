@@ -2,7 +2,7 @@
 // the window, the baseline, and the tier. The tag text is `identityLine`.
 import type { Credibility } from "./types";
 
-export type IdentityKind = "model" | "model-dynamic" | "published" | "package-sum";
+export type IdentityKind = "model" | "model-dynamic" | "published" | "unpublished" | "package-sum";
 
 export type EstimateIdentity = {
   producer: string;
@@ -48,6 +48,7 @@ const KIND_WORD: Record<IdentityKind, string> = {
   model: "conventional",
   "model-dynamic": "with macroeconomic feedback",
   published: "published",
+  unpublished: "unpublished estimate",
   "package-sum": "sum of standalone published scores",
 };
 
@@ -121,6 +122,19 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
     };
   }
   const { tier, tierLabel, limitation } = resolveTier(result.credibility);
+  if (kind === "unpublished") {
+    // A list price nobody outside this repository published (its own estimate,
+    // a retired target, or an illustrative figure). Never tagged "published".
+    return {
+      producer: result.cbo_source?.trim() || "Estimate",
+      kind,
+      window: "",
+      baseline: "",
+      tier: "none",
+      tierLabel: "",
+      limitation: "Not a published score. Kept on the list as an illustrative figure.",
+    };
+  }
   if (kind === "published") {
     // The tier describes this calculator's figure against the published one, not
     // the published figure itself: "Treasury · published · Calibrated reference"
@@ -175,6 +189,7 @@ export function identityLine(identity: EstimateIdentity): string {
 export function shortProducer(identity: EstimateIdentity): string {
   if (identity.kind === "model" || identity.kind === "model-dynamic") return "calc.";
   if (identity.kind === "package-sum") return "sum";
+  if (identity.kind === "unpublished") return "unpublished";
   const name = identity.producer.trim();
   if (/^published$/i.test(name)) return "published";
   if (/treasury/i.test(name)) return "Treasury";
@@ -196,3 +211,14 @@ export function shortProducer(identity: EstimateIdentity): string {
 export function withoutTier(identity: EstimateIdentity): EstimateIdentity {
   return { ...identity, tier: "none", tierLabel: "" };
 }
+
+/**
+ * The same identity measured against law before P.L. 119-21 (the July 2025
+ * reconciliation law), for presets whose score answers the pre-2025 question.
+ * The current-baseline phrase would claim a comparison the score does not make.
+ */
+export function againstPre2025Law(identity: EstimateIdentity): EstimateIdentity {
+  return { ...identity, baseline: PRE_2025_BASELINE };
+}
+
+export const PRE_2025_BASELINE = "against pre-2025 law";

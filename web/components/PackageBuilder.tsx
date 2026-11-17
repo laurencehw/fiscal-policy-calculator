@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { PackageSummary, type SecondTotal } from "@/components/PackageSummary";
 import { EstimateTag } from "@/components/EstimateTag";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
+import { chipWorthy } from "@/lib/lawStatus";
+import { LawChip } from "@/components/LawStatus";
 import type { EstimateIdentity } from "@/lib/identity";
 import { addToPackage, calculatorGap, covered, fromQuery, total, towardTarget, undoReplacement, type Replacement } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
@@ -225,6 +227,12 @@ export function PackageBuilder({
                     />
                     <span className="buildname">
                       {shortLabel(r.label)}
+                      {chipWorthy(r.status) ? (
+                        <>
+                          {" "}
+                          <LawChip status={r.status} />
+                        </>
+                      ) : null}
                       <small>
                         {r.source}, {r.source_date}
                         {by ? ` · included in ${label(by)}` : ""}

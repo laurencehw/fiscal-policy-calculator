@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-STATUS_AS_OF = "2026-08-30"
+STATUS_AS_OF = "2026-11-17"
 
 _OBBBA_NOTE = (
     "Individual TCJA provisions were extended by the July 2025 "
@@ -50,6 +50,11 @@ _SS_OPTION_NOTE = (
 class PolicyStatus:
     status: str  # "proposed" | "enacted" | "superseded" | "partially"
     note: str
+    #: True when the preset's score is measured against law as it stood before
+    #: P.L. 119-21, not against the current-law baseline the site names. Such a
+    #: score answers the pre-2025 question, so surfaces must not label it with
+    #: the current baseline, and Build's starting packages leave it out.
+    pre_2025_law: bool = False
 
     @property
     def label(self) -> str:
@@ -72,21 +77,24 @@ class PolicyStatus:
 
 POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
     # ── TCJA-extension family: overtaken by the July 2025 law ────────────
-    "🏛️ TCJA Full Extension (CBO: $4.6T)": PolicyStatus("superseded", _OBBBA_NOTE),
+    "🏛️ TCJA Full Extension (CBO: $4.6T)": PolicyStatus("superseded", _OBBBA_NOTE, pre_2025_law=True),
     "🏛️ TCJA Extension (No SALT Cap)": PolicyStatus(
         "superseded",
         _OBBBA_NOTE + " The July 2025 law also modified the SALT cap, so the "
         "no-cap variant modeled here differs from what was enacted.",
+        pre_2025_law=True,
     ),
-    "🏛️ TCJA Rates Only": PolicyStatus("superseded", _OBBBA_NOTE),
-    "🏠 Estate Tax: Extend TCJA (CBO: $167B)": PolicyStatus("superseded", _OBBBA_NOTE),
-    "👶 CTC Extension (CBO: $600B)": PolicyStatus("superseded", _OBBBA_NOTE),
-    "⚖️ AMT: Extend TCJA Relief ($1.36T)": PolicyStatus("superseded", _OBBBA_NOTE),
+    "🏛️ TCJA Rates Only": PolicyStatus("superseded", _OBBBA_NOTE, pre_2025_law=True),
+    "🏠 Estate Tax: Extend TCJA (CBO: $167B)": PolicyStatus("superseded", _OBBBA_NOTE, pre_2025_law=True),
+    "👶 CTC Extension (CBO: $600B)": PolicyStatus("superseded", _OBBBA_NOTE, pre_2025_law=True),
+    "⚖️ AMT: Extend TCJA Relief ($1.36T)": PolicyStatus("superseded", _OBBBA_NOTE, pre_2025_law=True),
     "📋 Repeal SALT Cap ($1.17T)": PolicyStatus(
-        "superseded",
-        "The July 2025 reconciliation law (P.L. 119-21) modified the SALT "
-        "cap. This preset models full repeal against the original \\$10K cap "
-        "— the pre-2025 policy question.",
+        "partially",
+        "The July 2025 reconciliation law (P.L. 119-21) raised the SALT cap "
+        "to \\$40,000 in 2025, rising 1% a year through 2029 and reverting to "
+        "\\$10,000 in 2030. This "
+        "preset scores full repeal against that current-law path; the "
+        "published figure in its label prices repeal of a permanent \\$10K cap.",
     ),
     # ── Biden-administration FY2025 Green Book proposals ─────────────────
     "🏢 Biden Corporate 28% (Treasury: -$1.35T)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
@@ -107,6 +115,13 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
     "🌍 Repeal FDII (-$158B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     "🌍 Biden International Package (-$632B)": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
     "Biden 2025 Proposal": PolicyStatus("proposed", _GREEN_BOOK_NOTE),
+    # ── Already law ─────────────────────────────────────────────────────
+    "🔍 IRA Enforcement Funding (-$180B)": PolicyStatus(
+        "enacted",
+        "Enacted in the Inflation Reduction Act (2022); later laws rescinded "
+        "part of the funding. This preset reconstructs CBO's 2022 score of the "
+        "provision as enacted, so it is not new revenue on top of current law.",
+    ),
     # ── Campaign / legislative proposals ─────────────────────────────────
     "🏢 Trump Corporate 15%": PolicyStatus(
         "proposed",
@@ -143,11 +158,16 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "The July 2025 reconciliation law curtailed several IRA "
         "clean-energy credits. This preset models full repeal as scored "
         "before that law.",
+        pre_2025_law=True,
     ),
     "🌱 Repeal EV Credits (-$182B)": PolicyStatus(
-        "partially",
-        "The July 2025 reconciliation law curtailed clean-vehicle credits. "
-        "This preset models repeal as scored before that law.",
+        "superseded",
+        "The July 2025 reconciliation law (P.L. 119-21) ended the clean-vehicle "
+        "credits (secs. 30D and 45W) for vehicles acquired after 30 September "
+        "2025; JCT's estimate of that law (JCX-35-25) is the published figure "
+        "in this preset's label. This preset scores repeal against pre-2025 "
+        "law, where the credits continue.",
+        pre_2025_law=True,
     ),
     "🌱 Extend IRA Credits Beyond 2032": PolicyStatus(
         "proposed", "Extension proposal; not enacted."

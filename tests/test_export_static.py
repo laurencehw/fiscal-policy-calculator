@@ -44,7 +44,7 @@ def _read(path: Path):
 def test_every_preset_equals_the_api_in_both_modes(exported: Path, client: TestClient):
     presets = client.get("/presets").json()["presets"]
     index = _read(exported / "presets" / "index.json")["presets"]
-    assert [{k: v for k, v in p.items() if k != "cbo_published"} for p in index] == presets
+    assert [{k: v for k, v in p.items() if k not in ("cbo_published", "status")} for p in index] == presets
     for preset in presets:
         data = _read(exported / "presets" / f"{preset['id']}.json")
         for mode, dynamic in (("conventional", False), ("dynamic", True)):
@@ -95,6 +95,40 @@ def test_only_published_scores_are_flagged_published(exported: Path):
         "carbon-tax-50",
     }
     assert all(not p["cbo_published"] for p in index if p["cbo_score"] is None)
+
+
+def test_law_status_reaches_the_site(exported: Path):
+    """Presets scored against pre-2025 law say so, in the index and in Build."""
+    index = {p["id"]: p for p in _read(exported / "presets" / "index.json")["presets"]}
+    pre_2025 = {pid for pid, p in index.items() if p["status"] and p["status"]["pre_2025_law"]}
+    assert {
+        "tcja-full-extension",
+        "tcja-rates-only",
+        "tcja-extension-no-salt-cap",
+        "estate-extend-tcja",
+        "amt-extend-tcja-relief",
+        "ctc-extension",
+        "ev-credit-repeal",
+        "ira-clean-energy-repeal",
+    } <= pre_2025
+    assert index["tcja-full-extension"]["status"]["status"] == "superseded"
+    assert "\\$" not in json.dumps([p["status"] for p in index.values()])
+    catalog = {row["build_id"]: row for row in _read(exported / "build-catalog.json")}
+    assert catalog["tcja-full-extension"]["status"]["pre_2025_law"] is True
+    assert catalog["carbon-tax-50"]["cbo_published"] is False
+
+
+def test_starting_packages_hold_only_current_law_published_figures(exported: Path):
+    """Build's values packages never add a pre-2025, unpublished or illustrative list price."""
+    catalog = {row["build_id"]: row for row in _read(exported / "build-catalog.json")}
+    for archetype in _read(exported / "values.json")["archetypes"]:
+        for pick in archetype["picks"]:
+            row = catalog[pick["policy_id"]]
+            assert row["cbo_published"], (archetype["id"], pick["policy_id"])
+            assert not row["illustrative"], (archetype["id"], pick["policy_id"])
+            status = row["status"] or {}
+            assert not status.get("pre_2025_law"), (archetype["id"], pick["policy_id"])
+            assert status.get("status") != "enacted", (archetype["id"], pick["policy_id"])
 
 
 def test_the_committed_export_has_the_current_shape(exported: Path):

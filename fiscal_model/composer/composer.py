@@ -906,6 +906,10 @@ class CatalogPolicy:
     tags: Mapping[str, str] = field(default_factory=dict)
     exclusive_groups: tuple[str, ...] = ()
     subsumes: tuple[str, ...] = ()
+    #: False keeps the option out of a composed starting package while leaving
+    #: it on the checklist: an illustrative row, a figure nobody outside this
+    #: repository published, or a score measured against pre-2025 law.
+    starting_eligible: bool = True
 
     @property
     def reduces_deficit(self) -> bool:
@@ -945,6 +949,26 @@ def reset_values_caches() -> None:
     _BASELINE_SNAPSHOT_CACHE = None
 
 
+def starting_package_eligible(option: Any) -> bool:
+    """Whether a Build row may be picked into a composed starting package.
+
+    A starting package adds list prices, so every figure in it should be a
+    published score of the policy as it stands under current law. Left out:
+    illustrative rows, figures that are this repository's own estimate or a
+    retired target, presets whose score answers the pre-2025 question
+    (``PolicyStatus.pre_2025_law``), and provisions already enacted, which are
+    in the baseline. They stay on the checklist.
+    """
+    from fiscal_model.ui.preset_validation import is_published_figure
+
+    if getattr(option, "illustrative", False):
+        return False
+    status = get_policy_status(option.label)
+    if status is not None and (status.pre_2025_law or status.status == "enacted"):
+        return False
+    return is_published_figure(option.build_id, float(option.score))
+
+
 def values_catalog(
     cbo_score_map: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, CatalogPolicy]:
@@ -975,6 +999,7 @@ def values_catalog(
             tags=dict(option.tags or {}),
             exclusive_groups=tuple(option.exclusive_groups or ()),
             subsumes=tuple(option.subsumes or ()),
+            starting_eligible=starting_package_eligible(option),
         )
         for build_id, option in build_catalog(cbo_score_map).items()
     }
@@ -1294,6 +1319,8 @@ def compose_values_package(
     has_commitments = bool(vector.protected)
     for policy_id in sorted(catalog):
         policy = catalog[policy_id]
+        if not policy.starting_eligible:
+            continue
         rules = vetoing_rules(policy.policy_id, policy.tags, vector.protected)
         if rules:
             vetoed.append((policy.policy_id, rules[0].key))

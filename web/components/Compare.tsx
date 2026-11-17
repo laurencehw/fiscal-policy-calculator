@@ -7,9 +7,14 @@ import { EstimateTag } from "@/components/EstimateTag";
 import { compareHref, difference, sharedAxis, toggleId, type CompareItem } from "@/lib/compare";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
+import { chipWorthy } from "@/lib/lawStatus";
+import type { LawStatus } from "@/lib/types";
+import { LawChip } from "@/components/LawStatus";
 
 export type CompareCard = {
   item: CompareItem;
+  /** The preset's legal status; missing on cards built before it was exported. */
+  status?: LawStatus | null;
   calculator: EstimateIdentity;
   published: { value: number; identity: EstimateIdentity; date: string | null } | null;
 };
@@ -31,12 +36,13 @@ export function Compare({ cards }: { cards: CompareCard[] }) {
   return (
     <>
       <div className={`comparegrid n${cards.length}`}>
-        {cards.map(({ item, calculator, published }) => (
+        {cards.map(({ item, status, calculator, published }) => (
           <section className="comparecard chart" key={item.id} aria-labelledby={`cmp-${item.id}`}>
             <div className="head">
               <h2 id={`cmp-${item.id}`}>
                 <Link href={`/explore/${item.id}`}>{item.name}</Link>
               </h2>
+              {chipWorthy(status) ? <LawChip status={status} /> : null}
             </div>
             <div className="stage">
               <span className="q">Ten-year deficit effect, conventional</span>
