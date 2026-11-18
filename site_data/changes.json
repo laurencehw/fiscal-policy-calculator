@@ -2,6 +2,26 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-18",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-2613-119",
+      "title": "Next Generation Pipelines Research and Development Act",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/2613"
+    },
+    {
+      "date": "2026-11-18",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-5170-119",
+      "title": "CABLE Leadership Act",
+      "old": null,
+      "new": 0.2,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/5170"
+    },
+    {
       "date": "2026-11-17",
       "category": "score",
       "kind": "preset",
