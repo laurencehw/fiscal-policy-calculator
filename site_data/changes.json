@@ -3,6 +3,16 @@
   "items": [
     {
       "date": "2026-11-19",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-2082-119",
+      "title": "WISH Act",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/2082"
+    },
+    {
+      "date": "2026-11-19",
       "category": "score",
       "kind": "preset",
       "id": "ss-donut-250k",
