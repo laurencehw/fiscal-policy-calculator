@@ -45,6 +45,9 @@ once a night, and written as JSON under ``site_data/``:
   estimates in the tracker, and a baseline vintage change. Each item says
   whether it is a score change or a data refresh. It is built only from
   exported files, so no visitor's scenario can ever appear in it.
+- ``snapshots/``: a frozen copy of the scored figures for each scores
+  fingerprint, written once and never rewritten (``scripts/site_snapshots.py``).
+  The export keeps this directory when it replaces the rest of ``out``.
 - ``social-security.json``: the Social Security page's inputs (Trustees
   baseline rates, OCACT options and their annual paths, the CRFB comparison)
   plus the ledger's own answers for current law and each option alone, which
@@ -687,6 +690,26 @@ def _previous_manifest(out: Path) -> dict[str, Any] | None:
     return None
 
 
+def _set_aside_snapshots(out: Path) -> Path | None:
+    """Move ``out/snapshots`` to a temporary directory, or None if there are none."""
+    import tempfile
+
+    source = out / "snapshots"
+    if not source.is_dir():
+        return None
+    holding = Path(tempfile.mkdtemp(prefix="fpc-snapshots-"))
+    shutil.copytree(source, holding / "snapshots")
+    return holding
+
+
+def _restore_snapshots(holding: Path | None, out: Path) -> None:
+    if holding is None:
+        return
+    out.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(holding / "snapshots", out / "snapshots")
+    shutil.rmtree(holding, ignore_errors=True)
+
+
 def export(out: Path, *, today: str | None = None) -> dict[str, Any]:
     """Write the whole export to ``out`` (replacing it) and return the manifest."""
     import api
@@ -697,8 +720,11 @@ def export(out: Path, *, today: str | None = None) -> dict[str, Any]:
     if not isinstance(previous_changes, dict):
         previous_changes = {"items": []}
     day = today or dt.datetime.now(dt.timezone.utc).date().isoformat()
+    # The frozen research snapshots outlive every export: set them aside, then put them back.
+    kept_snapshots = _set_aside_snapshots(out)
     if out.exists():
         shutil.rmtree(out)
+    _restore_snapshots(kept_snapshots, out)
 
     index = preset_index_payload()
     _write(out / "presets" / "index.json", index)
@@ -779,6 +805,14 @@ def export(out: Path, *, today: str | None = None) -> dict[str, Any]:
     manifest["scores_fingerprint"] = fingerprint
     manifest["scores_date"] = scores_date(fingerprint, previous, day)
     _write(out / "manifest.json", manifest)
+    from scripts.site_snapshots import write_snapshot
+
+    previous_id = (
+        f"{previous['scores_date']}-{previous['scores_fingerprint']}"
+        if previous and previous.get("scores_date") and previous.get("scores_fingerprint")
+        else None
+    )
+    write_snapshot(out, previous_id=previous_id)
     after = export_snapshot(out)
     new_items = changes_between(before, after, day) if after else []
     _write(

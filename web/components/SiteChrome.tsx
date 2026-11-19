@@ -73,6 +73,8 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
           , not affiliated with any employer. Code and methods: <a href={REPO_URL}>GitHub</a>.{" "}
           <Link href="/changes">What changed</Link>
           {" · "}
+          <Link href="/data">Data and citation</Link>
+          {" · "}
           <Link href="/contact">Contact</Link>
           {" · "}
           <Link href="/privacy">Privacy</Link>.

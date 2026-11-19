@@ -1,5 +1,6 @@
 // Reads the nightly export in ../site_data. Server-only: pages call these at
 // build time, so the site never waits for the engine to show a preset.
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { PackageJoint } from "./packageJoint";
@@ -8,6 +9,7 @@ import type { HouseStripData } from "./houses";
 import type { SSData } from "./socialSecurity";
 import type { BaselineFile } from "./baseline";
 import type { ChangesFile } from "./changes";
+import { INDEX_NOTE, orderSnapshots, type Snapshot, type SnapshotIndex, type SnapshotIndexEntry } from "./research";
 import { ARCHIVED_AREA, isArchived } from "./lawStatus";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
@@ -15,6 +17,39 @@ export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
 
 function read<T>(...parts: string[]): T {
   return JSON.parse(fs.readFileSync(path.join(DATA_DIR, ...parts), "utf8")) as T;
+}
+
+/** Every frozen snapshot (scripts/site_snapshots.py), oldest first; none before the first export. */
+export function snapshotIndex(): SnapshotIndex {
+  const dir = path.join(DATA_DIR, "snapshots");
+  const files = fs.existsSync(dir) ? fs.readdirSync(dir).filter((name) => SNAPSHOT_FILE.test(name)) : [];
+  const entries: SnapshotIndexEntry[] = files.map((file) => {
+    const bytes = fs.readFileSync(path.join(dir, file));
+    const data = JSON.parse(bytes.toString("utf8")) as Snapshot;
+    return {
+      id: data.id,
+      scores_date: data.scores_date,
+      scores_fingerprint: data.scores_fingerprint,
+      file,
+      sha256: createHash("sha256").update(bytes).digest("hex"),
+      bytes: bytes.length,
+      presets: data.presets.length,
+      build_rows: data.build_catalog.length,
+      previous_snapshot_id: data.previous_snapshot_id ?? null,
+      previous_sha256: data.previous_sha256 ?? null,
+      source_commit: data.source_commit ?? null,
+    };
+  });
+  return { note: INDEX_NOTE, snapshots: orderSnapshots(entries) };
+}
+
+const SNAPSHOT_FILE = /^\d{4}-\d{2}-\d{2}-[0-9a-f]{12}\.json$/;
+
+/** One snapshot's file, as text (served byte for byte) and parsed. */
+export function snapshotFile(entry: SnapshotIndexEntry): { text: string; data: Snapshot } {
+  if (!SNAPSHOT_FILE.test(entry.file)) throw new Error(`bad snapshot file name ${entry.file}`);
+  const text = fs.readFileSync(path.join(DATA_DIR, "snapshots", entry.file), "utf8");
+  return { text, data: JSON.parse(text) as Snapshot };
 }
 
 export function manifest(): Manifest {

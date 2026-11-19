@@ -12,6 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/contact",
     "/privacy",
     "/changes",
+    "/data",
     ...presets().map((info) => `/explore/${info.id}`),
     ...classroomIndex().map((row) => `/classroom/${row.id}`),
   ];

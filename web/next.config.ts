@@ -8,6 +8,14 @@ const config: NextConfig = {
   async headers() {
     return [
       {
+        // The read-only data API (documented at /data) is open to any origin.
+        source: "/api/v1/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET, HEAD, OPTIONS" },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
