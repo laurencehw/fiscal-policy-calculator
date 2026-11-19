@@ -28,7 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${newsreader.variable} ${franklin.variable}`}>
       <body>
         <SiteChrome>{children}</SiteChrome>
-        <Analytics />
+        {/* The analytics script is served only by Vercel; off Vercel (CI, local) it would 404. */}
+        {process.env.VERCEL ? <Analytics /> : null}
       </body>
     </html>
   );
