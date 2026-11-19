@@ -804,7 +804,7 @@ PRESET_POLICIES = {
         "rate_change": 0.0,
         "threshold": 0,
         "description": (
-            "Apply the Social Security payroll tax to wages above \\$250K (a donut hole). Published estimate: \\$1,427B over FY2025-2034 (CBO, Options for Reducing the Deficit: 2025 to 2034, Option 62 alternative 2). This calculator's estimate is much larger because of how it sets the taxed wage band, a known miss."
+            "Apply the Social Security payroll tax to wages above \\$250K (a donut hole). Published estimate: \\$1,427B over FY2025-2034 (CBO, Options for Reducing the Deficit: 2025 to 2034, Option 62 alternative 2). This calculator prices it from Social Security wage statistics against each year's taxable maximum; on CBO's own window and baseline it comes out about 17% higher."
         ),
         "is_tcja": False,
         "is_corporate": False,

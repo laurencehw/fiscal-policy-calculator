@@ -1221,9 +1221,11 @@ The benefit offset accounts for the fact that higher earnings generate higher So
 
 The "donut hole" exempts wages between the current cap ($168,600) and a higher threshold (e.g., $400,000), then reapplies the payroll tax above that threshold. Revenue is lower than full cap removal because high earners between the two thresholds are exempt.
 
-### The two fitted Social Security targets — read this before quoting either
+**Since lane B3 (2026-11-19) a pure donut is priced from SSA's own wage distribution** (`planning/lanes/B3_ss_donut_mechanism.md`). The base in fiscal year *y* is wages above max(threshold, taxable maximum) in SSA's 2025 net-compensation table (netcomp.cgi, the latest year published), scaled forward by CBO's projected average-wage growth (read off its taxable-maximum path, publication 53724) and by the rest of the module's covered-earnings growth. Revenue is 12.4% of that base, nine months of it in the first fiscal year, net of the module's income-and-payroll offset rule at the statutory 50% employer share (0.3122 of gross). The threshold is not indexed, so the donut closes once the maximum passes it (CY2035 on February 2026's path). Nothing is fitted to a target. On CBO's own window and baseline (FY2025–2034, February 2024) the $250K donut scores **−$1,670.5B against CBO Option 62 alternative 2's −$1,426.8B, 17.1% over**; the shipped preset scores −$1,794.7B on FY2026–2035. Until 2026-11-19 it scored a flat −$2,700B, **89.2%** from CBO's figure, because its annual was the superseded target divided by ten.
 
-The $250K donut scores **-$2,700B** against a carried **-$2,700B**, and eliminating the cap scores **-$3,200B** against **-$3,200B**. Neither 0.0% is a measurement. `payroll.py`'s covered-wage bases *are* those targets run backwards through the statutory rate — `BASELINE_WAGE_DATA` says so in its own comments, `wages_above_cap_billions = 2_581.0  # 320 / 0.124` and `wages_250k_plus_billions = 2_177.0  # 270 / 0.124` — so the two rows report arithmetic.
+### The Social Security targets — read this before quoting either
+
+Eliminating the cap scores **-$3,200B** against **-$3,200B**, and that 0.0% is not a measurement. Until lane B3 the $250K donut did the same at -$2,700B; the paragraphs below describe that state, which is kept as the record. `payroll.py`'s covered-wage bases *are* those targets run backwards through the statutory rate — `BASELINE_WAGE_DATA` says so in its own comments, `wages_above_cap_billions = 2_581.0  # 320 / 0.124` and `wages_250k_plus_billions = 2_177.0  # 270 / 0.124` — so the two rows report arithmetic.
 
 **And the source attribution is wrong.** Both targets are credited to the Social Security Trustees. SSA's Office of the Chief Actuary does score both designs — **E2.1** (eliminate the taxable maximum, no benefit credit) and **E2.5** (12.4% above $250,000, no benefit credit), runs 415 and 418 on the 2025 Trustees Report's intermediate assumptions, dated 6 January 2026 — and publishes them **only** as a change in the long-range actuarial balance in percent of taxable payroll (**+2.55%** and **+2.50%**), a change in the 75th year's annual balance (+2.60% each), and a reserve-depletion date (2034 → **2059** and **2057**). The detailed single-year tables are percent-of-payroll and trust-fund ratio to 2100, with no dollar column. **There is no OCACT ten-year dollar figure for either provision**, so the round trillions are a conversion the cited source never performed. `-$2.7T` is a Peter G. Peterson Foundation explainer's sentence, verbatim; `-$3.2T` matches nothing OCACT or PGPF prints.
 
@@ -2547,7 +2549,7 @@ mean only by virtue of the bug. Composition, not accuracy.
 | **Biden Corporate 28%** | **−$1,347B** | **−$1,397B** | **3.7%** | calibrated |
 | **Biden CTC 2021** | **$1,600B** | **$1,600B** | **0.0%** | calibrated |
 | **Estate: Biden Reform** | **−$450B** | **−$450B** | **0.0%** | calibrated |
-| **SS Donut Hole $250K** | **−$1,427B** | **−$2,700B** | **89.2%** | reconstruction |
+| **SS Donut Hole $250K** | **−$1,427B** | **−$1,671B** | **17.1%** | reconstruction (SSA wage distribution since B3; was −$2,700B, 89.2%) |
 | **Repeal Corporate AMT** | **$220B** | **$220B** | **0.0%** | calibrated |
 | **Cap Employer Health** | **−$450B** | **−$450B** | **0.1%** | calibrated |
 | Eliminate mortgage deduction | −$368B | −$270B | 26.5% | reconstruction |

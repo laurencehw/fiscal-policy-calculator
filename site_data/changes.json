@@ -2,6 +2,18 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-19",
+      "category": "score",
+      "kind": "preset",
+      "id": "ss-donut-250k",
+      "title": "💰 SS Donut Hole $250K (-$1.43T)",
+      "old": -2700.0,
+      "new": -1794.7,
+      "old_dynamic": -3000.7,
+      "new_dynamic": -2001.4,
+      "href": "/explore/ss-donut-250k"
+    },
+    {
       "date": "2026-11-18",
       "category": "data",
       "kind": "cbo_estimate",
