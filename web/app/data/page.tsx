@@ -3,13 +3,14 @@ import Link from "next/link";
 import { snapshotIndex } from "@/lib/data";
 import { API_BASE, latestEntry } from "@/lib/research";
 import { longDate } from "@/lib/share";
+import { pageMeta } from "@/lib/meta";
 import { REPO_URL, siteUrl } from "@/lib/site";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Data and citation",
   description: "Frozen snapshots of every scored figure, a read-only JSON API, and how to cite the calculator.",
-  alternates: { canonical: "/data" },
-};
+  path: "/data",
+});
 
 const ENDPOINTS: { path: string; returns: string }[] = [
   { path: "", returns: "A list of the endpoints below, and the latest snapshot." },
