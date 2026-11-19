@@ -980,7 +980,7 @@ PRESET_POLICIES = {
         "threshold": 400000,
         "description": (
             "+2.6pp on income above \\$400K, restoring the pre-TCJA 39.6% top rate. "
-            "Treasury FY2025 Green Book estimate: raises ~\\$252B over 10 years."
+            "Treasury FY2025 Green Book estimate: raises ~\\$246B over 10 years."
         ),
         "is_tcja": False,
         "is_corporate": False,

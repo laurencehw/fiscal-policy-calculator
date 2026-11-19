@@ -506,7 +506,7 @@ _QUICK_START_CARDS: tuple[dict[str, Any], ...] = (
         "key": "biden400k",
         "question": "What if we restored the 39.6% top rate?",
         "context": "Biden proposal to raise the top rate on income above $400K",
-        "headline": "▼ −$252B from deficit",
+        "headline": "▼ −$246B from deficit",
         "headline_color": "#5cb85c",
         "source": "10-yr, Treasury",
         "preset": {
