@@ -165,7 +165,7 @@ H9_PROVENANCE_FIRST_SCORED_COMMIT = "63e76b8d8b978de6c6be1782ea2e54ba4f6bcd0a"
 #: figure the runner reads, so the two-commit split applies: the ledger row
 #: lands here and the commit that follows writes the figure into
 #: ``scenarios.py`` and ``CBO_SCORE_MAP``.
-BET3B_PTC_ENTERED_COMMIT = "pending (stamped in the following commit)"
+BET3B_PTC_ENTERED_COMMIT = "3cd6d41792f3a3179bb6cd250b21be47f896e54e"
 BET3B_PTC_ENTERED_DATE = "2026-11-19"
 
 #: Commit in which ``extend_enhanced_ptc.v3`` was first actually scored.

@@ -72,7 +72,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "⚖️ Repeal Individual AMT ($450B)": "amt-repeal-individual",
     "⚖️ Repeal Corporate AMT (+$220B)": "amt-repeal-corporate",
     # ACA premium tax credits
-    "🏥 Restore ACA Enhanced PTCs ($335B)": "aca-ptc-extend-enhanced",
+    "🏥 Restore ACA Enhanced PTCs ($350B)": "aca-ptc-extend-enhanced",
     "🏥 Repeal ACA Premium Credits (-$1.1T)": "aca-ptc-repeal",
     # Tax expenditures
     "📋 Cap Employer Health Exclusion (-$450B)": "cap-employer-health-exclusion",
@@ -215,7 +215,10 @@ LEGACY_LABEL_ALIASES: dict[str, str] = {
     "Biden 2025 Proposal": "Top Rate to 39.6% (Biden FY2025)",
     # 2026-11-17, bet 3: the enhanced credits lapsed after 2025, so on the
     # FY2026-2035 window the proposal is a restoration, not an extension.
-    "🏥 Extend ACA Enhanced PTCs ($335B)": "🏥 Restore ACA Enhanced PTCs ($335B)",
+    "🏥 Extend ACA Enhanced PTCs ($335B)": "🏥 Restore ACA Enhanced PTCs ($350B)",
+    # 2026-11-19, bet 3b: CBO's $350B (pub. 61734) is on the app's FY2026-2035
+    # window; the $335B it replaces is FY2025-2034.
+    "🏥 Restore ACA Enhanced PTCs ($335B)": "🏥 Restore ACA Enhanced PTCs ($350B)",
 }
 
 #: Scorable presets first, then the Build-local score-only ids.

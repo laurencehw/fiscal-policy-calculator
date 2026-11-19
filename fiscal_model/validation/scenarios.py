@@ -683,18 +683,20 @@ PTC_VALIDATION_SCENARIOS_COMPARE = {
     "extend_enhanced_ptc": {
         "description": "Extend enhanced PTCs (ARPA/IRA)",
         "policy_factory": create_extend_enhanced_ptc,
-        # Wave 4 target revision (extend_enhanced_ptc.v2). CBO/JCT pub. 60437
-        # (June 2024): "making the policy permanent would increase the budget
-        # deficit by $335 billion over the 2025-2034 period". The superseded
-        # $350B is the September 2025 re-estimate on a FY2026-2035 window, so
-        # the figure and the record's stated vintage disagreed by one window.
-        "expected_10yr": 335.0,
-        "source": "CBO/JCT pub. 60437 (June 2024)",
-        "notes": "Extend subsidies beyond 2025 sunset",
+        # Bet 3b target revision (extend_enhanced_ptc.v3). CBO/JCT pub. 61734
+        # (18 September 2025): "increasing the deficit by $350 billion from
+        # 2026 to 2035". The runner scores from 2026 (the factory's default
+        # start year), which is that window; `.v2`'s $335B (pub. 60437) is
+        # FY2025-2034. See planning/lanes/BET3b_deduction_list_prices.md.
+        "expected_10yr": 350.0,
+        "source": "CBO/JCT pub. 61734 (September 2025)",
+        "notes": "Restore the enhanced subsidies, which lapsed after 2025",
         "limitations": [
-            "The module's annual is fitted to the superseded $350B, so the "
-            "residual against the revised target is a measurement rather than "
-            "bookkeeping. Nothing was retuned to close it.",
+            "The module's annual (-$30.5B/yr) was tuned toward about $350B "
+            "before the target ledger existed, and the ledger has since moved "
+            "the target away and back. The row stays an unfitted "
+            "reconstruction: a fit this close is partly that constant's "
+            "history, not evidence about the credit. Nothing was retuned.",
         ],
     },
     "repeal_ptc": {

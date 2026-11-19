@@ -184,7 +184,7 @@ POLICY_STATUS_MAP: dict[str, PolicyStatus] = {
         "proposed", "Analytic option scored by CBO; never enacted."
     ),
     # ── ACA premium credits ──────────────────────────────────────────────
-    "🏥 Restore ACA Enhanced PTCs ($335B)": PolicyStatus(
+    "🏥 Restore ACA Enhanced PTCs ($350B)": PolicyStatus(
         "proposed",
         "The enhanced credits from the 2021 and 2022 laws lapsed at the end "
         "of 2025. This preset scores restoring them from 2026; not enacted.",

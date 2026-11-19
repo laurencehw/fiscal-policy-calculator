@@ -246,15 +246,16 @@ CBO_SCORE_MAP = {
         "notes": "Repeal 15% corporate book minimum tax (CAMT)",
     },
     # Premium Tax Credits
-    "🏥 Restore ACA Enhanced PTCs ($335B)": {
-        # Wave 4 target revision (extend_enhanced_ptc.v2): CBO/JCT, pub. 60437
-        # (June 2024) — "making the policy permanent would increase the budget
-        # deficit by $335 billion over the 2025-2034 period". The superseded
-        # $350B is CBO/JCT's September 2025 re-estimate on a FY2026-2035
-        # window, so the figure and its stated vintage disagreed by one window.
-        "official_score": 335.0,
-        "source": "CBO/JCT (pub. 60437)",
-        "source_date": "2024-06",
+    "🏥 Restore ACA Enhanced PTCs ($350B)": {
+        # Bet 3b target revision (extend_enhanced_ptc.v3): CBO/JCT, pub. 61734
+        # (18 September 2025) — "increasing the deficit by $350 billion from
+        # 2026 to 2035". That is the app's own window, and the enhancements
+        # lapsed after 2025, so it prices the restoration this preset asks
+        # about. `.v2`'s $335B (pub. 60437, June 2024) is FY2025-2034.
+        "official_score": 350.0,
+        "source": "CBO/JCT (pub. 61734)",
+        "source_date": "2025-09",
+        "source_url": "https://www.cbo.gov/system/files/2025-09/61734-Health.pdf",
         "notes": "Restore the ACA enhanced premium subsidies, which lapsed after 2025",
     },
     "🏥 Repeal ACA Premium Credits (-$1.1T)": {
@@ -911,10 +912,10 @@ PRESET_POLICIES = {
         "is_amt": True,
         "amt_type": "repeal_corporate",
     },
-    "🏥 Restore ACA Enhanced PTCs ($335B)": {
+    "🏥 Restore ACA Enhanced PTCs ($350B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put making them permanent at \\$335B over FY2025-2034 (pub. 60437), scored before they lapsed.",
+        "description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put restoring them permanently at \\$350B over FY2026-2035 (pub. 61734, September 2025).",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,
