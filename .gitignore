@@ -8,6 +8,7 @@ __pycache__/
 dist/
 build/
 !web/app/build/
+!web/app/api/v1/build/
 *.egg
 
 # Virtual environments
@@ -88,6 +89,8 @@ archive/
 requirements-lock.local-prepull.txt
 
 data/
+# The site's /data page (data and citation), not a data directory.
+!web/app/data/
 
 # Generated API docs
 docs/api/

@@ -183,6 +183,8 @@ div.cite .citeactions > button { font-family: var(--label); font-size: 12px; bac
 .changelist .tag { margin-right: 4px; }
 .marked { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 70ch; color: var(--muted); font-size: 15px; }
 code { font-family: var(--code); font-size: 0.85em; }
+pre.codeblock { margin: 0; padding: 12px; overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); font-size: 14px; line-height: 1.5; }
+pre.codeblock code { font-size: 13px; white-space: pre; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }

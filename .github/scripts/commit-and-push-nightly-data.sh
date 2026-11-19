@@ -6,9 +6,10 @@
 # site_data/ is generated output; a textual rebase can corrupt the database
 # or mix two exports. Snapshot this run's artifacts, reset to the latest
 # origin/main, restore the snapshot, and commit. This run's generated files
-# always win over concurrent edits to those paths. A rejected push is retried
-# a few times with backoff; if it still fails the job fails loudly (never
-# force-pushes).
+# always win over concurrent edits to those paths, except that research
+# snapshots (site_data/snapshots/, append-only) already on the branch are
+# kept. A rejected push is retried a few times with backoff; if it still
+# fails the job fails loudly (never force-pushes).
 set -euo pipefail
 
 REMOTE="${NIGHTLY_REMOTE:-origin}"
@@ -76,6 +77,13 @@ for attempt in $(seq 1 "${MAX_ATTEMPTS}"); do
   git fetch "${REMOTE}" "+refs/heads/${BRANCH}:refs/remotes/${REMOTE}/${BRANCH}"
   git reset --hard "${REMOTE}/${BRANCH}"
   restore_paths "${SNAPSHOT}"
+  # Research snapshots are append-only: keep any that reached the branch while
+  # this job ran (a merged PR's export), rather than deleting them with the
+  # rest of site_data. Same-named files are identical, so nothing is overwritten
+  # that differs.
+  if git cat-file -e "${REMOTE}/${BRANCH}:site_data/snapshots" 2>/dev/null; then
+    git checkout "${REMOTE}/${BRANCH}" -- site_data/snapshots
+  fi
   git add -- "${PATHS[@]}"
   if git diff --cached --quiet; then
     echo "Latest ${REMOTE}/${BRANCH} already has these artifacts; nothing to push."

@@ -133,7 +133,12 @@ def test_starting_packages_hold_only_current_law_published_figures(exported: Pat
 
 def test_the_committed_export_has_the_current_shape(exported: Path):
     def names(root: Path) -> set[Path]:
-        return {p.relative_to(root) for p in root.rglob("*.json")}
+        # Snapshots accumulate (one per scores fingerprint), so a fresh export has fewer.
+        return {
+            p.relative_to(root)
+            for p in root.rglob("*.json")
+            if p.relative_to(root).parts[0] != "snapshots"
+        }
 
     assert names(COMMITTED) == names(exported), (
         "site_data/ is out of date: run python scripts/export_static.py"
@@ -347,3 +352,35 @@ def test_the_export_writes_a_changes_file(exported: Path):
     data = _read(exported / "changes.json")
     assert data["threshold"] == export_static.CHANGE_THRESHOLD
     assert isinstance(data["items"], list)
+
+
+def test_the_export_writes_a_snapshot_of_its_own_figures(exported: Path):
+    manifest = _read(exported / "manifest.json")
+    snapshot_id = f"{manifest['scores_date']}-{manifest['scores_fingerprint']}"
+    snapshot = _read(exported / "snapshots" / f"{snapshot_id}.json")
+    assert snapshot["id"] == snapshot_id
+    assert len(snapshot["presets"]) == manifest["presets"]
+    for row in snapshot["presets"]:
+        data = _read(exported / "presets" / f"{row['id']}.json")
+        assert row["conventional"]["ten_year_deficit_impact"] == pytest.approx(
+            data["conventional"]["ten_year_deficit_impact"], abs=1e-4
+        )
+
+
+def test_the_export_keeps_existing_snapshots(tmp_path: Path):
+    """A re-export replaces site_data but never the snapshots already in it."""
+    old = tmp_path / "snapshots" / "2026-01-01-0123456789ab.json"
+    old.parent.mkdir(parents=True)
+    text = json.dumps(
+        {
+            "id": "2026-01-01-0123456789ab",
+            "scores_date": "2026-01-01",
+            "scores_fingerprint": "0123456789ab",
+            "presets": [],
+            "build_catalog": [],
+        }
+    )
+    old.write_text(text, encoding="utf-8")
+    export_static.export(tmp_path, today="2026-01-02")
+    assert old.read_text(encoding="utf-8") == text
+    assert len(list((tmp_path / "snapshots").glob("*.json"))) == 2
