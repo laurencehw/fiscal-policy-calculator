@@ -401,6 +401,9 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
   .summary .summarylist, .summary .clear { display: none; }
   .summary.open .summarylist, .summary.open .clear { display: grid; }
   .summary.open .clear { display: inline-block; }
+  /* The calculator total's notes open with the policy list, so the sheet stays short. */
+  .summary .summarynote { display: none; }
+  .summary.open .summarynote { display: block; }
 }
 /* Tailor: the inputs sit in one row on a wide screen, and the result has a place before it exists. */
 .tailorform.wide { max-width: none; }

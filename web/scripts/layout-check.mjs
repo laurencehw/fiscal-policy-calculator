@@ -158,7 +158,8 @@ async function checkPage(browser, route, viewport) {
       };
     });
     if (!summary.together) problems.push("the exclusion sentence is not in the same block as the package total");
-    if (!/Interactions between these policies are not measured/.test(summary.exclusion)) problems.push("exclusion sentence missing");
+    // Bet 4: the sentence depends on the selection, but a package of two or more always gets one.
+    if (!/not modelled|overlap|by construction|joint model/.test(summary.exclusion)) problems.push("exclusion sentence missing");
     // Scrolled halfway down the list, the total and the gap must still be on screen.
     const inView = await page.evaluate(async () => {
       window.scrollTo(0, document.documentElement.scrollHeight / 2);

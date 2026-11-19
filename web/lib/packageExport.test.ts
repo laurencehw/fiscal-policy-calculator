@@ -14,13 +14,26 @@ test("the first line of Build's CSV is the exclusion sentence", () => {
   const csv = packageCsv(rows, ["b", "a"], { a: -174.9 }, { link: "https://x.org/build?policies=b,a&v=2026-11-05", dated: "5 November 2026" });
   const lines = csv.trim().split("\n");
   assert.equal(lines[0], `# ${PACKAGE_EXCLUSION}`);
-  assert.match(PACKAGE_EXCLUSION, /interactions between these policies are not measured/);
+  assert.match(PACKAGE_EXCLUSION, /does not adjust for interactions between the policies/);
   assert.match(lines[2], /5 November 2026/);
   // Catalog order, labels quoted where they carry commas or quotes, the total last.
   assert.equal(lines[4], 'a,"Cap, ""charitable"" deduction",-200,CBO,Dec 2024,-174.9');
   assert.equal(lines[5], "b,Repeal SALT cap,740.3,CBO,Dec 2024,");
   assert.equal(lines.at(-1), "total,Sum of the published figures above,540.3,,,");
   assert.ok(!csv.includes("Unpicked"));
+});
+
+test("the CSV carries the interaction notes and the calculator total when given", () => {
+  const csv = packageCsv(rows, ["a", "b"], { a: -174.9, b: 740.3 }, {
+    link: "https://x.org/build",
+    dated: "",
+    notes: ["Interactions between these policies are not modelled."],
+    calculatorTotal: { label: "Calculator total, FY2026-2035", value: 565.44 },
+  });
+  const lines = csv.trim().split("\n");
+  assert.equal(lines[1], "# Interactions between these policies are not modelled.");
+  assert.equal(lines.at(-2), "total,Sum of the published figures above,540.3,,,");
+  assert.equal(lines.at(-1), "calculator_total,\"Calculator total, FY2026-2035\",,,,565.4");
 });
 
 test("the package picture draws each chosen policy and the total, escaped", () => {

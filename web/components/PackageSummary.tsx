@@ -12,8 +12,8 @@ import type { BuildRow } from "@/lib/types";
 
 export type SummaryTarget = { name: string; gapBillions: number; pctGdp: number };
 
-/** Reserved for C6: a jointly scored total beside the sum. Rendered only when given. */
-export type SecondTotal = { label: string; value: number; identity?: EstimateIdentity };
+/** The calculator's one-window total beside the sum (bet 4). Rendered only when given. */
+export type SecondTotal = { label: string; value: number; notes: string[]; identity?: EstimateIdentity };
 
 type Props = {
   rows: BuildRow[];
@@ -26,10 +26,12 @@ type Props = {
   onUndo: () => void;
   onClear: () => void;
   secondTotal?: SecondTotal | null;
+  /** How the ticked policies interact, one sentence per finding; empty under two policies. */
+  interactions?: string[];
 };
 
 export const PackageSummary = forwardRef<HTMLParagraphElement, Props>(function PackageSummary(
-  { rows, selected, sum, packageIdentity, target, notice, canUndo, onUndo, onClear, secondTotal },
+  { rows, selected, sum, packageIdentity, target, notice, canUndo, onUndo, onClear, secondTotal, interactions = [] },
   noticeRef,
 ) {
   const [open, setOpen] = useState(false);
@@ -54,14 +56,27 @@ export const PackageSummary = forwardRef<HTMLParagraphElement, Props>(function P
         <span className="eyebrow">Your package</span>
         <p className={`fig big ${sum > 0 ? "adds" : sum < 0 ? "reduces" : ""}`}>{money(sum)}</p>
         <EstimateTag identity={packageIdentity} />
-        <p className="note exclusion">Interactions between these policies are not measured.</p>
         {secondTotal ? (
-          <p className="secondtotal">
-            <span className="eyebrow">{secondTotal.label}</span>{" "}
-            <span className={`fig ${secondTotal.value > 0 ? "adds" : "reduces"}`}>{money(secondTotal.value)}</span>
+          <div className="secondtotal">
+            <p>
+              <span className="eyebrow">{secondTotal.label}</span>{" "}
+              <span className={`fig ${secondTotal.value > 0 ? "adds" : secondTotal.value < 0 ? "reduces" : ""}`}>
+                {money(secondTotal.value)}
+              </span>
+            </p>
             {secondTotal.identity ? <EstimateTag identity={secondTotal.identity} /> : null}
-          </p>
+            {secondTotal.notes.map((n) => (
+              <p className="note summarynote" key={n}>
+                {n}
+              </p>
+            ))}
+          </div>
         ) : null}
+        {interactions.map((n) => (
+          <p className="note exclusion summarynote" key={n}>
+            {n}
+          </p>
+        ))}
       </div>
 
       {target && progress ? (
@@ -84,6 +99,7 @@ export const PackageSummary = forwardRef<HTMLParagraphElement, Props>(function P
             onClick={() => setOpen((v) => !v)}
           >
             {open ? "Hide" : "Show"} {selected.length} {selected.length === 1 ? "policy" : "policies"}
+            {secondTotal || interactions.length ? " and notes" : ""}
           </button>
           <ul className="summarylist" id="summary-list">
             {list.map((r) => (

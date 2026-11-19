@@ -18,6 +18,8 @@ once a night, and written as JSON under ``site_data/``:
   the site's own current-law baseline.
 - ``presets/<id>.json``: one preset, ``{"conventional": …, "dynamic": …}``,
   each the API's ``/score/preset`` answer for that id.
+- ``package-joint.json``: Build's interaction channels and the microsim's
+  measured overlap shares, for the one-window calculator total (bet 4).
 - ``build-catalog.json``: the Build page's checkable rows, in catalog order,
   each with the same ``cbo_published`` and ``status`` fields.
 - ``validation/scorecard.json``: the API's ``/validation/scorecard`` answer.
@@ -273,6 +275,37 @@ def build_catalog_payload() -> list[dict[str, Any]]:
         row["status"] = law_status_payload(option.label)
         rows.append(row)
     return rows
+
+
+def package_joint_payload() -> dict[str, Any]:
+    """What Build needs to total a package on one window (bet 4).
+
+    Each catalog row's interaction channels, their plain names, and every pair
+    of microsim-measurable rows with its kind and, where the microsim measures
+    one, the overlap as a **share** of the reference member's own standalone
+    yield. Shares only: the microsim's dollar levels are not on the list-price
+    scale (``package_interactions``' own rule), so none is exported.
+    """
+    from itertools import combinations
+
+    from fiscal_model import package_interactions as pi
+
+    pairs = []
+    for a, b in combinations(sorted(pi.MICROSIM_MEASURABLE_IDS), 2):
+        kind = pi._pair_key(pi._channels(a), pi._channels(b))
+        entry: dict[str, Any] = {"a": a, "b": b, "kind": kind, "share": None, "reference": None}
+        if kind == pi.KIND_INTERACTING:
+            m = pi.measured_interaction_share(a, b)
+            if m is not None and m.share is not None:
+                entry["share"] = m.share
+                entry["reference"] = m.reference
+        pairs.append(entry)
+    return {
+        "channels": {k: sorted(v - {"tcja_composite"}) for k, v in sorted(pi.INTERACTION_CHANNELS.items())},
+        "channel_labels": dict(pi._CHANNEL_LABELS),
+        "measurable": sorted(pi.MICROSIM_MEASURABLE_IDS),
+        "pairs": pairs,
+    }
 
 
 def evidence_payload() -> dict[str, Any]:
@@ -695,6 +728,7 @@ def export(out: Path, *, today: str | None = None) -> dict[str, Any]:
     catalog = build_catalog_payload()
     _write(out / "build-catalog.json", catalog)
     figures["build"] = {row["build_id"]: row["score"] for row in catalog}
+    _write(out / "package-joint.json", package_joint_payload())
     scorecard = scorecard_payload()
     _write(out / "validation" / "scorecard.json", scorecard)
     _write(out / "validation" / "evidence.json", evidence_payload())

@@ -1,0 +1,213 @@
+{
+  "channels": {
+    "aca-ptc-extend-enhanced": [
+      "health_credit"
+    ],
+    "aca-ptc-repeal": [
+      "health_credit"
+    ],
+    "amt-extend-tcja-relief": [
+      "amt_exemption"
+    ],
+    "amt-repeal-corporate": [
+      "corporate"
+    ],
+    "amt-repeal-individual": [
+      "amt_exemption"
+    ],
+    "cap-employer-health-exclusion": [
+      "employer_health"
+    ],
+    "car-loan-interest-deduction-permanent": [
+      "pl119_21_deductions"
+    ],
+    "carbon-tax-50": [
+      "carbon_tax"
+    ],
+    "charitable-deduction-cap": [
+      "salt_itemization"
+    ],
+    "corporate-15pct": [
+      "corporate"
+    ],
+    "corporate-28pct": [
+      "corporate"
+    ],
+    "ctc-expansion-2021": [
+      "refundable_credit"
+    ],
+    "ctc-extension": [
+      "refundable_credit"
+    ],
+    "drug-negotiation-expand": [
+      "drug_pricing"
+    ],
+    "drug-reference-pricing": [
+      "drug_pricing"
+    ],
+    "eitc-childless-expansion": [
+      "refundable_credit"
+    ],
+    "estate-exemption-3-5m": [
+      "estate"
+    ],
+    "estate-extend-tcja": [
+      "estate"
+    ],
+    "estate-repeal": [
+      "estate"
+    ],
+    "ev-credit-repeal": [
+      "climate_credits"
+    ],
+    "fdii-repeal": [
+      "corporate",
+      "international"
+    ],
+    "gilti-reform": [
+      "corporate",
+      "international"
+    ],
+    "insulin-cap-universal": [
+      "drug_pricing"
+    ],
+    "international-package": [
+      "corporate",
+      "international"
+    ],
+    "ira-clean-energy-repeal": [
+      "climate_credits"
+    ],
+    "irs-enforcement-double": [
+      "enforcement"
+    ],
+    "irs-enforcement-ira": [
+      "enforcement"
+    ],
+    "mortgage-deduction-eliminate": [
+      "salt_itemization"
+    ],
+    "niit-expand": [
+      "payroll"
+    ],
+    "overtime-deduction-permanent": [
+      "pl119_21_deductions"
+    ],
+    "pillar-two-adoption": [
+      "corporate",
+      "international"
+    ],
+    "salt-cap-40k-permanent": [
+      "salt_itemization"
+    ],
+    "salt-cap-repeal": [
+      "salt_itemization"
+    ],
+    "salt-deduction-eliminate": [
+      "salt_itemization"
+    ],
+    "senior-deduction-permanent": [
+      "pl119_21_deductions"
+    ],
+    "ss-cap-90pct": [
+      "payroll"
+    ],
+    "ss-cap-eliminate": [
+      "payroll"
+    ],
+    "ss-donut-250k": [
+      "payroll"
+    ],
+    "step-up-basis-eliminate": [
+      "capital_gains",
+      "estate"
+    ],
+    "tariff-auto-25pct": [
+      "tariff"
+    ],
+    "tariff-china-60pct": [
+      "tariff"
+    ],
+    "tariff-reciprocal": [
+      "tariff"
+    ],
+    "tariff-steel-aluminum-25pct": [
+      "tariff"
+    ],
+    "tariff-universal-10pct": [
+      "tariff"
+    ],
+    "tcja-extension-no-salt-cap": [
+      "amt_exemption",
+      "estate",
+      "ordinary_rate",
+      "refundable_credit",
+      "salt_itemization",
+      "std_deduction"
+    ],
+    "tcja-full-extension": [
+      "amt_exemption",
+      "estate",
+      "ordinary_rate",
+      "refundable_credit",
+      "salt_itemization",
+      "std_deduction"
+    ],
+    "tcja-rates-only": [
+      "ordinary_rate"
+    ],
+    "tips-deduction-permanent": [
+      "pl119_21_deductions"
+    ],
+    "top-rate-39-6": [
+      "ordinary_rate"
+    ]
+  },
+  "channel_labels": {
+    "ordinary_rate": "ordinary income tax rates",
+    "salt_itemization": "itemized deductions",
+    "std_deduction": "the standard deduction",
+    "amt_exemption": "the individual AMT",
+    "refundable_credit": "refundable credits",
+    "corporate": "the corporate tax base",
+    "international": "international tax",
+    "estate": "the estate tax",
+    "capital_gains": "capital gains",
+    "payroll": "payroll taxes",
+    "tariff": "tariffs",
+    "health_credit": "ACA premium credits",
+    "employer_health": "the employer health exclusion",
+    "enforcement": "IRS enforcement",
+    "drug_pricing": "drug pricing",
+    "climate_credits": "clean-energy credits",
+    "carbon_tax": "the carbon tax"
+  },
+  "measurable": [
+    "eitc-childless-expansion",
+    "salt-cap-repeal",
+    "top-rate-39-6"
+  ],
+  "pairs": [
+    {
+      "a": "eitc-childless-expansion",
+      "b": "salt-cap-repeal",
+      "kind": "no_overlap",
+      "share": null,
+      "reference": null
+    },
+    {
+      "a": "eitc-childless-expansion",
+      "b": "top-rate-39-6",
+      "kind": "structurally_additive",
+      "share": null,
+      "reference": null
+    },
+    {
+      "a": "salt-cap-repeal",
+      "b": "top-rate-39-6",
+      "kind": "interacting",
+      "share": -0.163463829183665,
+      "reference": "top-rate-39-6"
+    }
+  ]
+}

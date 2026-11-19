@@ -6,7 +6,8 @@ import { money, shortLabel } from "./format";
 import type { BuildRow } from "./types";
 
 /** The sentence every Build export opens with. */
-export const PACKAGE_EXCLUSION = "Sum of standalone published scores; interactions between these policies are not measured.";
+export const PACKAGE_EXCLUSION =
+  "Sum of standalone published scores, each on its source's own window; the sum does not adjust for interactions between the policies.";
 
 function cell(value: string | number | null | undefined): string {
   if (value === null || value === undefined) return "";
@@ -29,12 +30,13 @@ export function packageCsv(
   rows: BuildRow[],
   selected: string[],
   calculator: Record<string, number>,
-  opts: { link: string; dated: string },
+  opts: { link: string; dated: string; notes?: string[]; calculatorTotal?: { value: number; label: string } | null },
 ): string {
   const list = chosen(rows, selected);
   const sum = list.reduce((s, r) => s + r.score, 0);
   const lines = [
     `# ${PACKAGE_EXCLUSION}`,
+    ...(opts.notes ?? []).map((n) => `# ${n}`),
     "# Billions of dollars over ten years, each on its source's own window. Positive increases the deficit, negative reduces it.",
     `# ${opts.dated ? `Figures dated ${opts.dated}. ` : ""}${opts.link}`,
     "build_id,policy,published_ten_year,source,source_date,calculator_conventional_ten_year",
@@ -48,6 +50,10 @@ export function packageCsv(
     );
   }
   lines.push(["total", "Sum of the published figures above", Math.round(sum * 10) / 10, "", "", ""].map(cell).join(","));
+  if (opts.calculatorTotal) {
+    const t = opts.calculatorTotal;
+    lines.push(["calculator_total", t.label, "", "", "", Math.round(t.value * 10) / 10].map(cell).join(","));
+  }
   return lines.join("\n") + "\n";
 }
 

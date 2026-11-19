@@ -130,7 +130,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
       baseline: "",
       tier: "none",
       tierLabel: "",
-      limitation: "Sum of standalone published scores. Interactions between these policies are not measured.",
+      limitation: "Sum of standalone published scores, each on its source's own window. The sum does not adjust for interactions between the policies.",
     };
   }
   const { tier, tierLabel, limitation } = resolveTier(result.credibility);

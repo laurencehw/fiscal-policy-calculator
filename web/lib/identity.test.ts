@@ -59,7 +59,7 @@ test("a package sum does not claim one baseline or one tier", () => {
   const identity = estimateIdentity(corp.conventional, "package-sum");
   assert.equal(identity.tier, "none");
   assert.equal(identity.baseline, "");
-  assert.match(identity.limitation, /Interactions between these policies are not measured/);
+  assert.match(identity.limitation, /does not adjust for interactions between the policies/);
   assert.equal(shortProducer(identity), "sum");
   assert.doesNotMatch(identityLine(identity), /\bCBO\b/);
 });
