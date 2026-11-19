@@ -2,7 +2,7 @@
 // Build: tick policies, see the package's ten-year list-price total. State lives
 // in ?policies=, the same parameter the Streamlit app's share links use.
 import { useEffect, useRef, useState } from "react";
-import { PackageSummary, type SecondTotal } from "@/components/PackageSummary";
+import { PackageSummary } from "@/components/PackageSummary";
 import { EstimateTag } from "@/components/EstimateTag";
 import { cleanLabel, money, shortLabel } from "@/lib/format";
 import { ARCHIVED_AREA, ARCHIVED_NOTE, chipWorthy } from "@/lib/lawStatus";
@@ -15,6 +15,7 @@ import { useFlash } from "@/components/ChartActions";
 import { pngText } from "@/lib/chartpng";
 import { identityLine } from "@/lib/identity";
 import { PACKAGE_EXCLUSION, packageCsv, packageSvg } from "@/lib/packageExport";
+import { calculatorTotal, interactionNotes, tierSentence, type PackageJoint } from "@/lib/packageJoint";
 import { copyText, renderPng, saveBlob } from "@/lib/pngdraw";
 import { citation, longDate, withVersion } from "@/lib/share";
 
@@ -24,7 +25,9 @@ export function PackageBuilder({
   identities,
   packageIdentity,
   archetypes = [],
-  secondTotal = null,
+  tiers = {},
+  joint = null,
+  budgetWindow = "",
   scoresDate = "",
   site = "",
 }: {
@@ -34,8 +37,12 @@ export function PackageBuilder({
   identities: Record<string, { published: EstimateIdentity; model: EstimateIdentity | null }>;
   packageIdentity: EstimateIdentity;
   archetypes?: ValuesArchetype[];
-  /** C6's jointly scored total; the summary shows it only when present. */
-  secondTotal?: SecondTotal | null;
+  /** Each scored row's validation tier, for the calculator total's tier sentence. */
+  tiers?: Record<string, string>;
+  /** package-joint.json: interaction channels and measured overlaps. Without it, no second total. */
+  joint?: PackageJoint | null;
+  /** The calculator's budget window, e.g. FY2026-2035. */
+  budgetWindow?: string;
   /** manifest.json's scores_date, stamped on every link this page hands out as v=. */
   scoresDate?: string;
   /** The site origin, for the citation and the exports. */
@@ -112,6 +119,21 @@ export function PackageBuilder({
 
   const inside = covered(rows, selected);
   const sum = total(rows, selected);
+  const notes = joint ? interactionNotes(rows, selected, joint) : [];
+  const calc = joint ? calculatorTotal(rows, selected, calculator, joint, tiers) : null;
+  const secondTotal = calc
+    ? {
+        label: `Calculator total${budgetWindow ? `, ${budgetWindow}` : ""}`,
+        value: calc.value,
+        notes: [
+          `My own conventional scores for ${calc.excluded.length ? `${calc.scored.length} of the ${selected.length}` : `all ${selected.length}`} policies, on one window and one baseline${calc.overlaps.length ? ", with the measured overlap applied" : ""}.`,
+          ...(calc.excluded.length
+            ? [`Leaves out ${calc.excluded.map((e) => `${e.label} (${money(e.score)} list price)`).join(", ")}, which I do not score.`]
+            : []),
+          tierSentence(calc.tiers),
+        ],
+      }
+    : null;
   const areas = [...new Set(rows.map((r) => r.area))];
   const label = (id: string) => cleanLabel(rows.find((r) => r.build_id === id)?.label ?? id);
 
@@ -273,6 +295,7 @@ export function PackageBuilder({
         onUndo={undo}
         onClear={clear}
         secondTotal={secondTotal}
+        interactions={notes}
       />
     </div>
     {selected.length ? (
@@ -281,6 +304,8 @@ export function PackageBuilder({
         selected={selected}
         calculator={calculator}
         packageIdentity={packageIdentity}
+        notes={notes}
+        secondTotal={secondTotal}
         scoresDate={scoresDate}
         site={site}
       />
@@ -295,6 +320,8 @@ function PackageExports({
   selected,
   calculator,
   packageIdentity,
+  notes,
+  secondTotal,
   scoresDate,
   site,
 }: {
@@ -302,6 +329,8 @@ function PackageExports({
   selected: string[];
   calculator: Record<string, number>;
   packageIdentity: EstimateIdentity;
+  notes: string[];
+  secondTotal: { label: string; value: number; notes: string[] } | null;
   scoresDate: string;
   site: string;
 }) {
@@ -314,7 +343,12 @@ function PackageExports({
   const stem = `package-${selected.length}`;
 
   function downloadCsv() {
-    const text = packageCsv(rows, selected, calculator, { link, dated: scoresDate ? longDate(scoresDate) : "" });
+    const text = packageCsv(rows, selected, calculator, {
+      link,
+      dated: scoresDate ? longDate(scoresDate) : "",
+      notes: [...notes, ...(secondTotal?.notes ?? [])],
+      calculatorTotal: secondTotal,
+    });
     saveBlob(new Blob([text], { type: "text/csv;charset=utf-8" }), `${stem}.csv`);
   }
 
@@ -332,7 +366,7 @@ function PackageExports({
         paper: read("--paper", "#fbfaf6"),
       });
       const host = site.replace(/^https?:\/\//, "");
-      const blob = await renderPng(svg, width, height, pngText(title, identityLine(packageIdentity), `Fiscal Policy Calculator, ${host}/build`, "Interactions between these policies are not measured."));
+      const blob = await renderPng(svg, width, height, pngText(title, identityLine(packageIdentity), `Fiscal Policy Calculator, ${host}/build`, notes.join(" ")));
       saveBlob(blob, `${stem}.png`);
     } catch {
       flashPng("Could not render the chart");

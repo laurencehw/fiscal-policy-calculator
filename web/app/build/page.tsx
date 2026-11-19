@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PackageBuilder } from "@/components/PackageBuilder";
-import { buildCatalog, manifest, preset, valuesArchetypes } from "@/lib/data";
+import { buildCatalog, manifest, packageJoint, preset, valuesArchetypes } from "@/lib/data";
 import { ARCHIVED_AREA } from "@/lib/lawStatus";
 import { againstPre2025Law, estimateIdentity, type EstimateIdentity } from "@/lib/identity";
 import { siteUrl } from "@/lib/site";
@@ -20,6 +20,8 @@ export default function Build() {
   const ordered = [...live.filter((r) => !r.illustrative), ...live.filter((r) => r.illustrative), ...archived];
   // The calculator's own ten-year conventional score, for rows that are also Explore presets.
   const calculator: Record<string, number> = {};
+  // Each scored row's validation tier, so the calculator total can say which tiers it mixes.
+  const tiers: Record<string, string> = {};
   const identities: Record<string, { published: EstimateIdentity; model: EstimateIdentity | null }> = {};
   const frame = manifest();
   const site = {
@@ -28,7 +30,10 @@ export default function Build() {
   };
   for (const row of ordered) {
     const scored = preset(row.build_id)?.conventional ?? null;
-    if (scored && typeof scored.ten_year_deficit_impact === "number") calculator[row.build_id] = scored.ten_year_deficit_impact;
+    if (scored && typeof scored.ten_year_deficit_impact === "number") {
+      calculator[row.build_id] = scored.ten_year_deficit_impact;
+      tiers[row.build_id] = scored.credibility?.own_row_tier ?? "none";
+    }
     // "Published" only when someone outside this repository published the figure.
     const kind = row.cbo_published === false ? "unpublished" : "published";
     const model = scored ? estimateIdentity(scored, "model") : null;
@@ -55,6 +60,9 @@ export default function Build() {
       <PackageBuilder
         rows={ordered}
         calculator={calculator}
+        tiers={tiers}
+        joint={packageJoint()}
+        budgetWindow={site.budget_window}
         identities={identities}
         packageIdentity={estimateIdentity(site, "package-sum")}
         archetypes={valuesArchetypes()}

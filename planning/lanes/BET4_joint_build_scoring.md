@@ -77,6 +77,34 @@ joint model of corporate, payroll, estate, tariffs or the TCJA composite, and th
 - The fixed sentence "Interactions between these policies are not measured." no longer appears
   for a selection that contains a measured pair.
 
-## Outturn
+## Outturn (2026-11-19)
 
-(appended after the code)
+Laurence chose the one-window calculator total over B7's microsim-only version on the decision
+card, so the lane shipped as designed above.
+
+- **Every prediction landed.** The exported share is `measured_interaction_share` to the last
+  digit, -16.35% of the top-rate item's yield; rate x childless EITC exports as structurally
+  additive and EITC x SALT as no overlap. The three-way microsim interaction equals the sum of the
+  pairwise ones within $0.01B, so applying pairs is exact for the measurable set
+  (`tests/test_package_joint_export.py`). Top rate + SALT-cap repeal: list-price sum +$923.1B,
+  calculator total **+$481.2B**; adding the childless EITC: +$1,085.7B and **+$659.2B**
+  (`web/lib/packageJoint.test.ts`).
+- **No scored number moved.** No Python model file changed; the only new export is
+  `site_data/package-joint.json`, and every preset, view and validation file is untouched.
+- **What shipped.** `export_static.package_joint_payload` writes the channels, channel labels and
+  measurable pairs. `web/lib/packageJoint.ts` computes the calculator total (scored rows only,
+  measured overlap applied, rows left out named with their list prices, tiers counted from each
+  preset's `own_row_tier`) and the selection's interaction sentences. `PackageSummary` shows both
+  under the list-price headline, which is unchanged; on a phone the notes open with the policy
+  list. The CSV now carries the notes and a `calculator_total` row; the PNG's caveat is the
+  selection's sentences. The fixed "Interactions between these policies are not measured" is gone
+  everywhere; the list-price sum's own tag now says it "does not adjust for interactions".
+- **What it is not.** Apart from the one measured pair it is still a sum, of the calculator's own
+  scores instead of published ones. It fixes the window and baseline, not the joint modelling of
+  corporate, payroll, estate, tariff or TCJA items, and the page says so pair by pair. Fitted rows
+  carry a published figure through a calibrated constant, so for those the "one window" is the
+  constant's window; the tier sentence is how a reader sees that.
+- **Not done.** The Streamlit app's `inconsistent_list_price` finding (a bundle beside a sibling of
+  something it contains) is not ported; Build's exclusive-group rules already stop the common
+  cases. Six rows (mortgage deduction and five score-only rows) have no calculator score and are
+  always named as left out.

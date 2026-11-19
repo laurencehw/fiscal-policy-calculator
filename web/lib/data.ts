@@ -2,6 +2,7 @@
 // build time, so the site never waits for the engine to show a preset.
 import fs from "node:fs";
 import path from "node:path";
+import type { PackageJoint } from "./packageJoint";
 import type { ClassroomAssignment, ClassroomIndexRow } from "./classroom";
 import type { HouseStripData } from "./houses";
 import type { SSData } from "./socialSecurity";
@@ -65,6 +66,11 @@ export function buildCatalog(): BuildRow[] {
   return read<BuildRow[]>("build-catalog.json").map((row) =>
     isArchived(row.status) ? { ...row, area: ARCHIVED_AREA } : row,
   );
+}
+
+/** Build's interaction channels and the microsim's measured overlaps (bet 4). */
+export function packageJoint(): PackageJoint {
+  return read<PackageJoint>("package-joint.json");
 }
 
 export function evidence(): Evidence {
