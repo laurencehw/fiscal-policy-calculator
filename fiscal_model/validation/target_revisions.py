@@ -160,6 +160,17 @@ H9_PROVENANCE_ENTERED_DATE = "2026-09-09"
 #: Commit in which the H9 targets were first actually scored.
 H9_PROVENANCE_FIRST_SCORED_COMMIT = "63e76b8d8b978de6c6be1782ea2e54ba4f6bcd0a"
 
+#: Commit that entered ``extend_enhanced_ptc.v3`` — lane
+#: ``planning/lanes/BET3b_deduction_list_prices.md``. The supersession moves a
+#: figure the runner reads, so the two-commit split applies: the ledger row
+#: lands here and the commit that follows writes the figure into
+#: ``scenarios.py`` and ``CBO_SCORE_MAP``.
+BET3B_PTC_ENTERED_COMMIT = "pending (stamped in the following commit)"
+BET3B_PTC_ENTERED_DATE = "2026-11-19"
+
+#: Commit in which ``extend_enhanced_ptc.v3`` was first actually scored.
+BET3B_PTC_FIRST_SCORED_COMMIT = "pending (stamped in the following commit)"
+
 #: Commit of owner decision (4) — ``planning/HIGH_STAKES_ACCURACY.md`` §4 —
 #: which withdraws the two pharma targets H9 searched and recommended
 #: retiring. These are the ledger's **first two retirements**.
@@ -363,6 +374,12 @@ _CBO_60437 = (
 _CBO_60437_URL = (
     "https://www.cbo.gov/system/files/2024-06/60437-Arrington-Smith-Letter.pdf"
 )
+
+_CBO_61734 = (
+    "CBO, letter of 18 September 2025 on the budgetary effects of permanently "
+    "extending the expanded premium tax credit, publication 61734"
+)
+_CBO_61734_URL = "https://www.cbo.gov/system/files/2025-09/61734-Health.pdf"
 
 _JCX_35_25 = (
     "Joint Committee on Taxation, JCX-35-25, estimated budget effects of the "
@@ -1187,6 +1204,7 @@ CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
         entered_commit=WAVE4_PROVENANCE_ENTERED_COMMIT,
         entered_date=WAVE4_PROVENANCE_ENTERED_DATE,
         first_scoring_run_commit=WAVE4_PROVENANCE_FIRST_SCORED_COMMIT,
+        superseded_by="extend_enhanced_ptc.v3",
         reason=(
             "The 2024 CBO/JCT estimate the record names, on the window the "
             "record declares, of the design the module scores: making "
@@ -1205,6 +1223,45 @@ CALIBRATED_TARGETS: tuple[CalibratedTarget, ...] = (
             "debt service. The PTC module's annual is fitted to the "
             "superseded $350B, so this row leaves the fitted tier and its "
             "residual becomes a measurement."
+        ),
+    ),
+    CalibratedTarget(
+        revision_id="extend_enhanced_ptc.v3",
+        policy_id="extend_enhanced_ptc",
+        official_10yr_billions=350.0,
+        source_name="Congressional Budget Office / Joint Committee on Taxation",
+        source_document=_CBO_61734,
+        source_url=_CBO_61734_URL,
+        source_date="2025-09",
+        source_table="Letter text",
+        source_row="increasing the deficit by $350 billion from 2026 to 2035",
+        source_page="letter p. 1",
+        window="FY2026-2035",
+        entered_commit=BET3B_PTC_ENTERED_COMMIT,
+        entered_date=BET3B_PTC_ENTERED_DATE,
+        first_scoring_run_commit=BET3B_PTC_FIRST_SCORED_COMMIT,
+        reason=(
+            "The enhanced credits lapsed at the end of 2025, so the question "
+            "the preset asks is restoring them from 2026, and the runner "
+            "already scores it from 2026: `validate_ptc_policy` builds the "
+            "scorer at `policy.start_year` and `create_extend_enhanced_ptc` "
+            "defaults to 2026. `.v2` therefore compared a FY2026-2035 run "
+            "with a FY2025-2034 figure. CBO/JCT's September 2025 letter is "
+            "the published figure on the window the runner and the app both "
+            "use."
+        ),
+        note=(
+            "The figure equals `.v1`'s, and this does not reverse the Wave 4 "
+            "revision: `.v1` was rejected because its declared window and its "
+            "figure's window disagreed and its source was unnamed, and `.v3` "
+            "declares the figure's own window and names the document. The "
+            "module prices a flat annual grown from the policy's start year, "
+            "so its total is +$366.2B on either window and only the target "
+            "moves. The module's annual was originally tuned toward about "
+            "$350B, so the closer fit is partly that constant's history; the "
+            "row stays in the unfitted-reconstruction tier. Read on "
+            "Laurence's machine on 2026-11-18 because cbo.gov is refused from "
+            "the cloud. No law through P.L. 119-142 restored the credits."
         ),
     ),
     # ------------------------------------------------------------------
