@@ -5,6 +5,29 @@ import type { NextConfig } from "next";
 // time, so the repository root must be in the tracing root.
 const config: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, ".."),
+  // "/" and "/compare" are pre-rendered (site review quick win 11). Their query
+  // strings still work, with or without JavaScript: these rewrites send
+  // "/?vs=<id>" and "/compare?ids=<a,b>" to routes that are built ahead or
+  // cached on first request, while the address bar keeps the original URL.
+  // beforeFiles, because "/" and "/compare" are themselves pages.
+  async rewrites() {
+    return {
+      beforeFiles: [
+        {
+          source: "/",
+          has: [{ type: "query", key: "vs", value: "(?<vs>[a-z0-9-]{1,80})" }],
+          destination: "/home/:vs",
+        },
+        {
+          source: "/compare",
+          has: [{ type: "query", key: "ids", value: "(?<ids>[a-z0-9,-]{1,300})" }],
+          destination: "/compare/:ids",
+        },
+      ],
+      afterFiles: [],
+      fallback: [],
+    };
+  },
   async headers() {
     return [
       {

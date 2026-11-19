@@ -21,6 +21,8 @@ import { citation } from "@/lib/share";
 import { CiteBlock } from "@/components/CiteBlock";
 import { StaleLink } from "@/components/StaleLink";
 import { siteUrl } from "@/lib/site";
+import { pageMeta } from "@/lib/meta";
+import { takeaway } from "@/lib/takeaway";
 
 export const dynamicParams = false;
 
@@ -33,11 +35,30 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const file = preset(id);
   if (!file) return {};
   const c = file.conventional;
-  const against = presets().find((row) => row.id === id)?.status?.pre_2025_law ? " against pre-2025 law" : "";
-  return {
+  const info = presets().find((row) => row.id === id);
+  const lawNow = currentLawFigure(info?.status, (other) => preset(other)?.conventional.ten_year_deficit_impact ?? null);
+  const against = info?.status?.pre_2025_law ? " against pre-2025 law" : "";
+  const meta = pageMeta({
     title: shortLabel(c.policy_name),
     description: `${money(c.ten_year_deficit_impact)} over ${c.budget_window}${against}: ${direction(c.ten_year_deficit_impact)}. ${plainDescription(c.policy_description)}`.slice(0, 199),
-    alternates: { canonical: `/explore/${id}` },
+    path: `/explore/${id}`,
+  });
+  // The share card's text is the page's own opening sentence, so a link preview
+  // says what the page says first.
+  const opener = takeaway({
+    c,
+    table: views(id)?.distribution.groupings.jct_dollar,
+    status: info?.status,
+    currentLaw: lawNow,
+    isPublished: info?.cbo_published !== false,
+  });
+  // This page's own card (./opengraph-image.tsx). Named here because a page's
+  // explicit images would otherwise replace the file-based one.
+  const card = { url: `/explore/${id}/opengraph-image`, width: 1200, height: 630, alt: `${shortLabel(c.policy_name)}: ten-year deficit effect` };
+  return {
+    ...meta,
+    openGraph: { ...meta.openGraph, description: opener, images: [card] },
+    twitter: { ...meta.twitter, description: opener, images: [card.url] },
   };
 }
 
@@ -68,6 +89,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
     headline,
     money,
   );
+  const opener = takeaway({ c, table: v?.distribution.groupings.jct_dollar, status, currentLaw: lawNow, isPublished: info?.cbo_published !== false });
   const published =
     info?.cbo_published && info.cbo_source ? estimateIdentity({ ...c, cbo_source: info.cbo_source }, "published") : null;
   return (
@@ -75,6 +97,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
       <header>
         <span className="eyebrow">{baselineEyebrow(c.budget_window, c.baseline_vintage, status)}</span>
         <h1>{name}</h1>
+        <p className="takeaway">{opener}</p>
         {status ? <LawStatusNote status={status} /> : null}
         <p className="sentence">{plainDescription(c.policy_description)}</p>
         <StaleLink scoresDate={scoresDate} />

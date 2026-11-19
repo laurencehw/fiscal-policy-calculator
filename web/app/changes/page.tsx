@@ -4,12 +4,13 @@ import { CATEGORY_LABEL, CHANGES_DAYS, byDate, changeSentence, recentChanges } f
 import { changes, manifest } from "@/lib/data";
 import { shortLabel } from "@/lib/format";
 import { longDate } from "@/lib/share";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "What changed",
   description: "Scores that moved and new CBO estimates, from the last thirty days of nightly exports.",
-  alternates: { canonical: "/changes" },
-};
+  path: "/changes",
+});
 
 // Re-read hourly so "the last 30 days" is counted from today, not from the build.
 export const revalidate = 3600;

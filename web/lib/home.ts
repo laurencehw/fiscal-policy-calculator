@@ -116,6 +116,13 @@ export function trustStrip(): { count: number; text: string } {
   return { count: n, text: `${n} held-out benchmark cases; accuracy varies by policy type.` };
 }
 
+/**
+ * The tier language the home page used to lead with, now behind "Why these two?"
+ * (site review quick win 7). It says what the swap list is restricted to.
+ */
+export const HOME_TIER_NOTE =
+  "Every proposal you can pick here is checked against published scores the calculator was not tuned to (its out-of-sample tier), either through its own pre-registered case or through cases of the same kind. Neither figure agrees with a published score by construction, so the gap between them is a fair test.";
+
 export type StartingPoint = { question: string; href: string; answer: string };
 
 /** Three questions in place of the section directory, each opening a page already set up to answer it. */

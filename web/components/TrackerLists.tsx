@@ -44,6 +44,7 @@ function reading(row: TrackerRow): string {
 function BillTable({ rows, figure }: { rows: TrackerRow[]; figure: "cbo" | "auto" }) {
   const [limit, setLimit] = useState(PAGE_SIZE);
   if (rows.length === 0) return <p className="note">No bills match.</p>;
+  const figureLabel = figure === "cbo" ? "CBO, 10 years" : "Calculator, 10 years";
   return (
     <>
       <div className="tablescroll">
@@ -52,7 +53,7 @@ function BillTable({ rows, figure }: { rows: TrackerRow[]; figure: "cbo" | "auto
             <tr>
               <th scope="col">Bill</th>
               <th scope="col">Status</th>
-              <th scope="col">{figure === "cbo" ? "CBO, 10 years" : "Calculator, 10 years"}</th>
+              <th scope="col">{figureLabel}</th>
               {figure === "cbo" ? <th scope="col">Calculator</th> : <th scope="col">Mapping confidence</th>}
             </tr>
           </thead>
@@ -64,9 +65,15 @@ function BillTable({ rows, figure }: { rows: TrackerRow[]; figure: "cbo" | "auto
                   <td className="billtitle">
                     {row.url ? <a href={row.url}>{billName(row)}</a> : billName(row)} <span>{row.title}</span>
                   </td>
-                  <td>{STATUS[row.status] ?? row.status}</td>
-                  <td className={value > 0 ? "adds" : value < 0 ? "reduces" : undefined}>{billMoney(value, money)}</td>
-                  {figure === "cbo" ? <td>{reading(row)}</td> : <td>{row.auto_confidence ?? "none"}</td>}
+                  <td data-label="Status">{STATUS[row.status] ?? row.status}</td>
+                  <td data-label={figureLabel} className={value > 0 ? "adds" : value < 0 ? "reduces" : undefined}>
+                    {billMoney(value, money)}
+                  </td>
+                  {figure === "cbo" ? (
+                    <td data-label="Calculator">{reading(row)}</td>
+                  ) : (
+                    <td data-label="Mapping confidence">{row.auto_confidence ?? "none"}</td>
+                  )}
                 </tr>
               );
             })}

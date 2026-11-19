@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LEVEL_LABELS } from "@/lib/classroom";
 import { classroomIndex } from "@/lib/data";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Classroom",
   description: "Problem sets in public finance that check each answer against the model, with hints, saved progress and a printable submission.",
-  alternates: { canonical: "/classroom" },
-};
+  path: "/classroom",
+});
 
 export default function ClassroomPage() {
   const rows = classroomIndex();

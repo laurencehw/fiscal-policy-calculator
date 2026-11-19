@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Ask } from "@/components/Ask";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Ask",
   description: "Ask a question about the federal budget or a tax or spending policy. Answers use this calculator's scores and cite their sources.",
-  alternates: { canonical: "/ask" },
-};
+  path: "/ask",
+});
 
 export default function AskPage() {
   return (

@@ -61,7 +61,7 @@ async function checkPage(browser, route, viewport) {
   });
   page.on("requestfailed", (req) => {
     if (ENGINE_PATH.test(req.url())) return;
-    // A link prefetch to a server-rendered page (/compare reads its ids per request)
+    // A link prefetch to a page rendered on first request (a /compare?ids= list not built ahead)
     // is cancelled when the check closes the page. A reader never sees it.
     if (/[?&]_rsc=/.test(req.url()) && req.failure()?.errorText === "net::ERR_ABORTED") return;
     errors.push(`request failed: ${req.url()} (${req.failure()?.errorText})`);

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Classroom } from "@/components/Classroom";
 import { classroomAssignment, classroomIndex } from "@/lib/data";
+import { pageMeta } from "@/lib/meta";
 
 export const dynamicParams = false;
 
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const a = classroomAssignment(id);
   if (!a) return {};
-  return { title: a.title, description: a.description, alternates: { canonical: `/classroom/${a.id}` } };
+  return pageMeta({ title: a.title, description: a.description, path: `/classroom/${a.id}` });
 }
 
 export default async function AssignmentPage({ params }: { params: Promise<{ id: string }> }) {

@@ -43,6 +43,7 @@ header { display: grid; gap: 8px; }
 h1 { font-family: var(--display); font-weight: 500; font-size: clamp(40px, 7vw, 64px); letter-spacing: -0.02em; line-height: 1; margin: 0; text-wrap: balance; }
 .lede { font-size: 20px; max-width: 60ch; margin: 0; color: var(--ink); }
 .sentence { font-size: 18px; max-width: 62ch; margin: 8px 0 16px; }
+.takeaway { font-size: 20px; max-width: 60ch; margin: 4px 0 0; padding-left: 12px; border-left: 3px solid var(--accent); }
 .lede em { font-style: normal; color: var(--accent); font-weight: 600; }
 h2 { font-family: var(--display); font-weight: 500; font-size: 27px; margin: 0; line-height: 1.15; text-wrap: balance; }
 /* Labels are small capitals in the label face, not spaced uppercase. */
@@ -232,6 +233,17 @@ pre.codeblock code { font-size: 13px; white-space: pre; }
 .tablescroll { overflow-x: auto; margin-top: 12px; }
 table.bills td.billtitle { white-space: normal; min-width: 18ch; max-width: 60ch; }
 table.bills td.billtitle span { color: var(--muted); }
+/* On a phone each bill is a card: title first, then one labelled line per figure. */
+@media (max-width: 640px) {
+  table.bills thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  table.bills, table.bills tbody, table.bills tr, table.bills td { display: block; width: 100%; box-sizing: border-box; }
+  table.bills tr { border: 1px solid var(--rule); background: var(--surface); padding: 10px 12px; margin-bottom: 10px; }
+  table.bills td { display: flex; justify-content: space-between; gap: 12px; border: 0; padding: 3px 0; text-align: right; white-space: normal; }
+  table.bills td::before { content: attr(data-label); color: var(--muted); font-family: var(--label); font-variant-caps: all-small-caps; letter-spacing: 0.05em; font-weight: 600; text-align: left; }
+  table.bills td:empty { display: none; }
+  table.bills td.billtitle { display: block; min-width: 0; max-width: none; text-align: left; padding-bottom: 6px; font-size: 15px; }
+  table.bills td.billtitle span { display: block; }
+}
 section + section { margin-top: 40px; }
 details > summary { cursor: pointer; margin-top: 16px; font-family: var(--label); color: var(--muted); }
 
@@ -556,3 +568,14 @@ details.numbers table { margin-top: 8px; }
 .currentlawanswer .sentence { margin: 0; }
 .currentlawanswer .note { margin: 0; color: var(--muted); font-size: 14px; }
 .rowname .currentlaw { font-family: var(--label); font-size: 13px; color: var(--muted); }
+
+/* Home hero (site review quick win 7): the question, then one button. */
+.homehero { align-items: center; margin-top: 8px; }
+.homehero a.button { display: inline-flex; align-items: center; min-height: 44px; padding: 8px 20px; background: var(--accent); color: var(--paper); text-decoration: none; font-weight: 600; font-size: 17px; border-radius: 2px; }
+.homehero a.button:hover { filter: brightness(1.1); }
+.homehero a.button:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.hometip { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 0; }
+details.whytip { display: inline; }
+details.whytip > summary { display: inline; margin: 0; font-size: 14px; text-decoration: underline dotted; text-underline-offset: 3px; }
+details.whytip[open] > p { margin: 6px 0 0; max-width: 62ch; font-size: 14px; color: var(--muted); }
+@media (max-width: 720px) { main details.whytip > summary { display: inline-flex; } }

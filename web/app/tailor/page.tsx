@@ -7,11 +7,13 @@ import { TAILOR_SHAPES } from "@/lib/adjust";
 import { estimateIdentity } from "@/lib/identity";
 import { shortLabel } from "@/lib/format";
 import type { PresetMatch } from "@/components/Tailor";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Tailor",
   description: "Score your own income or corporate tax rate change over ten years.",
-};
+  path: "/tailor",
+});
 
 export default function TailorPage() {
   const scoresDate = manifest().scores_date ?? "";

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { SocialSecurityMenu } from "@/components/SocialSecurity";
 import { socialSecurity } from "@/lib/data";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Social Security",
   description: "Pick reform options from SSA's actuaries and see how far they go toward keeping Social Security solvent for 75 years.",
-};
+  path: "/social-security",
+});
 
 const CRFB_REFORMER_URL = "https://www.crfb.org/socialsecurityreformer/";
 const OCACT_INDEX_URL = "https://www.ssa.gov/oact/solvency/provisions/index.html";

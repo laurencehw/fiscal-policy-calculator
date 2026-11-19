@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { contactParagraphs } from "@/lib/legal";
 import { CONTACT_EMAIL } from "@/lib/site";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Contact",
   description: "How to write to the person who maintains the Fiscal Policy Calculator.",
-  alternates: { canonical: "/contact" },
-};
+  path: "/contact",
+});
 
 export default function Contact() {
   return (

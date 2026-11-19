@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { StateExplorer } from "@/components/StateExplorer";
 import { statesData } from "@/lib/data";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "States",
   description: "Federal and state income tax together for the ten largest states, and what lifting the SALT cap would mean in each.",
-  alternates: { canonical: "/states" },
-};
+  path: "/states",
+});
 
 export default function StatesPage() {
   const data = statesData();
