@@ -96,6 +96,11 @@ EXPECTED_PRESET_IDS = (
     # salt-cap-40k-permanent).
     "mortgage-deduction-eliminate",
     "salt-deduction-eliminate",
+    # Bet 3b: P.L. 119-21's temporary deductions kept past 2028.
+    "tips-deduction-permanent",
+    "overtime-deduction-permanent",
+    "senior-deduction-permanent",
+    "car-loan-interest-deduction-permanent",
 )
 
 # Progressivity the app declines to assert. Listed explicitly so shrinking

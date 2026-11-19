@@ -115,7 +115,7 @@ SIGN_CONVENTION = (
 )
 
 # ── Catalog assembly ─────────────────────────────────────────────────────
-# Two ``CBO_SCORE_MAP`` entries are score-only: they carry an official number
+# Six ``CBO_SCORE_MAP`` entries are score-only: they carry an official number
 # but have no ``PRESET_POLICIES`` row, so ``preset_ids`` has no slug for them,
 # and they get a Build-local id here. Build-local ids are still stable — they
 # ship in share URLs — they just are not in the registry because the registry
@@ -134,6 +134,23 @@ _SCORE_ONLY_ENTRIES: dict[str, dict[str, str]] = {
     },
     "📋 Eliminate SALT Deduction (-$1.62T)": {
         "build_id": "salt-deduction-eliminate",
+        "area": "Tax Expenditures",
+    },
+    # Bet 3b: P.L. 119-21's temporary deductions, extended past 2028 (CBO 61466).
+    "📋 Keep No Tax on Tips After 2028 ($52B)": {
+        "build_id": "tips-deduction-permanent",
+        "area": "Tax Expenditures",
+    },
+    "📋 Keep No Tax on Overtime After 2028 ($137B)": {
+        "build_id": "overtime-deduction-permanent",
+        "area": "Tax Expenditures",
+    },
+    "📋 Keep the Senior Deduction After 2028 ($129B)": {
+        "build_id": "senior-deduction-permanent",
+        "area": "Tax Expenditures",
+    },
+    "📋 Keep the Car-Loan Interest Deduction After 2028 ($66B)": {
+        "build_id": "car-loan-interest-deduction-permanent",
         "area": "Tax Expenditures",
     },
 }

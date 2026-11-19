@@ -553,11 +553,11 @@
   },
   {
     "build_id": "aca-ptc-extend-enhanced",
-    "label": "🏥 Restore ACA Enhanced PTCs ($335B)",
-    "score": 335.0,
+    "label": "🏥 Restore ACA Enhanced PTCs ($350B)",
+    "score": 350.0,
     "area": "Healthcare",
-    "source": "CBO/JCT (pub. 60437)",
-    "source_date": "2024-06",
+    "source": "CBO/JCT (pub. 61734)",
+    "source_date": "2025-09",
     "exclusive_groups": [
       "aca-premium-credits"
     ],
@@ -682,6 +682,62 @@
     "exclusive_groups": [
       "salt-cap"
     ],
+    "subsumes": [],
+    "tags": {},
+    "illustrative": false,
+    "cbo_published": true,
+    "status": null
+  },
+  {
+    "build_id": "tips-deduction-permanent",
+    "label": "📋 Keep No Tax on Tips After 2028 ($52B)",
+    "score": 52.0,
+    "area": "Tax expenditures",
+    "source": "CBO/JCT (pub. 61466)",
+    "source_date": "2025-08",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {},
+    "illustrative": false,
+    "cbo_published": true,
+    "status": null
+  },
+  {
+    "build_id": "overtime-deduction-permanent",
+    "label": "📋 Keep No Tax on Overtime After 2028 ($137B)",
+    "score": 137.0,
+    "area": "Tax expenditures",
+    "source": "CBO/JCT (pub. 61466)",
+    "source_date": "2025-08",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {},
+    "illustrative": false,
+    "cbo_published": true,
+    "status": null
+  },
+  {
+    "build_id": "senior-deduction-permanent",
+    "label": "📋 Keep the Senior Deduction After 2028 ($129B)",
+    "score": 129.0,
+    "area": "Tax expenditures",
+    "source": "CBO/JCT (pub. 61466)",
+    "source_date": "2025-08",
+    "exclusive_groups": [],
+    "subsumes": [],
+    "tags": {},
+    "illustrative": false,
+    "cbo_published": true,
+    "status": null
+  },
+  {
+    "build_id": "car-loan-interest-deduction-permanent",
+    "label": "📋 Keep the Car-Loan Interest Deduction After 2028 ($66B)",
+    "score": 66.0,
+    "area": "Tax expenditures",
+    "source": "CBO/JCT (pub. 61466)",
+    "source_date": "2025-08",
+    "exclusive_groups": [],
     "subsumes": [],
     "tags": {},
     "illustrative": false,

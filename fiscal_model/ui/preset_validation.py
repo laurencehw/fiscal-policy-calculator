@@ -65,7 +65,7 @@ PRESET_ID_TO_SCORECARD_ID: dict[str, str] = {
     "amt-extend-tcja-relief": "extend_tcja_amt",  # reconstruction, 66.8%
     "amt-repeal-individual": "repeal_individual_amt",  # fitted, 0.1%
     "amt-repeal-corporate": "repeal_corporate_amt",  # fitted, 0.0%
-    "aca-ptc-extend-enhanced": "extend_enhanced_ptc",  # reconstruction, 9.3%
+    "aca-ptc-extend-enhanced": "extend_enhanced_ptc",  # reconstruction, 4.6%
     "aca-ptc-repeal": "repeal_ptc",  # reconstruction, 29.6%
     "cap-employer-health-exclusion": "cap_employer_health",  # fitted, 0.1%
     "salt-cap-repeal": "repeal_salt_cap",  # reconstruction, 1.1%

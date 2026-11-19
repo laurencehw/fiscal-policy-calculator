@@ -840,44 +840,38 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         policy_id="extend_enhanced_ptc",
         provenance=LINE_ITEM,
         document=(
-            "CBO letter to Chairman Jodey Arrington and Chairman Jason Smith "
-            "on permanently extending the expanded premium tax credits, "
-            "publication 60437, as quoted verbatim by the House Budget "
-            "Committee"
+            "CBO letter of 18 September 2025 on the budgetary effects of "
+            "permanently extending the expanded premium tax credit, "
+            "publication 61734"
         ),
         publisher="Congressional Budget Office / Joint Committee on Taxation",
-        url="https://www.cbo.gov/publication/60437",
-        date="2024-06",
-        table="CBO/JCT estimate quoted in the requesting committee's release",
-        row=(
-            "CBO and JCT estimate that making the policy permanent would "
-            "increase the budget deficit by $335 billion over the 2025-2034 "
-            "period"
-        ),
-        page="letter p. 1 (quoted verbatim)",
-        window="FY2025-2034",
-        published_10yr_billions=335.0,
+        url="https://www.cbo.gov/system/files/2025-09/61734-Health.pdf",
+        date="2025-09",
+        table="Letter text",
+        row="increasing the deficit by $350 billion from 2026 to 2035",
+        page="letter p. 1",
+        window="FY2026-2035",
+        published_10yr_billions=350.0,
         note=(
-            "The record said 'CBO 2024', and CBO's 2024 figure is $335B over "
-            "FY2025-2034 (plus $48B of debt service, giving the $383B headline "
-            "some outlets carried); the letter decomposes it as a $415B "
-            "increase in the cost of the credit — $250B of outlays and $164B "
-            "of forgone revenue — net of $80B of offsetting effects. The "
-            "repository's old $350B is CBO/JCT's *September 2025* re-estimate "
-            "(publication 61734) on the FY2026-2035 window, per CRS R48290: "
-            "'the permanent extension would add approximately $350 billion to "
-            "the budget deficit for that time period'. So the number and its "
-            "stated vintage disagreed by one budget window, and the record's "
-            "declared window (FY2025-2034) picked the fix: the Wave 4 "
-            "provenance lane adopted the 2024 figure through the ledger "
-            "(`extend_enhanced_ptc.v1` -> `.v2`). The PTC module's annual is "
-            "fitted to the superseded $350B and was not retuned. The letter's "
-            "addressees were also wrong here — Arrington and Smith, not "
-            "Sen. Crapo — and are corrected."
+            "Read on Laurence's machine on 2026-11-18 (cbo.gov is refused from "
+            "the cloud); the letter also puts 3.8M more people insured in "
+            "2035. The enhanced credits lapsed at the end of 2025 and no law "
+            "through P.L. 119-142 restored them, so on the app's FY2026-2035 "
+            "window the proposal is a restoration, and the runner scores it "
+            "from 2026. The Wave 4 lane had moved this row to CBO's June 2024 "
+            "figure, $335B over FY2025-2034 (publication 60437), because the "
+            "old record carried $350B under a FY2025-2034 label with no "
+            "document; bet 3b (`extend_enhanced_ptc.v2` -> `.v3`) keeps that "
+            "lane's rule, a figure on its own window from a named document, "
+            "and applies it to the window the runner actually uses. The PTC "
+            "module's annual was not retuned."
         ),
         alternatives=(
-            "CBO/JCT, publication 61734 (18 September 2025): ~$350B over "
-            "FY2026-2035, via CRS R48290.",
+            "CBO/JCT, publication 60437 (June 2024): $335B over FY2025-2034, "
+            "net of $80B of offsetting effects ($415B gross).",
+            "CBO cost estimates of H.R. 1834 ($80.6B, FY2026-2035) and S. 3385 "
+            "($82.9B) price three-year extensions through 2028, not a "
+            "permanent restoration.",
         ),
     ),
     BenchmarkSource(

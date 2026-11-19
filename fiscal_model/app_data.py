@@ -246,15 +246,16 @@ CBO_SCORE_MAP = {
         "notes": "Repeal 15% corporate book minimum tax (CAMT)",
     },
     # Premium Tax Credits
-    "🏥 Restore ACA Enhanced PTCs ($335B)": {
-        # Wave 4 target revision (extend_enhanced_ptc.v2): CBO/JCT, pub. 60437
-        # (June 2024) — "making the policy permanent would increase the budget
-        # deficit by $335 billion over the 2025-2034 period". The superseded
-        # $350B is CBO/JCT's September 2025 re-estimate on a FY2026-2035
-        # window, so the figure and its stated vintage disagreed by one window.
-        "official_score": 335.0,
-        "source": "CBO/JCT (pub. 60437)",
-        "source_date": "2024-06",
+    "🏥 Restore ACA Enhanced PTCs ($350B)": {
+        # Bet 3b target revision (extend_enhanced_ptc.v3): CBO/JCT, pub. 61734
+        # (18 September 2025) — "increasing the deficit by $350 billion from
+        # 2026 to 2035". That is the app's own window, and the enhancements
+        # lapsed after 2025, so it prices the restoration this preset asks
+        # about. `.v2`'s $335B (pub. 60437, June 2024) is FY2025-2034.
+        "official_score": 350.0,
+        "source": "CBO/JCT (pub. 61734)",
+        "source_date": "2025-09",
+        "source_url": "https://www.cbo.gov/system/files/2025-09/61734-Health.pdf",
         "notes": "Restore the ACA enhanced premium subsidies, which lapsed after 2025",
     },
     "🏥 Repeal ACA Premium Credits (-$1.1T)": {
@@ -346,6 +347,59 @@ CBO_SCORE_MAP = {
             "measured on a baseline where the \\$10K cap lapsed after 2025; "
             "under current law (P.L. 119-21) the deduction is capped "
             "throughout, so a repeal is worth far less"
+        ),
+    },
+    # Bet 3b (planning/lanes/BET3b_deduction_list_prices.md): the four
+    # temporary individual deductions P.L. 119-21 enacted for 2025-2028, each
+    # priced by CBO/JCT as a stand-alone extension beyond 2028. Source: CBO
+    # letter to Sen. Merkley, 4 Aug 2025, publication 61466, data file Table 2
+    # ("cost of extension"), conventional, January 2025 baseline,
+    # FY2025-2034. CBO prints no combined figure for the four; they sum to
+    # \\$384B. All four are SCORE-ONLY: the engine has no income base for
+    # tips, overtime or car-loan interest, so Build quotes these as list
+    # prices and nothing scores them. Read on Laurence's machine on
+    # 2026-11-18 because cbo.gov is refused from the cloud
+    # (/mnt/project-files/sources/fpc-sources-2026-11-18.md, section 3).
+    "📋 Keep No Tax on Tips After 2028 ($52B)": {
+        "official_score": 52.0,
+        "source": "CBO/JCT (pub. 61466)",
+        "source_date": "2025-08",
+        "source_url": "https://www.cbo.gov/publication/61466",
+        "notes": (
+            "Extend the deduction for qualified tips (P.L. 119-21 sec. 70201) "
+            "beyond 2028. CBO's figure covers FY2025-2034, so it prices six "
+            "years of extension (2029-2034)"
+        ),
+    },
+    "📋 Keep No Tax on Overtime After 2028 ($137B)": {
+        "official_score": 137.0,
+        "source": "CBO/JCT (pub. 61466)",
+        "source_date": "2025-08",
+        "source_url": "https://www.cbo.gov/publication/61466",
+        "notes": (
+            "Extend the deduction for qualified overtime pay (P.L. 119-21 sec. "
+            "70202) beyond 2028, FY2025-2034. Estimates differ widely: Tax "
+            "Foundation puts a permanent version at \\$372B over 2027-2036"
+        ),
+    },
+    "📋 Keep the Senior Deduction After 2028 ($129B)": {
+        "official_score": 129.0,
+        "source": "CBO/JCT (pub. 61466)",
+        "source_date": "2025-08",
+        "source_url": "https://www.cbo.gov/publication/61466",
+        "notes": (
+            "Extend the extra \\$6,000 deduction for people 65 and over "
+            "(P.L. 119-21 sec. 70103) beyond 2028, FY2025-2034"
+        ),
+    },
+    "📋 Keep the Car-Loan Interest Deduction After 2028 ($66B)": {
+        "official_score": 66.0,
+        "source": "CBO/JCT (pub. 61466)",
+        "source_date": "2025-08",
+        "source_url": "https://www.cbo.gov/publication/61466",
+        "notes": (
+            "Extend the deduction for interest on loans for new US-assembled "
+            "cars (P.L. 119-21 sec. 70203) beyond 2028, FY2025-2034"
         ),
     },
     "📋 Cap Charitable Deduction (-$200B)": {
@@ -858,10 +912,10 @@ PRESET_POLICIES = {
         "is_amt": True,
         "amt_type": "repeal_corporate",
     },
-    "🏥 Restore ACA Enhanced PTCs ($335B)": {
+    "🏥 Restore ACA Enhanced PTCs ($350B)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put making them permanent at \\$335B over FY2025-2034 (pub. 60437), scored before they lapsed.",
+        "description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put restoring them permanently at \\$350B over FY2026-2035 (pub. 61734, September 2025).",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,

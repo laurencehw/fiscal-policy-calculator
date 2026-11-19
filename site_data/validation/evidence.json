@@ -9,21 +9,21 @@
       "within_25pct": 14
     },
     "fitted_held_in_place": {
-      "mean_abs_error": 9.6,
+      "mean_abs_error": 9.4,
       "median_abs_error": 1.0,
       "n": 24,
       "within_15pct": 20,
       "within_25pct": 21
     },
     "reconstruction": {
-      "mean_abs_error": 37.8,
+      "mean_abs_error": 37.7,
       "median_abs_error": 28.4,
       "n": 39,
       "within_15pct": 12,
       "within_25pct": 17
     },
     "reconstruction_retired_held_in_place": {
-      "mean_abs_error": 55.4,
+      "mean_abs_error": 55.2,
       "median_abs_error": 29.1,
       "n": 41,
       "within_15pct": 12,

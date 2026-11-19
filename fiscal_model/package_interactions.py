@@ -148,6 +148,13 @@ INTERACTION_CHANNELS: dict[str, frozenset[str]] = {
     "salt-cap-40k-permanent": frozenset({SALT_ITEMIZATION}),
     "salt-deduction-eliminate": frozenset({SALT_ITEMIZATION}),
     "charitable-deduction-cap": frozenset({SALT_ITEMIZATION}),
+    # P.L. 119-21's temporary deductions (bet 3b). They reduce the same
+    # taxable income, and CBO prices each alone with no combined figure, so
+    # picking two is interacting and unmeasured. No microsim path.
+    "tips-deduction-permanent": frozenset({"pl119_21_deductions"}),
+    "overtime-deduction-permanent": frozenset({"pl119_21_deductions"}),
+    "senior-deduction-permanent": frozenset({"pl119_21_deductions"}),
+    "car-loan-interest-deduction-permanent": frozenset({"pl119_21_deductions"}),
     "step-up-basis-eliminate": frozenset({"capital_gains", "estate"}),
     # Ordinary rates
     "top-rate-39-6": frozenset({ORDINARY_RATE}),

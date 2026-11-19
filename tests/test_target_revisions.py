@@ -11,6 +11,7 @@ transcription stops disagreeing, and the entry leaves the fitted tier.
 from __future__ import annotations
 
 import dataclasses
+import itertools
 
 import pytest
 
@@ -211,7 +212,7 @@ _LEDGER: dict[str, tuple[float, float | None]] = {
     "biden_full_international": (-700.0, -632.2),
     "biden_gilti_reform": (-280.0, -373.9),
     "eliminate_salt": (-1_200.0, -1_621.0),
-    "extend_enhanced_ptc": (350.0, 335.0),
+    "extend_enhanced_ptc": (335.0, 350.0),
     "fdii_repeal": (-200.0, -158.0),
     "ira_enforcement": (-200.0, -180.4),
     "reciprocal_tariffs": (-1_200.0, None),
@@ -240,7 +241,7 @@ _REVISED_LABELS: dict[str, str] = {
     "biden_full_international": "\U0001f30d Biden International Package (-$632B)",
     "biden_gilti_reform": "\U0001f30d Biden GILTI Reform (-$374B)",
     "eliminate_salt": "\U0001f4cb Eliminate SALT Deduction (-$1.62T)",
-    "extend_enhanced_ptc": "\U0001f3e5 Restore ACA Enhanced PTCs ($335B)",
+    "extend_enhanced_ptc": "\U0001f3e5 Restore ACA Enhanced PTCs ($350B)",
     "extend_tcja_amt": "⚖️ AMT: Extend TCJA Relief ($1.36T)",
     "fdii_repeal": "\U0001f30d Repeal FDII (-$158B)",
     "ira_enforcement": "\U0001f50d IRA Enforcement Funding (-$180B)",
@@ -316,6 +317,15 @@ _STABLE_IDS_FOR_REVISED: dict[str, str] = {
     "trump_china_60": "tariff-china-60pct",
 }
 
+#: Policies revised more than once: (policy, revision ids oldest first).
+SECOND_REVISIONS = {
+    "extend_enhanced_ptc": (
+        "extend_enhanced_ptc.v1",
+        "extend_enhanced_ptc.v2",
+        "extend_enhanced_ptc.v3",
+    ),
+}
+
 
 def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
     """Pin the ledger's contents. A twenty-third revision appearing without a
@@ -327,11 +337,21 @@ def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
     # Owner decision (4) added the first two; see tests/test_target_retirement.
     assert len(REVISED_POLICY_IDS) == len(_LEDGER) == 22
     assert len(RETIRED_POLICY_IDS) == 2
+    # Plus one row per *second* revision of a policy already in the ledger:
+    # bet 3b moved ``extend_enhanced_ptc`` again (.v2 -> .v3), which adds a
+    # live row without adding a policy.
+    assert len(SECOND_REVISIONS) == 1
     assert (
         len(CALIBRATED_TARGETS)
-        == 2 * len(_LEDGER) + len(RETIRED_POLICY_IDS)
-        == 46
+        == 2 * len(_LEDGER) + len(RETIRED_POLICY_IDS) + len(SECOND_REVISIONS)
+        == 47
     )
+    for policy_id, chain in SECOND_REVISIONS.items():
+        rows = [t for t in CALIBRATED_TARGETS if t.policy_id == policy_id]
+        assert [t.revision_id for t in rows] == list(chain), policy_id
+        for older, newer in itertools.pairwise(chain):
+            row = next(t for t in rows if t.revision_id == older)
+            assert row.superseded_by == newer, older
 
     for policy_id, (superseded, live_point) in sorted(_LEDGER.items()):
         live = live_target_for(policy_id)
