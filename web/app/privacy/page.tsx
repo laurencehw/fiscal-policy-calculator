@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { privacyParagraphs } from "@/lib/legal";
 import { CONTACT_EMAIL } from "@/lib/site";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Privacy",
   description: "What the Fiscal Policy Calculator does with a visit, and what Ask sends to Anthropic.",
-  alternates: { canonical: "/privacy" },
-};
+  path: "/privacy",
+});
 
 export default function Privacy() {
   return (

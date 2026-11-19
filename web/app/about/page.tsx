@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { evidence } from "@/lib/data";
 import { AUTHOR_URL, CONTACT_EMAIL, REPO_URL, siteUrl } from "@/lib/site";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "About",
   description: "What the Fiscal Policy Calculator is, who made it, and how to read its numbers.",
-};
+  path: "/about",
+});
 
 const TEXTBOOK_URL = "https://laurence-wilse-samson.gitbook.io/textbooks";
 

@@ -40,7 +40,7 @@ test("a fitted row is never presented without the word fitted", () => {
 });
 
 test("the homepage does not hardcode a dollar figure", () => {
-  for (const file of ["home.ts", "../app/page.tsx"]) {
+  for (const file of ["home.ts", "../app/page.tsx", "../components/HomeView.tsx"]) {
     const source = fs.readFileSync(new URL(file, import.meta.url), "utf8");
     assert.doesNotMatch(source, /\$[0-9]/, file);
     assert.doesNotMatch(source, /\b2700\b/, file);

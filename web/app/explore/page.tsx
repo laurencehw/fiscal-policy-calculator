@@ -5,11 +5,13 @@ import type { ExploreRow } from "@/lib/explore";
 import { shortLabel } from "@/lib/format";
 import { estimateIdentity } from "@/lib/identity";
 import { currentLawFigure } from "@/lib/lawStatus";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Explore",
   description: "Every preset proposal, with its ten-year deficit effect.",
-};
+  path: "/explore",
+});
 
 export default function Explore() {
   const m = manifest();

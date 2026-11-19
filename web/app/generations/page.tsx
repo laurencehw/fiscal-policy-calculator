@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Generations } from "@/components/Generations";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Generations",
   description: "Change capital taxes or Social Security and see the long-run economy and who carries the burden, by age.",
-  alternates: { canonical: "/generations" },
-};
+  path: "/generations",
+});
 
 export default function GenerationsPage() {
   return (

@@ -4,11 +4,13 @@ import { evidence, scorecardEntries, tierOf, type Tier } from "@/lib/data";
 import { money } from "@/lib/format";
 import OutOfSampleScatter from "@/components/OutOfSampleScatter";
 import type { EvidenceSummary, ScorecardEntry } from "@/lib/types";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Methods",
   description: "How the calculator scores a policy, the parameters it uses, and how far its numbers sit from published scores.",
-};
+  path: "/methods",
+});
 
 function share(s: EvidenceSummary, key: "within_15pct" | "within_25pct"): string {
   return `${s[key]} of ${s.n}`;

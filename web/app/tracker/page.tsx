@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { trackerGroups, trackerIndex } from "@/lib/data";
 import { TrackerLists } from "@/components/TrackerLists";
 import type { TrackerRow } from "@/lib/types";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Bill tracker",
   description: "Bills in Congress with a ten-year budget estimate, from CBO or from the calculator's reading of the text.",
-};
+  path: "/tracker",
+});
 
 /** Only the fields the list shows, so the page does not ship every bill's sponsor and latest action. */
 function slim(row: TrackerRow): TrackerRow {

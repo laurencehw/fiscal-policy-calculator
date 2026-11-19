@@ -14,7 +14,7 @@ export function HomeSwap({ first, second, options }: { first: string; second: st
             .filter((option) => option.id !== first)
             .map((option) => (
               <option key={option.id} value={option.id}>
-                {option.name} ({option.basis})
+                {option.name}
               </option>
             ))}
         </select>

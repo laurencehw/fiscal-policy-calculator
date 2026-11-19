@@ -5,11 +5,13 @@ import { ARCHIVED_AREA } from "@/lib/lawStatus";
 import { againstPre2025Law, estimateIdentity, type EstimateIdentity } from "@/lib/identity";
 import { siteUrl } from "@/lib/site";
 import { StaleLink } from "@/components/StaleLink";
+import { pageMeta } from "@/lib/meta";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMeta({
   title: "Build",
   description: "Put policies together and see what the package does to the ten-year deficit.",
-};
+  path: "/build",
+});
 
 export default function Build() {
   const rows = buildCatalog();
