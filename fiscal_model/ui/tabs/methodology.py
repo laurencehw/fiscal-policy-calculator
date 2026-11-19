@@ -250,7 +250,7 @@ def render_methodology_tab(st_module: Any) -> None:
         st_module.markdown(
             "This replicates the scoring of a Biden-style top-rate surtax — "
             "a 2.6 percentage-point increase on taxable income above \\$400,000. "
-            "The official Treasury estimate for a comparable proposal is **\\$252B** "
+            "The official Treasury estimate for a comparable proposal is **\\$246B** "
             "in 10-year deficit reduction."
         )
 
@@ -341,7 +341,7 @@ def render_methodology_tab(st_module: Any) -> None:
             r"\approx \$258\text{B}"
         )
         st_module.markdown(
-            "**Official Treasury estimate: \\$252B** — model is within \\~2%.  \n\n"
+            "**Official Treasury estimate: \\$246B** — model is within \\~5%.  \n\n"
             "Uncertainty range (CBO-style, 10-year): roughly **\\$200B to \\$320B**, "
             "reflecting ETI uncertainty (0.15–0.40) and baseline forecast risk."
         )

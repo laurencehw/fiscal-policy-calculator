@@ -277,7 +277,7 @@ def render_result_tabs(
                 st_module.markdown(
                     "**Biden 400K+ Tax**  \n"
                     "Restore 39.6% top rate  \n"
-                    "*Treasury: raises \\~$252B over 10 years*"
+                    "*Treasury: raises \\~$246B over 10 years*"
                 )
             with col_c:
                 st_module.markdown(

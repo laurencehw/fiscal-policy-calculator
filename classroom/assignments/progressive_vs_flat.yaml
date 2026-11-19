@@ -74,8 +74,8 @@ exercises:
       tolerance: 0.05
     expected_insight: >
       Revenue is concentrated in higher brackets because taxable income is heavily
-      skewed. This is why CBO estimates of top-bracket changes (like the Biden
-      $400K+ proposal at $252B/10yr) are large despite affecting few filers —
+      skewed. This is why official estimates of top-bracket changes (like the Biden
+      $400K+ proposal at $246B/10yr) are large despite affecting few filers —
       average income in the affected group is ~$1.2M.
 
   - id: flat_ug_ex2
