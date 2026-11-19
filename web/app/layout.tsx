@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Libre_Franklin, Newsreader } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { SiteChrome } from "@/components/SiteChrome";
 import { SITE_DESCRIPTION, siteUrl } from "@/lib/site";
 import "./globals.css";
@@ -27,6 +28,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${newsreader.variable} ${franklin.variable}`}>
       <body>
         <SiteChrome>{children}</SiteChrome>
+        {/* The analytics script is served only by Vercel; off Vercel (CI, local) it would 404. */}
+        {process.env.VERCEL ? <Analytics /> : null}
       </body>
     </html>
   );

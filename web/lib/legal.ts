@@ -19,6 +19,7 @@ export function privacyParagraphs(): string[] {
     "Ask is the exception. A question you submit on Ask is sent to Anthropic to answer and is not stored by this site. Anthropic's handling of that request is covered by Anthropic's own terms. Do not send secrets, account numbers, or anyone else's personal information in a question.",
     "The site keeps a daily cost cap and a per-visitor limit so the assistant cannot run without bound. Those counters exist only to keep the site running. They do not build a profile and are not linked to your name, which the site never asks for.",
     "Classroom saves progress in the browser on the computer you are using. Clearing that browser's storage clears it. The site does not receive a class roster.",
+    "The site counts page views with Vercel Web Analytics. It records the page, the referring site, the country, and the browser and device type. It uses no third-party cookies, and it tells visits apart by a hash of the request that is discarded after 24 hours. It is not linked to your name, which the site never asks for.",
     "The host may record an address and a path for a short time, the way any host does, to keep the site up. Those logs are not used to build a marketing list. There is no advertising on the site.",
     `The author is Laurence Wilse-Samson, ${CONTACT_EMAIL}. This page is the whole privacy policy. There is no separate company and no postal address.`,
   ];
