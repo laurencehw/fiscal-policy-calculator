@@ -11,6 +11,7 @@ transcription stops disagreeing, and the entry leaves the fitted tier.
 from __future__ import annotations
 
 import dataclasses
+import itertools
 
 import pytest
 
@@ -348,7 +349,7 @@ def test_the_ledger_holds_exactly_the_revisions_these_passes_made():
     for policy_id, chain in SECOND_REVISIONS.items():
         rows = [t for t in CALIBRATED_TARGETS if t.policy_id == policy_id]
         assert [t.revision_id for t in rows] == list(chain), policy_id
-        for older, newer in zip(chain, chain[1:], strict=False):
+        for older, newer in itertools.pairwise(chain):
             row = next(t for t in rows if t.revision_id == older)
             assert row.superseded_by == newer, older
 

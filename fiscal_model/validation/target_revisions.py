@@ -169,7 +169,7 @@ BET3B_PTC_ENTERED_COMMIT = "3cd6d41792f3a3179bb6cd250b21be47f896e54e"
 BET3B_PTC_ENTERED_DATE = "2026-11-19"
 
 #: Commit in which ``extend_enhanced_ptc.v3`` was first actually scored.
-BET3B_PTC_FIRST_SCORED_COMMIT = "pending (stamped in the following commit)"
+BET3B_PTC_FIRST_SCORED_COMMIT = "c90211b5ff16d88e261d4dbf57c855079efcdd5d"
 
 #: Commit of owner decision (4) — ``planning/HIGH_STAKES_ACCURACY.md`` §4 —
 #: which withdraws the two pharma targets H9 searched and recommended

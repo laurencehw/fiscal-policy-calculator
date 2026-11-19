@@ -109,3 +109,39 @@ This goes through the calibrated-tier ledger, not an edit:
   document did not expect.
 * If the ledger refuses `.v3` (for example a rule against returning to a
   superseded figure), I stop and report rather than work around it.
+
+---
+
+## Outturn (2026-11-19)
+
+Every engine-score prediction landed. Two of the validation predictions were
+incomplete, and both misses are in what I wrote, not in the model.
+
+| Prediction | Result |
+|---|---|
+| No engine score moves | **Held.** Every preset's static and dynamic score is unchanged; the only `site_data/presets` files that changed are the PTC preset (label, description, its own row's caption) and the repeal preset (one limitation sentence it lists). `values.json` is byte-identical. |
+| `extend_enhanced_ptc` 9.31% → 4.62% | **4.62%** (+$366.19B against $350.0B), still `calibrated_to_target=False` |
+| Reconstruction tier falls about 0.12pp | **39.68% → 39.56%** (39 rows), held-in-place **57.1% → 57.0%** (41 rows), within-15 and within-25 unchanged |
+| Fitted tier, Tier 1 and leave-one-out do not move | Fitted 14 @ 1.4%, Tier 1 44 @ 12.2% and `run_loo.py --donor-matrix` are unchanged. **But the fitted tier's held-in-place reading moved, 25 @ 12.8% → 12.6%**, which I did not predict: `extend_enhanced_ptc` was declared fitted before Wave 4 moved its target, so it is one of the rows that reading folds back. |
+| `cold_holdout.py --json` byte-identical | **Wrong as written.** Its Tier 1 block is identical; its reconstruction blocks move by exactly the one row above. The pre-registration's first and second bullets contradicted each other, and the second was right. |
+| Build: four new rows, PTC list price 335 → 350 | **Held.** All four sit under Tax expenditures in the adds-to-deficit section, `cbo_published` true. |
+| Values composer: no starting package changes | **Held** (`site_data/values.json` unchanged). |
+| Ledger accepts `.v3` | **Held.** No rule refuses returning to a superseded figure; the size identity test assumed every revised policy has exactly two rows and now counts second revisions explicitly. |
+
+**One wording correction.** Build's package classifier calls two of the
+deduction extensions "additive only, unmodelled" ("both act on
+pl119_21_deductions; the repository has no joint model for this pair"), not
+"interacting, not measured". The disclosure says the same thing a reader needs:
+the sum is not a joint score.
+
+**Docs moved:** README, CLAUDE.md and docs/VALIDATION.md headline sentences for
+the reconstruction tier (39.7% → 39.6%, 57.1% → 57.0%) and the fitted
+held-in-place reading (12.8% → 12.6%), as `tests/test_current_evidence.py`
+named them.
+
+**Not done here:** the Build list prices for score-only rows carry no window tag
+or note on the web page (the export does not carry `notes` for score-only rows),
+so the FY2025-2034 window shows only in the Python catalog. CBO's four figures
+are each a stand-alone extension and CBO prints no total. A scored version of
+any of them needs an income base for tips, overtime or car-loan interest, which
+is its own lane.

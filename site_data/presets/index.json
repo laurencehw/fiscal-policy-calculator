@@ -335,11 +335,11 @@
     },
     {
       "id": "aca-ptc-extend-enhanced",
-      "name": "🏥 Restore ACA Enhanced PTCs ($335B)",
-      "description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put making them permanent at \\$335B over FY2025-2034 (pub. 60437), scored before they lapsed.",
-      "cbo_score": 335.0,
-      "cbo_source": "CBO/JCT (pub. 60437)",
-      "cbo_date": "2024-06",
+      "name": "🏥 Restore ACA Enhanced PTCs ($350B)",
+      "description": "Bring back the enhanced premium tax credits from ARPA and the IRA, which lapsed at the end of 2025. CBO and JCT put restoring them permanently at \\$350B over FY2026-2035 (pub. 61734, September 2025).",
+      "cbo_score": 350.0,
+      "cbo_source": "CBO/JCT (pub. 61734)",
+      "cbo_date": "2025-09",
       "cbo_published": true,
       "status": {
         "status": "proposed",
