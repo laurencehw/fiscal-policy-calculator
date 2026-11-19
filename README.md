@@ -664,6 +664,10 @@ Please open an issue first to discuss significant changes.
 
 ---
 
+## Citing
+
+Cite a single figure with the "Cite as" line on its page, and a set of figures with its frozen snapshot id (see [fiscal.lwilsesamson.com/data](https://fiscal.lwilsesamson.com/data)). For the calculator as a whole, GitHub's "Cite this repository" reads [`CITATION.cff`](CITATION.cff). [`docs/DATA_RELEASES.md`](docs/DATA_RELEASES.md) explains how a release is cut and archived on Zenodo with a DOI.
+
 ## License
 
 [MIT](LICENSE)

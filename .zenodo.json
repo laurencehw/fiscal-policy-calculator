@@ -1,0 +1,26 @@
+{
+  "title": "Fiscal Policy Calculator",
+  "upload_type": "software",
+  "description": "<p>Ten-year budget estimates for U.S. tax and spending proposals, each shown beside the published score (CBO, JCT, Treasury and others) it is checked against, with out-of-sample error reported by policy class.</p><p>Each release archives the Python scoring engine, the static export the website at https://fiscal.lwilsesamson.com reads, and the frozen snapshots of every set of scored figures the site has published (site_data/snapshots/). The release notes name the newest snapshot and its sha256.</p>",
+  "creators": [
+    {
+      "name": "Wilse-Samson, Laurence"
+    }
+  ],
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "fiscal policy",
+    "budget scoring",
+    "tax policy",
+    "public finance",
+    "microsimulation",
+    "CBO"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://fiscal.lwilsesamson.com",
+      "relation": "isDocumentedBy"
+    }
+  ]
+}
