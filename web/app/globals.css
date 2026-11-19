@@ -400,11 +400,26 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 .bar.adds { background: var(--adds); }
 .bar.reduces { background: var(--reduces); }
 .bar.published { background: var(--muted); opacity: 0.55; }
+/* On a phone the name takes the full width and the two figures sit under it, so long
+   names, law-status chips and the current-law line never run into the figure columns. */
 @media (max-width: 560px) {
-  .explorelist li { grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 4px 10px; }
-  .figcell .fig { font-size: 13px; }
+  .explorelist li { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 16px; padding: 8px 0 10px; }
+  .explorelist li > .rowname { grid-column: 1 / -1; }
+  .explorelist li > .rowname + .figcell { padding-left: 26px; }
+  .explorelist .explorehead { padding: 0 0 2px; }
+  .explorelist .explorehead > span:first-child { display: none; }
+  .explorelist .explorehead > span:first-child + .figlabel { padding-left: 26px; }
+  .figcell .fig { font-size: 14px; }
   .explorelist li > .rowname a { font-size: 16px; }
+  .explorelist .rowtext { line-height: 1.4; }
+  .explorelist .rowtext .lawchip { margin: 3px 0; }
+  .explorelist .rowtext .currentlaw { display: block; }
+  /* A section that carries a long note (the archived group) scrolls away instead of
+     pinning several lines over the rows. */
+  .explorelist .exploresection:has(.note) { position: static; }
 }
+/* The archived group's note is a sentence, not a heading: it does not take the small caps. */
+.explorelist .exploresection .note { font-family: var(--body); font-variant-caps: normal; letter-spacing: normal; font-size: 14px; line-height: 1.45; margin: 4px 0 2px; }
 /* Bill tracker: paging under each table. */
 .more { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 10px; }
 .more button { font: inherit; font-family: var(--label); font-size: 14px; background: none; border: 1px solid var(--rule); padding: 4px 12px; cursor: pointer; color: inherit; }
@@ -448,7 +463,8 @@ table.sheet th.text, table.sheet td.text { text-align: left; }
 @media (max-width: 720px) { .homestats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 20px; } .homestats b { font-size: 24px; } }
 
 /* Explore: pick up to three rows for Compare. */
-.explorelist .rowname { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
+.explorelist .rowname { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: baseline; min-width: 0; }
+.explorelist .rowtext { min-width: 0; overflow-wrap: anywhere; }
 .explorelist .rowname input { flex: none; margin: 0; accent-color: var(--accent); transform: translateY(2px); }
 .comparepick { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; margin: 0; font-family: var(--label); font-size: 15px; }
 .comparepick button { font: inherit; font-size: 14px; background: none; border: 1px solid var(--rule); padding: 2px 10px; cursor: pointer; color: inherit; }
@@ -560,7 +576,8 @@ details.numbers table { margin-top: 8px; }
 .oosscatter .source { font-family: var(--label); font-size: 13px; color: var(--muted); margin: 0; }
 
 /* A preset's legal status: a chip in lists, the chip and its note on a proposal page. */
-.lawchip { display: inline-block; font-family: var(--label); font-size: 13px; letter-spacing: 0.02em; line-height: 1.3; padding: 1px 7px; border: 1px solid var(--rule); color: var(--muted); white-space: nowrap; }
+.lawchip { display: inline-block; font-family: var(--label); font-size: 13px; letter-spacing: 0.02em; line-height: 1.3; padding: 1px 7px; border: 1px solid var(--rule); color: var(--muted); white-space: nowrap; max-width: 100%; box-sizing: border-box; }
+@media (max-width: 560px) { .lawchip { white-space: normal; } }
 .lawchip[data-status="superseded"], .lawchip[data-status="enacted"] { border-color: var(--warn); color: var(--warn); }
 .lawstatus { font-size: 16px; color: var(--muted); max-width: 70ch; margin: 0; }
 .currentlawanswer { border-left: 3px solid var(--rule); padding-left: 14px; margin: 0 0 18px; display: grid; gap: 6px; max-width: 70ch; }

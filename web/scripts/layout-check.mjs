@@ -119,6 +119,17 @@ async function checkPage(browser, route, viewport) {
   if (route === "/explore") {
     const headings = await page.evaluate(() => document.querySelectorAll(".explorelist .exploresection h2").length);
     if (headings === 0) problems.push("Explore's category rows are not headings");
+    // A name, its law-status chip and its current-law line stay inside the name cell,
+    // never drawn over the figure columns (the phone bug of 19 Nov 2026).
+    const spill = await page.evaluate(() =>
+      [...document.querySelectorAll(".explorelist .rowname")].flatMap((cell) => {
+        const edge = cell.getBoundingClientRect().right + 1;
+        return [...cell.querySelectorAll("a, .lawchip, .currentlaw")]
+          .filter((el) => el.getBoundingClientRect().right > edge)
+          .map((el) => (cell.querySelector("a")?.textContent ?? "").trim().slice(0, 30));
+      }),
+    );
+    if (spill.length) problems.push(`Explore rows run into the figure columns: ${[...new Set(spill)].slice(0, 4).join(", ")}`);
   }
   if (layout.untaggedStages) problems.push(`${layout.untaggedStages} headline figures have no estimate tag`);
   if (route === "/explore/corporate-28pct") {
