@@ -236,3 +236,58 @@ so rather than adjusting anything:
 3. The OCACT Social Security figures move.
 4. Any payroll row other than `ss_donut_250k` moves, or any preset other than
    `ss-donut-250k`.
+
+---
+
+## Outturn (2026-11-19)
+
+Every pre-registered figure landed, and none of the four falsification
+conditions in §5 fired.
+
+| prediction | pre-registered | outturn |
+|---|---|---|
+| Battery row (`cbo_feb_2024`, FY2025–2034) | −$1,670.5B, band −$1,590B to −$1,750B | **−$1,670.48B, 17.1% over** |
+| Shipped preset (`cbo_feb_2026`, FY2026–2035) | −$1,794.7B | **−$1,794.68B** (−$2,700.0B before, −33.5%) |
+| Unfitted reconstructions | 39 @ 37.8%, median 28.4%, 12 / 17 | **39 @ 37.8%, median 28.4%, 12 within 15, 17 within 25** |
+| ... retired held in | about 41 @ 55.3% | **41 @ 55.4%**, median 29.1% (the 55.3 was hand arithmetic on rounded inputs) |
+| Fitted | 14 @ 1.4% | 14 @ 1.4%, unchanged |
+| ... held in place | 24 @ 9.6% | **24 @ 9.6%**, median 1.0%, 20 within 15 (composition, §2.4) |
+| Dashboard `Payroll` sub-population | about 17.1% | **17.1%** |
+| Out-of-sample (44 rows), both CI gates | byte-identical | `cold_holdout.py --json` out-of-sample block byte-identical; 12.2%, 39/44 within 25; both gates pass |
+| Leave-one-out | identical except the donut's by-construction column | `run_loo.py --donor-matrix` differs in exactly that one cell (−2,700.0 → −1,670.5); derived −2,664.0 and Payroll 32.3% unchanged |
+| Other payroll rows and presets | unmoved | `ss_eliminate_cap` −3,200.0, `ss_cap_90_pct` −800.0, `expand_niit` −250.0, unchanged; the only preset in `site_data/changes.json` is `ss-donut-250k` |
+| OCACT figures (Social Security page) | byte-identical | `social_security_payload()` equals the committed `site_data/social-security.json`, now a test |
+
+Changes made to describe the result, none of them to the score:
+
+* `ss-donut-250k` carries a new `HEADLINE_ROW_DIVERGENCE` entry
+  (`runner_shape`, 7.4%): the app scores FY2026–2035 on February 2026's cap
+  path and the row scores FY2025–2034 on February 2024's. The window is
+  −$119.5B of the gap and the cap path −$4.7B.
+* The fitted-target caption no longer fires for the donut (it has no fitted
+  annual); `results_summary.ss_donut_mechanism_caption` explains the move from
+  the scored result, with the battery figure pinned and tested.
+* The preset description stops calling the miss "much larger".
+* The pinned headline sentences in README and CLAUDE.md now read 9.6% over 24
+  (held in place), 37.8% over 39 and 55.4% over 41. The CLAUDE.md pattern for
+  the held-in-place sentence lost the words "the six rows", which had been
+  stale (the reading folded back eleven rows, now ten).
+
+What this does not show. A 17.1% miss on one row is one row. The residual has
+signs that cut both ways and are listed in §4 rather than adjusted: the base
+omits self-employment income (understates), the 2023 → 2025 back-test says
+uniform scaling understates the top (understates), and the first year and the
+growth rate both run above CBO's own path (overstate). The path ramps where it
+used to be flat, as both CBO's and OCACT's do, but it ramps faster than
+CBO's.
+
+Owner question left open: `SSA_COVERED_WAGES_ABOVE_BILLIONS`'s $250K point
+(2,177.0, fitted to the superseded target) now feeds only leave-one-out and
+thresholds between its two neighbours. Replacing the whole table with the SSA
+tail would move the Payroll LOO module and two fitted payroll rows, so it is a
+separate decision.
+
+Web checks: `npm run typecheck` and `npm test` (122/122) pass. `npm run layout`
+could not run here, because Next.js refuses to build or start in this
+environment on the pending security advisory (the upgrade already on the
+roadmap); no file under `web/` changed in this lane.
