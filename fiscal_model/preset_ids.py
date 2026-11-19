@@ -125,6 +125,13 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
 SCORE_ONLY_ID_BY_LABEL: dict[str, str] = {
     "📋 Eliminate Mortgage Deduction (-$368B)": "mortgage-deduction-eliminate",
     "📋 Eliminate SALT Deduction (-$1.62T)": "salt-deduction-eliminate",
+    # Bet 3b: P.L. 119-21's temporary deductions kept past 2028 (CBO 61466).
+    "📋 Keep No Tax on Tips After 2028 ($52B)": "tips-deduction-permanent",
+    "📋 Keep No Tax on Overtime After 2028 ($137B)": "overtime-deduction-permanent",
+    "📋 Keep the Senior Deduction After 2028 ($129B)": "senior-deduction-permanent",
+    "📋 Keep the Car-Loan Interest Deduction After 2028 ($66B)": (
+        "car-loan-interest-deduction-permanent"
+    ),
 }
 
 #: Score-map labels that are an *alternative spelling* of an instrument that

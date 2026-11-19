@@ -348,6 +348,59 @@ CBO_SCORE_MAP = {
             "throughout, so a repeal is worth far less"
         ),
     },
+    # Bet 3b (planning/lanes/BET3b_deduction_list_prices.md): the four
+    # temporary individual deductions P.L. 119-21 enacted for 2025-2028, each
+    # priced by CBO/JCT as a stand-alone extension beyond 2028. Source: CBO
+    # letter to Sen. Merkley, 4 Aug 2025, publication 61466, data file Table 2
+    # ("cost of extension"), conventional, January 2025 baseline,
+    # FY2025-2034. CBO prints no combined figure for the four; they sum to
+    # \\$384B. All four are SCORE-ONLY: the engine has no income base for
+    # tips, overtime or car-loan interest, so Build quotes these as list
+    # prices and nothing scores them. Read on Laurence's machine on
+    # 2026-11-18 because cbo.gov is refused from the cloud
+    # (/mnt/project-files/sources/fpc-sources-2026-11-18.md, section 3).
+    "📋 Keep No Tax on Tips After 2028 ($52B)": {
+        "official_score": 52.0,
+        "source": "CBO/JCT (pub. 61466)",
+        "source_date": "2025-08",
+        "source_url": "https://www.cbo.gov/publication/61466",
+        "notes": (
+            "Extend the deduction for qualified tips (P.L. 119-21 sec. 70201) "
+            "beyond 2028. CBO's figure covers FY2025-2034, so it prices six "
+            "years of extension (2029-2034)"
+        ),
+    },
+    "📋 Keep No Tax on Overtime After 2028 ($137B)": {
+        "official_score": 137.0,
+        "source": "CBO/JCT (pub. 61466)",
+        "source_date": "2025-08",
+        "source_url": "https://www.cbo.gov/publication/61466",
+        "notes": (
+            "Extend the deduction for qualified overtime pay (P.L. 119-21 sec. "
+            "70202) beyond 2028, FY2025-2034. Estimates differ widely: Tax "
+            "Foundation puts a permanent version at \\$372B over 2027-2036"
+        ),
+    },
+    "📋 Keep the Senior Deduction After 2028 ($129B)": {
+        "official_score": 129.0,
+        "source": "CBO/JCT (pub. 61466)",
+        "source_date": "2025-08",
+        "source_url": "https://www.cbo.gov/publication/61466",
+        "notes": (
+            "Extend the extra \\$6,000 deduction for people 65 and over "
+            "(P.L. 119-21 sec. 70103) beyond 2028, FY2025-2034"
+        ),
+    },
+    "📋 Keep the Car-Loan Interest Deduction After 2028 ($66B)": {
+        "official_score": 66.0,
+        "source": "CBO/JCT (pub. 61466)",
+        "source_date": "2025-08",
+        "source_url": "https://www.cbo.gov/publication/61466",
+        "notes": (
+            "Extend the deduction for interest on loans for new US-assembled "
+            "cars (P.L. 119-21 sec. 70203) beyond 2028, FY2025-2034"
+        ),
+    },
     "📋 Cap Charitable Deduction (-$200B)": {
         "official_score": -200.0,
         "source": "Treasury",
