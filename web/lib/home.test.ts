@@ -54,6 +54,7 @@ test("contact and privacy are real pages, with no street address", () => {
   assert.match(contactText(), /lw3387@nyu\.edu/);
   assert.match(privacyText(), /Anthropic/);
   assert.match(privacyText(), /not stored/);
+  assert.match(privacyText(), /Vercel Web Analytics/);
   assert.doesNotMatch(`${contactText()} ${privacyText()}`, /streetAddress|PostalAddress|\d{5}(?:-\d{4})?/);
 });
 
