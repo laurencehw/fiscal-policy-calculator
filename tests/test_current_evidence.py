@@ -372,7 +372,7 @@ _CALIBRATED_SENTENCES: tuple[tuple[str, str, str], ...] = (
     ),
     (
         "CLAUDE.md",
-        r"`cap_charitable`, or \*\*(?P<mean>[\d.]+)% over (?P<n>\d+)\*\* with the six rows",
+        r"`cap_charitable`, or \*\*(?P<mean>[\d.]+)% over (?P<n>\d+)\*\* with the rows",
         "fitted_held_in_place",
     ),
     (

@@ -240,7 +240,7 @@
     {
       "id": "ss-donut-250k",
       "name": "💰 SS Donut Hole $250K (-$1.43T)",
-      "description": "Apply the Social Security payroll tax to wages above \\$250K (a donut hole). Published estimate: \\$1,427B over FY2025-2034 (CBO, Options for Reducing the Deficit: 2025 to 2034, Option 62 alternative 2). This calculator's estimate is much larger because of how it sets the taxed wage band, a known miss.",
+      "description": "Apply the Social Security payroll tax to wages above \\$250K (a donut hole). Published estimate: \\$1,427B over FY2025-2034 (CBO, Options for Reducing the Deficit: 2025 to 2034, Option 62 alternative 2). This calculator prices it from Social Security wage statistics against each year's taxable maximum; on CBO's own window and baseline it comes out about 17% higher.",
       "cbo_score": -1426.8,
       "cbo_source": "CBO, Options 2025-2034, Option 62 alternative 2",
       "cbo_date": "2024-12",

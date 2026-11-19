@@ -205,7 +205,6 @@ def test_uses_covered_earnings_base_is_false_for_every_existing_policy():
     """The engine branch is a no-op for the calibrated payroll machinery."""
     for policy in (
         create_ss_cap_90_percent(),
-        create_ss_donut_hole(),
         create_ss_eliminate_cap(),
         create_expand_niit(),
         PayrollTaxPolicy(
@@ -216,14 +215,19 @@ def test_uses_covered_earnings_base_is_false_for_every_existing_policy():
         ),
     ):
         assert policy.uses_covered_earnings_base() is False
+    # Lane B3 put the donut on the year-indexed branch on purpose.
+    assert create_ss_donut_hole().uses_covered_earnings_base() is True
 
 
 def test_fitted_payroll_benchmarks_are_untouched():
-    """The four calibrated payroll rows still land on their targets exactly."""
+    """The three fitted payroll rows still land on their targets exactly.
+
+    The donut left this list in lane B3; it is priced from SSA's wage
+    distribution and pinned in tests/test_ss_donut_mechanism.py.
+    """
     scorer = build_scorer_for_vintage(BaselineVintage.CBO_FEB_2024)
     for policy, expected in (
         (create_ss_cap_90_percent(), -800.0),
-        (create_ss_donut_hole(), -2700.0),
         (create_ss_eliminate_cap(), -3200.0),
         (create_expand_niit(), -250.0),
     ):
