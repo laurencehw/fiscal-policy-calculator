@@ -118,16 +118,18 @@ export function ExploreList({
                   disabled={!picked.includes(row.id) && picked.length >= MAX_COMPARE}
                   onChange={() => setPicked((ids) => toggleId(ids, row.id))}
                 />
-                <Link href={`/explore/${row.id}`}>{row.name}</Link>
-                {chipWorthy(row.status) ? (
-                  <>
-                    {" "}
-                    <LawChip status={row.status} />
-                    {currentLawLine(row.status, row.currentLaw ?? null) ? (
-                      <span className="currentlaw"> {currentLawLine(row.status, row.currentLaw ?? null)}</span>
-                    ) : null}
-                  </>
-                ) : null}
+                <span className="rowtext">
+                  <Link href={`/explore/${row.id}`}>{row.name}</Link>
+                  {chipWorthy(row.status) ? (
+                    <>
+                      {" "}
+                      <LawChip status={row.status} />
+                      {currentLawLine(row.status, row.currentLaw ?? null) ? (
+                        <span className="currentlaw"> {currentLawLine(row.status, row.currentLaw ?? null)}</span>
+                      ) : null}
+                    </>
+                  ) : null}
+                </span>
               </span>
               <span className="figcell">
                 {row.conventional === null ? null : (
