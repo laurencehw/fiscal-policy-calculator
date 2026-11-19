@@ -99,11 +99,14 @@ def test_estimate_static_revenue_effect_prefers_calibrated_value():
 
 
 def test_estimate_behavioral_offset_sign_and_avoidance_branches():
+    # Lane B3 moved a *pure* donut onto the income-and-payroll offset rule
+    # (tests/test_ss_donut_mechanism.py); eliminating the cap takes this
+    # high-avoidance branch the same way the donut used to.
     high_avoidance = PayrollTaxPolicy(
-        name="Donut",
-        description="Donut",
+        name="Uncapped",
+        description="Uncapped",
         policy_type=PolicyType.PAYROLL_TAX,
-        ss_donut_hole_start=250_000,
+        ss_eliminate_cap=True,
         labor_supply_elasticity=0.1,
         tax_avoidance_elasticity=0.15,
     )
@@ -128,7 +131,9 @@ def test_estimate_behavioral_offset_sign_and_avoidance_branches():
 
 def test_factory_helpers_use_window_average_annuals():
     assert create_ss_cap_90_percent().annual_revenue_change_billions == pytest.approx(80.0)
-    assert create_ss_donut_hole().annual_revenue_change_billions == pytest.approx(270.0)
+    # Lane B3: the donut carries no annual; it is priced from SSA's wage
+    # distribution year by year (tests/test_ss_donut_mechanism.py).
+    assert create_ss_donut_hole().annual_revenue_change_billions is None
     assert create_ss_eliminate_cap().annual_revenue_change_billions == pytest.approx(320.0)
     assert create_expand_niit().annual_revenue_change_billions == pytest.approx(25.0)
 
@@ -150,7 +155,9 @@ def test_factory_helpers_use_window_average_annuals():
 def test_reference_payroll_policies_match_official_10yr_totals():
     scorer = FiscalPolicyScorer(use_real_data=False)
     cases = [
-        (create_ss_donut_hole(), -2700.0),
+        # Lane B3: CBO Option 62 alt 2's own window and baseline; the target is
+        # -1,426.8, and this is the mechanism's figure, 17.1% over it.
+        (create_ss_donut_hole(cap_schedule_vintage="cbo_feb_2024"), -1670.4756),
         (create_ss_eliminate_cap(), -3200.0),
         (create_ss_cap_90_percent(), -800.0),
         (create_expand_niit(), -250.0),

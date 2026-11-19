@@ -2,6 +2,8 @@
 Scenario registries for specialized validation suites.
 """
 
+import functools
+
 from ..amt import (
     create_extend_tcja_amt_relief,
     create_repeal_corporate_amt,
@@ -567,7 +569,11 @@ PAYROLL_TAX_VALIDATION_SCENARIOS = {
     },
     "ss_donut_250k": {
         "description": "SS tax on wages above $250K",
-        "policy_factory": create_ss_donut_hole,
+        # Priced on the cap path of the baseline CBO's December 2024 Options
+        # volume was scored on (February 2024), on FY2025-2034.
+        "policy_factory": functools.partial(
+            create_ss_donut_hole, cap_schedule_vintage="cbo_feb_2024"
+        ),
         # H9 target revision (ss_donut_250k.v1 -> .v2). The credited source
         # publishes no dollars: OCACT scores provision E2.5 in percent of
         # taxable payroll only, and the "$2.7 trillion over 10 years" traces
@@ -582,27 +588,38 @@ PAYROLL_TAX_VALIDATION_SCENARIOS = {
         # benefit credit". No constant was retuned.
         "expected_10yr": -1426.8,
         "source": "CBO, Options 2025-2034, Option 62 alternative 2",
+        # Lane B3: nothing in the SSA-distribution path is fitted to a target.
+        "calibrated_to_target": False,
         "notes": (
-            "Donut hole: tax current cap + above $250K. Target revised "
-            "2026-09-09; the module's annual is still fitted to the "
-            "superseded -$2.7T, which is why the row now reads 89%."
+            "Donut hole: tax current cap + above $250K. Priced since lane B3 "
+            "(2026-11-19) from SSA's 2025 wage distribution against each "
+            "year's CBO taxable maximum, net of the module's "
+            "income-and-payroll offset rule; nothing fitted."
         ),
         "limitations": [
-            "Target revised (target_revisions.ss_donut_250k.v2) from an "
-            "untraceable -$2,700B to CBO Option 62 alternative 2's "
-            "-$1,426.8B, 47% below it. The module's covered-wage band is "
-            "still `2_177.0  # 270 / 0.124` -- the superseded target divided "
-            "by ten and by the statutory rate -- so the 89% this row now "
-            "reports is the size of the old target's error, not a new "
-            "modelling defect. Retuning the band to the new figure is "
-            "forbidden: it would convert a finding back into bookkeeping.",
-            "Two wedges between CBO's figure and this module's, both stated "
-            "rather than adjusted. CBO's table note reads 'An offset to "
-            "reflect reduced income and payroll taxes has been applied to the "
-            "estimates in this table' and the payroll module has no "
-            "income-tax offset channel; and CBO's annual path ramps $122.0B "
-            "(2026) to $192.0B (2034) as the taxable maximum grows toward "
-            "$250,000, where `create_ss_donut_hole` stamps a flat annual.",
+            "On the record: from the target revision of 2026-09-11 until "
+            "2026-11-19 this row scored -$2,700.0B, 89.2% from CBO, because "
+            "the module's annual (270.0) was the superseded untraceable "
+            "-$2,700B over ten. That 89.2% was the size of the old target's "
+            "error. Lane B3 replaced the annual with a mechanism "
+            "(planning/lanes/B3_ss_donut_mechanism.md); the row is a "
+            "reconstruction scored for the first time, not a retuning.",
+            "Base: SSA net compensation, 2025, the latest year published. "
+            "Scaled forward uniformly (wage/AWI shape held at 2025); the same "
+            "rule applied 2023 -> 2025 understates SSA's actual wages above "
+            "$250K by 8.0%, because the top grew faster than the average.",
+            "Self-employment earnings above $250K (taxable under SECA) are "
+            "absent from net compensation, which understates the base.",
+            "The first fiscal year takes 0.75 of a year (effective January). "
+            "Wages above $250K arrive late in the calendar year, so this "
+            "overstates FY2025 against CBO's $35.7B.",
+            "Offset: the module's payroll rule (compensation shifting at ETI "
+            "0.25 plus incidence at the 50% employer share, tau = 0.31), "
+            "0.3122 of gross. CBO's table note says an income-and-payroll "
+            "offset was applied; its size is not printed. tau is the "
+            "economy-wide marginal rate, below top earners' own.",
+            "The base grows about 7% a year against CBO's own path "
+            "($122.0B in 2026 to $192.0B in 2034, about 5.8%).",
         ],
     },
     "ss_eliminate_cap": {

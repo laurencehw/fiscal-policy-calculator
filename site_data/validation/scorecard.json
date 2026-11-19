@@ -3,10 +3,10 @@
   "within_5pct": 28,
   "within_10pct": 41,
   "within_15pct": 56,
-  "within_20pct": 61,
+  "within_20pct": 62,
   "direction_match": 99,
-  "poor": 38,
-  "mean_abs_percent_difference": 29.250685003876253,
+  "poor": 37,
+  "mean_abs_percent_difference": 28.52183467545358,
   "median_abs_percent_difference": 12.576813021348482,
   "calibrated_entries": 55,
   "generic_entries": 44,
@@ -14,8 +14,8 @@
   "validation_note": "Scorecard entries are published-score benchmark comparisons. The post-lock holdout protocol revenue-scorecard-post-lock-2026-05-02 was locked on 2026-05-02; holdout labels are future regression checkpoints, not retroactive historical out-of-sample claims.",
   "ratings_breakdown": {
     "Excellent": 28,
-    "Acceptable": 20,
-    "Poor": 38,
+    "Acceptable": 21,
+    "Poor": 37,
     "Good": 13
   },
   "provenance_breakdown": {
@@ -80,11 +80,11 @@
     },
     "Payroll": {
       "n": 4,
-      "mean_abs_percent_difference": 22.308662741799836,
+      "mean_abs_percent_difference": 4.269617113338635,
       "within_15pct": 3,
       "ratings": {
         "Excellent": 3,
-        "Poor": 1
+        "Acceptable": 1
       }
     },
     "AMT": {
@@ -709,22 +709,26 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024-12",
       "benchmark_url": "https://www.cbo.gov/publication/60557",
-      "model_10yr_billions": -2700.0,
-      "difference_billions": -1273.2,
-      "percent_difference": -89.23465096719934,
-      "abs_percent_difference": 89.23465096719934,
-      "rating": "Poor",
+      "model_10yr_billions": -1670.4755878924625,
+      "difference_billions": -243.67558789246254,
+      "percent_difference": -17.07846845335454,
+      "abs_percent_difference": 17.07846845335454,
+      "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [
         "Covered-wage bands are SSA-aligned aggregates, not worker-level SSA earnings records.",
         "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology.",
-        "Target revised (target_revisions.ss_donut_250k.v2) from an untraceable -$2,700B to CBO Option 62 alternative 2's -$1,426.8B, 47% below it. The module's covered-wage band is still `2_177.0  # 270 / 0.124` -- the superseded target divided by ten and by the statutory rate -- so the 89% this row now reports is the size of the old target's error, not a new modelling defect. Retuning the band to the new figure is forbidden: it would convert a finding back into bookkeeping.",
-        "Two wedges between CBO's figure and this module's, both stated rather than adjusted. CBO's table note reads 'An offset to reflect reduced income and payroll taxes has been applied to the estimates in this table' and the payroll module has no income-tax offset channel; and CBO's annual path ramps $122.0B (2026) to $192.0B (2034) as the taxable maximum grows toward $250,000, where `create_ss_donut_hole` stamps a flat annual."
+        "On the record: from the target revision of 2026-09-11 until 2026-11-19 this row scored -$2,700.0B, 89.2% from CBO, because the module's annual (270.0) was the superseded untraceable -$2,700B over ten. That 89.2% was the size of the old target's error. Lane B3 replaced the annual with a mechanism (planning/lanes/B3_ss_donut_mechanism.md); the row is a reconstruction scored for the first time, not a retuning.",
+        "Base: SSA net compensation, 2025, the latest year published. Scaled forward uniformly (wage/AWI shape held at 2025); the same rule applied 2023 -> 2025 understates SSA's actual wages above $250K by 8.0%, because the top grew faster than the average.",
+        "Self-employment earnings above $250K (taxable under SECA) are absent from net compensation, which understates the base.",
+        "The first fiscal year takes 0.75 of a year (effective January). Wages above $250K arrive late in the calendar year, so this overstates FY2025 against CBO's $35.7B.",
+        "Offset: the module's payroll rule (compensation shifting at ETI 0.25 plus incidence at the 50% employer share, tau = 0.31), 0.3122 of gross. CBO's table note says an income-and-payroll offset was applied; its size is not printed. tau is the economy-wide marginal rate, below top earners' own.",
+        "The base grows about 7% a year against CBO's own path ($122.0B in 2026 to $192.0B in 2034, about 5.8%)."
       ],
-      "notes": "Donut hole: tax current cap + above $250K. Target revised 2026-09-09; the module's annual is still fitted to the superseded -$2.7T, which is why the row now reads 89%.",
+      "notes": "Donut hole: tax current cap + above $250K. Priced since lane B3 (2026-11-19) from SSA's 2025 wage distribution against each year's CBO taxable maximum, net of the module's income-and-payroll offset rule; nothing fitted.",
       "provenance": "line_item",
       "calibrated_to_target": false,
-      "declared_calibrated_to_target": true,
+      "declared_calibrated_to_target": false,
       "target_revision_id": "ss_donut_250k.v2",
       "superseded_10yr_billions": -2700.0,
       "target_revision_reason": "The credited source does not publish it. SSA's Office of the Chief Actuary does score this provision -- E2.5, 'Apply 12.4 percent payroll tax rate on earnings above $250,000 starting in 2026... Do not provide benefit credit' -- and its run 418 tables report only percent of taxable payroll (+2.50%) and a depletion date moving 2034 to 2057. Lane HSA_h13 verified that the words 'billion' and 'trillion' do not appear once in the whole six-page provisions category summary. The '$2.7 trillion over 10 years' traces to a Peter G. Peterson Foundation explainer with no report year, no run number and no window. Superseded rather than left, because a published ten-year dollar score of the SAME design exists on this repository's own window -- and it is 47% below. `payroll.py` documents its own arithmetic ('2_177.0  # 270 / 0.124'), so the 0.0% this row reported was the target divided by ten, divided by the statutory rate, times the rate, times ten. No constant was retuned.",
@@ -4124,26 +4128,6 @@
           "The target is no longer this model's own output. The 2026-09-05 provenance pass superseded +$1,920B - provenance model_estimate, 'no official score' by the scenario's own admission - with the PUBLISHED RANGE [+$595.0B, +$673.1B]: PWBM's 'Lower the corporate income tax rate to 15%' (Table 1, 26 August 2024) and Tax Foundation's Table 2 conventional estimate (17 July 2024), the two conventional scores of the same reform on this repository's own FY2025-2034 window, printed side by side in CRFB's 6 September 2024 post. The anchor is Tax Foundation's, because theirs is a standalone analysis of this one reform where PWBM's is a stacked row inside a whole-campaign package. No constant was retuned to the new figure, so the row moved 22.3% -> 121.6% against a published document instead of 22.3% against the model's own answer.",
           "SCOPE, and it is a third of the residual: neither published figure includes bonus depreciation, which this scenario extends. PWBM prints the business provisions separately at -$623B. The module's bonus-depreciation leg is +$294.15B of its +$1,491.8B, so the rate leg alone reads +$1,197.6B - +77.9% against the anchor rather than +121.6%. Not adjusted away: summing two rows of PWBM's table would be constructing a target rather than reading one.",
           "DIRECTION, and it is the rest: Tax Foundation's Options 2.0 is the only document pricing both directions in one edition and one model, and a point of CUT costs 29% more than a point of increase yields ($163.2B against $126.6B). `corporate.py` prices both at the same per-point rate, which is why this row misses further than `biden_corporate_28` does. See `planning/memos/CORPORATE_PER_POINT_YIELD.md` sections 4b and 5b."
-        ],
-        "holdout_status": "calibration_reference"
-      }
-    },
-    {
-      "surface": "revenue_scorecard",
-      "severity": "warn",
-      "policy_id": "ss_donut_250k",
-      "category": "Payroll",
-      "rating": "Poor",
-      "message": "ss_donut_250k has a Poor revenue scorecard rating.",
-      "details": {
-        "reason": "documented_or_generic_poor",
-        "direction_match": true,
-        "abs_percent_difference": 89.23465096719934,
-        "known_limitations": [
-          "Covered-wage bands are SSA-aligned aggregates, not worker-level SSA earnings records.",
-          "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology.",
-          "Target revised (target_revisions.ss_donut_250k.v2) from an untraceable -$2,700B to CBO Option 62 alternative 2's -$1,426.8B, 47% below it. The module's covered-wage band is still `2_177.0  # 270 / 0.124` -- the superseded target divided by ten and by the statutory rate -- so the 89% this row now reports is the size of the old target's error, not a new modelling defect. Retuning the band to the new figure is forbidden: it would convert a finding back into bookkeeping.",
-          "Two wedges between CBO's figure and this module's, both stated rather than adjusted. CBO's table note reads 'An offset to reflect reduced income and payroll taxes has been applied to the estimates in this table' and the payroll module has no income-tax offset channel; and CBO's annual path ramps $122.0B (2026) to $192.0B (2034) as the taxable maximum grows toward $250,000, where `create_ss_donut_hole` stamps a flat annual."
         ],
         "holdout_status": "calibration_reference"
       }

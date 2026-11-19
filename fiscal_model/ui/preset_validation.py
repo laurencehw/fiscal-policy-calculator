@@ -207,6 +207,15 @@ HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
         "cut. The credit-factor lane scaled the rate leg; bonus depreciation "
         "is unmoved.",
     ),
+    "ss-donut-250k": (
+        "runner_shape",
+        "app -1,794.7 vs row -1,670.5 (7.4%), measured 2026-11-19 when lane B3 "
+        "priced the donut from SSA's wage distribution: the row scores CBO "
+        "Option 62's own FY2025-2034 window on February 2024's taxable-maximum "
+        "path and the app scores FY2026-2035 on February 2026's. The window is "
+        "-119.5 of it (a ramping path one year later) and the cap path -4.7. "
+        "See planning/lanes/B3_ss_donut_mechanism.md.",
+    ),
     "salt-cap-repeal": (
         "baseline",
         "app +740.3 vs row +1,155.6 (35.9%): the app scores current law and "

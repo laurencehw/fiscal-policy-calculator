@@ -41,7 +41,7 @@ from fiscal_model.dynamic_view import (
 from fiscal_model.enforcement import IRSEnforcementPolicy
 from fiscal_model.estate import EstateTaxPolicy
 from fiscal_model.international import InternationalTaxPolicy
-from fiscal_model.payroll import PayrollTaxPolicy
+from fiscal_model.payroll import PayrollTaxPolicy, taxable_maximum
 from fiscal_model.pharma import (
     PHARMA_BASELINE,
     DrugPricingPolicy,
@@ -2279,8 +2279,10 @@ def _corporate_benchmark_captions(
 #: exactly today; this is a guard, not a rounding allowance.
 _PAYROLL_TARGET_TOLERANCE_BILLIONS = 0.05
 
-#: The two shipped Social Security presets whose ten-year figure reproduces its
-#: carried target to the cent, keyed by scorecard id.
+#: The shipped Social Security preset whose ten-year figure reproduces its
+#: carried target to the cent, keyed by scorecard id. ``ss_donut_250k`` was the
+#: second until 2026-11-19, when lane B3 replaced its fitted annual with a
+#: mechanism; its caption is now :func:`ss_donut_mechanism_caption`.
 #:
 #: Each entry is matched on the *design* (``ss_eliminate_cap`` /
 #: ``ss_donut_hole_start``) **and** on the fitted annual, so a payroll policy
@@ -2324,21 +2326,6 @@ _PAYROLL_FITTED_TARGETS: dict[str, dict[str, Any]] = {
             r"Tax Foundation scores the same design — the cap lifted, no "
             r"benefit credit — at \$3.2 trillion over 2027-2036 on a "
             r"conventional basis (Durante, 24 June 2026)"
-        ),
-    },
-    "ss_donut_250k": {
-        "eliminate_cap": False,
-        "donut_start": 250_000.0,
-        "fitted_annual": 270.0,
-        "by_construction_10yr": -2_700.0,
-        # Moved 2026-09-09 by lane H9 (target_revisions.ss_donut_250k.v2).
-        "carried_target_10yr": -1_426.8,
-        "held_out_10yr": -2_664.0,
-        "provision": "E2.5",
-        "cross_check": (
-            r"that is now the carried target — CBO, Options for Reducing the "
-            r"Deficit: 2025 to 2034, Option 62 alternative 2, report p. 73, "
-            r"\$1,426.8B over FY2025-2034 for the identical donut"
         ),
     },
 }
@@ -2453,6 +2440,72 @@ def payroll_fitted_target_caption(policy: Any, result: Any) -> str:
     )
 
 
+#: The battery row's ten-year score on its own document's window and baseline
+#: (FY2025-2034, February 2024), pinned so a page render does not re-score the
+#: scorecard. ``tests/test_ss_donut_mechanism.py`` re-scores it through
+#: ``validate_payroll_policy`` and fails if it drifts.
+_DONUT_BATTERY_10YR = -1_670.5
+_DONUT_CBO_10YR = -1_426.8
+_DONUT_SUPERSEDED_10YR = -2_700.0
+
+
+def ss_donut_mechanism_caption(policy: Any, result: Any) -> str:
+    """Decision 6 caption for the Social Security donut (lane B3).
+
+    Until 2026-11-19 the $250,000 donut printed a flat $270B a year, the
+    superseded and untraceable -$2,700B over ten. It is now priced from SSA's
+    2025 wage distribution against each year's taxable maximum, net of the
+    module's income-and-payroll offset, so the shipped preset moved by about a
+    third and says why. Everything but the pinned battery figure is computed
+    from the scored result. Returns ``""`` for any policy not on that path.
+    """
+    if not isinstance(policy, PayrollTaxPolicy) or not policy.uses_donut_path():
+        return ""
+    years = getattr(result, "years", None)
+    if years is None or len(years) == 0:
+        return ""
+    static = np.asarray(result.static_revenue_effect, dtype=float)
+    live = static > 0
+    if not live.any():
+        return ""
+    gross = float(static.sum())
+    offset = float(np.sum(np.abs(result.behavioral_offset)))
+    net = gross - offset
+    scored_years = [int(y) for y, on in zip(years, live, strict=False) if on]
+    first, last = scored_years[0], scored_years[-1]
+    by_year = dict(zip(scored_years, static[live], strict=False))
+    second = scored_years[1] if len(scored_years) > 1 else first
+
+    threshold = float(policy.ss_donut_hole_start)
+    closes = next(
+        (y for y in scored_years if taxable_maximum(y, policy.cap_schedule_vintage) >= threshold),
+        None,
+    )
+    closing = (
+        f" In {closes} CBO's projected taxable maximum passes "
+        rf"\${threshold:,.0f}, the donut closes and the tax reaches wages above the cap."
+        if closes is not None
+        else ""
+    )
+    battery_gap = (abs(_DONUT_BATTERY_10YR) - abs(_DONUT_CBO_10YR)) / abs(_DONUT_CBO_10YR) * 100.0
+    return (
+        rf"Why this moved: until 2026-11-19 this preset printed "
+        rf"{format_money(_DONUT_SUPERSEDED_10YR, escape=True)}, a flat \$270B a year "
+        f"traced to an unpublished figure. It is now priced from the Social "
+        f"Security Administration's 2025 wage statistics: 12.4% of wages above "
+        rf"\${threshold:,.0f} raises \${by_year[second]:,.0f}B in FY{second}, "
+        rf"its first full year, growing to \${by_year[last]:,.0f}B by FY{last} "
+        f"as wages grow.{closing} Of the "
+        rf"\${gross:,.0f}B gross, {offset / gross:.1%} is netted out for lower "
+        f"income and payroll taxes on the wages employers shift or cut (CBO "
+        rf"applies such an offset too), leaving \${net:,.0f}B. CBO scores the "
+        rf"same design at \${abs(_DONUT_CBO_10YR):,.1f}B over FY2025-2034 "
+        f"(Options for Reducing the Deficit, Option 62 alternative 2); on that "
+        rf"window and CBO's February 2024 baseline this mechanism gives "
+        rf"\${abs(_DONUT_BATTERY_10YR):,.1f}B, {battery_gap:.1f}% higher."
+    )
+
+
 def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, Any]) -> None:
     """Tier badge, headline number, interpretation, sensitivity, provenance."""
     policy = result_data["policy"]
@@ -2549,6 +2602,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     payroll_note = payroll_fitted_target_caption(policy, result)
     if payroll_note:
         st_module.caption(payroll_note)
+    donut_note = ss_donut_mechanism_caption(policy, result)
+    if donut_note:
+        st_module.caption(donut_note)
 
     credibility_html = _build_credibility_html(getattr(scored, "credibility", None))
     if credibility_html:

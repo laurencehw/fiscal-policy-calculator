@@ -301,7 +301,8 @@ def test_confidence_is_keyed_to_the_tier_not_to_score_map_membership():
     out_of_sample = _context("top-rate-39-6")
     no_row = _context("across-the-board-rate-cut-5pp")
     # Fitted when H6 wrote this test; H9 moved its target onto CBO Option 62
-    # alternative 2, so the same preset now reads as a reconstruction 89% off.
+    # alternative 2 (a reconstruction 89.2% off), and lane B3 priced it from
+    # SSA's wage distribution, 17.1% off.
     revised_out = _context("ss-donut-250k")
 
     assert "Calibrated" in fitted
@@ -309,7 +310,7 @@ def test_confidence_is_keyed_to_the_tier_not_to_score_map_membership():
     assert "Unfitted reconstruction" in reconstruction
     assert "701.0%" in reconstruction
     assert "Unfitted reconstruction" in revised_out
-    assert "89.2%" in revised_out
+    assert "17.1%" in revised_out
     assert "Out-of-sample prediction" in out_of_sample
     assert "Exploratory" in no_row
 

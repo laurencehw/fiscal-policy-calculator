@@ -96,11 +96,11 @@ def test_by_construction_score_is_the_target(loo_cases):
 
 
 def test_the_caption_says_when_the_target_has_moved_away_from_the_figure():
-    """Two rows, two sentences, because the two rows now differ.
+    """``ss_eliminate_cap`` still reproduces its carried target.
 
-    ``ss_eliminate_cap`` still reproduces its carried target, so its caption
-    keeps H13's original wording. ``ss_donut_250k`` does not, and its caption
-    has to say so rather than assert an agreement the ledger has withdrawn.
+    ``ss_donut_250k`` used to take the "no longer the carried target" branch.
+    Since lane B3 it has no fitted annual, so it gets no fitted-target caption
+    at all; ``ss_donut_mechanism_caption`` explains its number instead.
     """
     cap = payroll_fitted_target_caption(
         create_ss_eliminate_cap(), _result_for(create_ss_eliminate_cap())
@@ -108,14 +108,9 @@ def test_the_caption_says_when_the_target_has_moved_away_from_the_figure():
     assert "is the carried target, reproduced to the cent" in cap
     assert "no longer the carried target" not in cap
 
-    donut = payroll_fitted_target_caption(
-        create_ss_donut_hole(), _result_for(create_ss_donut_hole())
-    )
-    assert "is what the module returns" in donut
-    assert "It is no longer the carried target" in donut
-    assert "-\\$1,426.8B" in donut
-    # -2,700.0 against -1,426.8 is 89.2% high.
-    assert "misses by 89.2%" in donut
+    donut = create_ss_donut_hole()
+    assert payroll_fitted_target_caption(donut, _result_for(donut)) == ""
+    assert "ss_donut_250k" not in _PAYROLL_FITTED_TARGETS
 
 
 # ---------------------------------------------------------------------------
@@ -127,10 +122,9 @@ def test_the_caption_says_when_the_target_has_moved_away_from_the_figure():
     ("factory", "provision", "target"),
     [
         (create_ss_eliminate_cap, "E2.1", -3_200.0),
-        (create_ss_donut_hole, "E2.5", -2_700.0),
     ],
 )
-def test_caption_fires_on_the_two_shipped_presets(factory, provision, target):
+def test_caption_fires_on_the_fitted_shipped_preset(factory, provision, target):
     policy = factory()
     caption = payroll_fitted_target_caption(policy, _result_for(policy))
     assert caption
@@ -150,24 +144,17 @@ def test_eliminate_cap_caption_quotes_its_held_out_figure():
     assert "2058 depletion date" in caption
 
 
-def test_donut_caption_quotes_its_held_out_figure():
-    policy = create_ss_donut_hole()
-    caption = payroll_fitted_target_caption(policy, _result_for(policy))
-    assert "-\\$2,664.0B" in caption
-    assert "1.3% away" in caption
-    # 2026 Trustees basis (OCACT table_run214); 2.50 was the 2025 figure.
-    assert "2.52% of taxable payroll" in caption
-    assert "2057 depletion date" in caption
-    # CBO's own ten-year dollar figure for the same donut, from the volume this
-    # repository already transcribes.
-    assert "1,426.8B" in caption
-
-
 def test_every_dollar_sign_is_escaped():
     """An unescaped ``$`` in a ``st.caption`` renders as a KaTeX math span."""
-    for factory in (create_ss_eliminate_cap, create_ss_donut_hole):
+    from fiscal_model.ui.tabs.results_summary import ss_donut_mechanism_caption
+
+    for factory, caption_fn in (
+        (create_ss_eliminate_cap, payroll_fitted_target_caption),
+        (create_ss_donut_hole, ss_donut_mechanism_caption),
+    ):
         policy = factory()
-        caption = payroll_fitted_target_caption(policy, _result_for(policy))
+        caption = caption_fn(policy, _result_for(policy))
+        assert caption
         for index, char in enumerate(caption):
             if char == "$":
                 assert index and caption[index - 1] == "\\", caption[

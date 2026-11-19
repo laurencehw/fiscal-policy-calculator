@@ -278,6 +278,7 @@ def validate_payroll_policy(
             "ss_cover_90_pct": getattr(policy, "ss_cover_90_pct", False),
             "ss_donut_hole_start": getattr(policy, "ss_donut_hole_start", None),
             "expand_niit": getattr(policy, "expand_niit_to_passthrough", False),
+            "calibrated_to_target": bool(scenario.get("calibrated_to_target", True)),
         },
         notes=scenario.get("notes", ""),
         benchmark_date=scenario.get("benchmark_date"),

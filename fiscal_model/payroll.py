@@ -25,7 +25,7 @@ import itertools
 import math
 from dataclasses import dataclass
 from enum import Enum
-from functools import lru_cache
+from functools import cache, lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -102,7 +102,9 @@ BASELINE_WAGE_DATA = {
     # repository carried until 2026-09-09 ($270B × 10 ≈ $2.7T). That target is
     # SUPERSEDED -- CBO 60557 Option 62 alternative 2 scores the same design at
     # -$1,426.8B -- and the band is deliberately not refitted to it, so the
-    # scorecard reports the 89.2% gap instead of absorbing it.
+    # scorecard reported the 89.2% gap instead of absorbing it. Since lane B3
+    # (2026-11-19) no score reads it: the donut is priced from SSA's wage
+    # distribution (``donut_covered_wages``).
     "wages_250k_plus_billions": 2_177.0,  # 270 / 0.124
 
     # Number of workers
@@ -127,7 +129,7 @@ BASELINE_WAGE_DATA = {
 # scaled to the same covered-payroll concept the Trustees use.
 SSA_COVERED_WAGES_ABOVE_BILLIONS: tuple[tuple[float, float], ...] = (
     (176_100.0, 2_581.0),  # current-law taxable maximum → eliminate-cap base
-    (250_000.0, 2_177.0),  # $250K donut
+    (250_000.0, 2_177.0),  # $250K donut; since lane B3 read only by LOO and by thresholds between the two neighbours
     (305_000.0, 1_936.0),  # ~90% coverage cap (W_cap - W_305k ≈ $645B → $80B)
     (400_000.0, 1_613.0),  # Biden-style donut (interpolated / scaled)
     (500_000.0, 1_350.0),
@@ -287,6 +289,129 @@ def first_fiscal_year_share(effective_month: int) -> float:
     return (10 - effective_month) / 12.0
 
 
+# =============================================================================
+# SSA WAGE DISTRIBUTION — the base a payroll tax above a threshold reaches
+# =============================================================================
+#
+# Lane B3 (planning/lanes/B3_ss_donut_mechanism.md). SSA's own table of wage
+# earners by level of net compensation, read off netcomp.cgi for 2023 and
+# 2025; provenance and checks are in the data file's header. Only the 2025
+# table prices a score; 2023 is kept for the back-test the lane reports.
+
+SSA_NET_COMPENSATION_DATA_FILE = (
+    Path(__file__).resolve().parent
+    / "data_files"
+    / "payroll"
+    / "ssa_net_compensation.csv"
+)
+
+#: The latest year SSA publishes the distribution for ("Data for 2024 is not
+#: available", checked 2026-11-18). Every score reads this year's shape.
+SSA_DISTRIBUTION_ANCHOR_YEAR = 2025
+
+#: Share of the 12.4% OASDI tax statutorily levied on employers (6.2 of 12.4).
+OASDI_EMPLOYER_SHARE = 0.5
+
+
+@cache
+def ssa_net_compensation(year: int) -> tuple[tuple[float, float, float], ...]:
+    """SSA's ``(lower bound $, earners, aggregate net compensation $)`` rows."""
+    with SSA_NET_COMPENSATION_DATA_FILE.open(newline="", encoding="utf-8") as handle:
+        lines = [line for line in handle if not line.startswith("#")]
+    rows = sorted(
+        (float(row["lower"]), float(row["count"]), float(row["amount"]))
+        for row in csv.DictReader(lines)
+        if int(row["year"]) == year
+    )
+    if not rows:
+        raise ValueError(
+            f"{SSA_NET_COMPENSATION_DATA_FILE.name} has no SSA distribution for {year}"
+        )
+    return tuple(rows)
+
+
+def ssa_wages_above(threshold: float, year: int = SSA_DISTRIBUTION_ANCHOR_YEAR) -> float:
+    """Net compensation above ``threshold`` dollars in SSA's ``year`` table, $B.
+
+    ``A(t) - t * N(t)``: the aggregate net compensation of earners at or above
+    ``t`` less ``t`` for each of them. Exact at a table boundary. Between
+    boundaries ``N`` and ``A`` are interpolated log-linearly in ``log t`` (a
+    locally constant Pareto slope, the rule ``covered_wages_above`` uses); in
+    the open top bracket the Pareto index is the bracket's own mean,
+    ``alpha = m / (m - lo)``.
+    """
+    rows = ssa_net_compensation(year)
+    lowers = [r[0] for r in rows]
+    counts_above = list(itertools.accumulate(r[1] for r in reversed(rows)))[::-1]
+    amounts_above = list(itertools.accumulate(r[2] for r in reversed(rows)))[::-1]
+
+    if threshold <= lowers[0]:
+        return (amounts_above[0] - threshold * counts_above[0]) / 1e9
+
+    for i in range(len(lowers) - 1):
+        lo, hi = lowers[i], lowers[i + 1]
+        if lo <= threshold <= hi:
+            if threshold == lo:
+                return (amounts_above[i] - threshold * counts_above[i]) / 1e9
+            w = (math.log(threshold) - math.log(lo)) / (math.log(hi) - math.log(lo))
+            n = math.exp((1 - w) * math.log(counts_above[i]) + w * math.log(counts_above[i + 1]))
+            a = math.exp((1 - w) * math.log(amounts_above[i]) + w * math.log(amounts_above[i + 1]))
+            return (a - threshold * n) / 1e9
+
+    lo, n_top, amount_top = rows[-1]
+    mean = amount_top / n_top
+    alpha = mean / (mean - lo)
+    n = n_top * (lo / threshold) ** alpha
+    return (n * threshold * alpha / (alpha - 1.0) - threshold * n) / 1e9
+
+
+def taxable_maximum(year: int, vintage: str | None = None) -> float:
+    """The OASDI taxable maximum for calendar ``year`` on CBO's schedule.
+
+    ``tp_ss_max_earnings`` from CBO publication 53724 on ``vintage`` (``None``
+    reads ``DEFAULT_BASELINE_VINTAGE``). Beyond the schedule's last year the
+    last published growth rate is continued; before its first year the first.
+    """
+    from . import cbo_tax_parameters as ctp
+
+    vintage = vintage or ctp.DEFAULT_BASELINE_VINTAGE
+    years = ctp.years_available(vintage)
+    if not years:
+        raise ctp.TaxParameterError(f"no tax-parameter schedule for vintage {vintage!r}")
+    first, last = years[0], years[-1]
+
+    def cap(y: int) -> float:
+        return ctp.parameter(vintage, "tp_ss_max_earnings", y)
+
+    if year > last:
+        return cap(last) * (cap(last) / cap(last - 1)) ** (year - last)
+    if year < first:
+        return cap(first) / (cap(first + 1) / cap(first)) ** (first - year)
+    return cap(year)
+
+
+def donut_covered_wages(
+    year: int, threshold: float, vintage: str | None = None
+) -> float:
+    """Wages a payroll tax above ``threshold`` reaches in fiscal ``year``, $B.
+
+    ``E * a * W_2025(T / a)``, where ``W_2025`` is :func:`ssa_wages_above` on
+    SSA's anchor year, ``a = cap(y + 2) / cap(2027)`` is CBO's projected
+    average-wage-index growth since 2025 (the statute indexes the year-``y``
+    maximum to the AWI of ``y - 2``), ``E = G / a`` is the rest of the growth
+    in the module's covered-earnings path ``G``, read as more earners at the
+    same distribution of ``wage / AWI``, and ``T = max(threshold, cap(y))``:
+    once the maximum passes the threshold the donut has closed and the tax
+    reaches wages above the cap. The threshold itself is not indexed.
+    """
+    anchor = SSA_DISTRIBUTION_ANCHOR_YEAR
+    awi_growth = taxable_maximum(year + 2, vintage) / taxable_maximum(anchor + 2, vintage)
+    earnings_growth = covered_earnings(year) / covered_earnings(anchor)
+    other_growth = earnings_growth / awi_growth
+    start = max(float(threshold), taxable_maximum(year, vintage))
+    return other_growth * awi_growth * ssa_wages_above(start / awi_growth, anchor)
+
+
 # CBO official estimates
 CBO_PAYROLL_ESTIMATES = {
     # Raise SS cap to cover 90% of earnings (~$305K in 2024)
@@ -304,7 +429,7 @@ CBO_PAYROLL_ESTIMATES = {
     # the new target "would convert a finding back into bookkeeping". The row
     # reports 89.2% and that 89.2% is the size of the old target's error.
     "donut_250k_10yr": 1_426.8,  # CBO 60557 Option 62 alt 2, FY2025-2034
-    "donut_250k_annual": 270.0,  # superseded $2,700B / 10 -- see above
+    "donut_250k_annual": 270.0,  # superseded $2,700B / 10; unused since lane B3
 
     # Eliminate SS cap entirely. The FIGURE is live (ss_eliminate_cap was not
     # revised); the ATTRIBUTION was wrong the same way. OCACT's E2.1 is also
@@ -379,6 +504,12 @@ class PayrollTaxPolicy(TaxPolicy):
     employer_share: float = 0.0
     #: Calendar month the tax takes effect, used only for the first fiscal year.
     effective_month: int = 1
+    #: Which CBO vintage's taxable-maximum path a donut reads
+    #: (``"cbo_feb_2024"``, ``"cbo_jan_2025"``, ``"cbo_feb_2026"``). ``None``
+    #: takes ``cbo_tax_parameters.DEFAULT_BASELINE_VINTAGE``, as
+    #: ``threshold_schedule_vintage`` does, so a preset reads the cap path of
+    #: the baseline the app scores against.
+    cap_schedule_vintage: str | None = None
 
     # Behavioral parameters
     labor_supply_elasticity: float = 0.1  # Labor supply response
@@ -415,15 +546,41 @@ class PayrollTaxPolicy(TaxPolicy):
         return (base_cap + self.ss_cap_change) * ((1 + growth) ** years_from_2025)
 
     def uses_covered_earnings_base(self) -> bool:
-        """True when this policy is scored off the year-indexed earnings base.
+        """True when this policy is scored off a year-indexed earnings base.
 
         The scoring engine asks this before deciding whether to pass a year and
         whether to apply its own growth rate: the covered-earnings path already
         carries CBO's wage growth, so growing it again would double-count.
+        Two branches have one: a new flat tax on covered earnings, and since
+        lane B3 a pure donut (:meth:`uses_donut_path`).
         """
         return (
             self.new_payroll_tax_rate != 0.0
             and self.annual_revenue_change_billions is None
+        ) or self.uses_donut_path()
+
+    def uses_donut_path(self) -> bool:
+        """True for a donut priced from SSA's wage distribution (lane B3).
+
+        Only a donut with no explicit annual and no other component: a policy
+        that also changes a rate, the cap or the NIIT keeps the old
+        window-average table, because those legs carry no year path and
+        mixing them into a per-year branch would stop the engine growing them.
+        """
+        return (
+            self.ss_donut_hole_start is not None
+            and self.annual_revenue_change_billions is None
+            and self.new_payroll_tax_rate == 0.0
+            and not self.ss_eliminate_cap
+            and not self.ss_cover_90_pct
+            and self.ss_new_cap is None
+            and self.ss_cap_change == 0.0
+            and self.ss_rate_change == 0.0
+            and self.medicare_rate_change == 0.0
+            and self.additional_medicare_rate_change == 0.0
+            and self.additional_medicare_threshold_change == 0.0
+            and not self.expand_niit_to_passthrough
+            and self.niit_rate_change == 0.0
         )
 
     def estimate_static_revenue_effect(
@@ -452,6 +609,9 @@ class PayrollTaxPolicy(TaxPolicy):
         if self.new_payroll_tax_rate != 0.0:
             return self._new_earnings_tax_revenue(year if year is not None else self.start_year)
 
+        if self.uses_donut_path():
+            return self._donut_revenue(year if year is not None else self.start_year)
+
         total_revenue = 0.0
         rate = SOCIAL_SECURITY_PARAMS["rate_combined"]
 
@@ -471,7 +631,8 @@ class PayrollTaxPolicy(TaxPolicy):
             total_revenue += max(0.0, newly_taxed) * rate
 
         elif self.ss_donut_hole_start is not None:
-            # Donut hole: tax covered earnings above the threshold only.
+            # Donut combined with another component: the old window-average
+            # table. A pure donut never reaches here (``uses_donut_path``).
             total_revenue += covered_wages_above(float(self.ss_donut_hole_start)) * rate
 
         # Social Security rate changes
@@ -510,6 +671,32 @@ class PayrollTaxPolicy(TaxPolicy):
         )
         return self.new_payroll_tax_rate * base * share
 
+    def _donut_revenue(self, year: int) -> float:
+        """Gross OASDI receipts from a donut in fiscal ``year`` (lane B3).
+
+        ``12.4% x donut_covered_wages``, scaled in the first fiscal year by the
+        share of it the stated effective month covers, as the new-tax branch
+        is. Gross of the offset, which :meth:`estimate_behavioral_offset`
+        takes off.
+        """
+        base = donut_covered_wages(
+            year, float(self.ss_donut_hole_start), self.cap_schedule_vintage
+        )
+        share = (
+            first_fiscal_year_share(self.effective_month)
+            if year == self.start_year
+            else 1.0
+        )
+        return SOCIAL_SECURITY_PARAMS["rate_combined"] * base * share
+
+    def _offset_rate(self) -> float:
+        """The rate the income-and-payroll offset rule is evaluated at."""
+        if self.new_payroll_tax_rate != 0.0:
+            return abs(self.new_payroll_tax_rate)
+        if self.uses_donut_path():
+            return SOCIAL_SECURITY_PARAMS["rate_combined"]
+        return 0.0
+
     def new_earnings_tax_offset_share(self) -> float:
         """Fraction of a new flat tax's gross receipts lost to the two channels.
 
@@ -540,8 +727,13 @@ class PayrollTaxPolicy(TaxPolicy):
         split tax "would be estimated to result in less additional revenue than
         a payroll tax paid entirely by employees" — and why this term is zero
         for CBO's own alternatives.
+
+        Since lane B3 the same rule prices a pure donut, at the 12.4% OASDI
+        rate and the statutory 50% employer share: CBO's Option 62 table note
+        reads "An offset to reflect reduced income and payroll taxes has been
+        applied to the estimates in this table". Share 0.3122 at ETI 0.25.
         """
-        rate = abs(self.new_payroll_tax_rate)
+        rate = self._offset_rate()
         tau = LABOR_INCOME_MARGINAL_TAX_RATE
         shift = self.taxable_income_elasticity * rate / (1.0 - tau)
         shifting_term = (rate + tau) * shift / rate if rate else 0.0
@@ -573,7 +765,7 @@ class PayrollTaxPolicy(TaxPolicy):
         Returns:
             Behavioral offset in billions
         """
-        if self.new_payroll_tax_rate != 0.0:
+        if self.new_payroll_tax_rate != 0.0 or self.uses_donut_path():
             return static_effect * self.new_earnings_tax_offset_share()
 
         # Labor supply effect
@@ -624,26 +816,28 @@ def create_ss_donut_hole(
     threshold: float = 250_000,
     start_year: int = 2025,
     duration_years: int = 10,
+    cap_schedule_vintage: str | None = None,
 ) -> PayrollTaxPolicy:
     """
     Create policy to apply Social Security tax above a threshold.
 
     "Donut hole" approach: tax wages up to current cap AND above threshold.
-    Exempts wages between cap and threshold.
+    Exempts wages between cap and threshold. The threshold is not indexed, so
+    the donut closes once CBO's projected taxable maximum passes it.
 
     Target: CBO, Options for Reducing the Deficit: 2025 to 2034 (pub. 60557),
     Option 62 alternative 2, report p. 73 -- -$1,426.8B over FY2025-2034, on
     CBO's own "Decrease (-) in the deficit" stub, for the same design (no
     benefit credit above the current-law taxable maximum).
 
-    The 270.0 below is NOT that. It is the SUPERSEDED -$2,700B over ten, a
-    figure that traces to a think-tank explainer with no report year, run
-    number or window; the Trustees this docstring used to credit publish no
-    dollars for the provision at all. It is left alone deliberately --
-    validation/scenarios.py: retuning the covered-wage band to the new target
-    "would convert a finding back into bookkeeping" -- so this factory
-    over-predicts CBO by 89.2%, and that is the reported error, not a defect
-    introduced here.
+    Priced since lane B3 (planning/lanes/B3_ss_donut_mechanism.md) from SSA's
+    2025 wage distribution against each year's taxable maximum
+    (:func:`donut_covered_wages`), net of the module's income-and-payroll
+    offset rule at the statutory employer share. Nothing is fitted to the
+    target. Until 2026-11-19 this factory carried
+    ``annual_revenue_change_billions=270.0``, the superseded -$2,700B over ten,
+    and scored 89.2% from CBO's figure; that reading stays on the record in
+    validation/scenarios.py.
     """
     return PayrollTaxPolicy(
         name=f"SS Donut Hole Above ${threshold/1000:.0f}K",
@@ -651,10 +845,12 @@ def create_ss_donut_hole(
         policy_type=PolicyType.PAYROLL_TAX,
         payroll_tax_type=PayrollTaxType.SOCIAL_SECURITY,
         ss_donut_hole_start=threshold,
-        labor_supply_elasticity=0.0,  # Behavioral already in calibration
+        # The offset is the income-and-payroll rule, not these two channels.
+        labor_supply_elasticity=0.0,
         tax_avoidance_elasticity=0.0,
-        # Window-average of Trustees $2.7T / 10yr (do not grow again in the scorer)
-        annual_revenue_change_billions=270.0,
+        employer_share=OASDI_EMPLOYER_SHARE,
+        effective_month=1,  # CBO: takes effect in January
+        cap_schedule_vintage=cap_schedule_vintage,
         start_year=start_year,
         duration_years=duration_years,
     )
