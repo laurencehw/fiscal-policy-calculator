@@ -391,7 +391,7 @@ function PackageExports({
           {pngNote || linkNote}
         </span>
       </p>
-      <CiteBlock text={cite.text} />
+      <CiteBlock cite={cite} />
     </section>
   );
 }

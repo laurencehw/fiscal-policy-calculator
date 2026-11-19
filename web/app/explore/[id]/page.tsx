@@ -160,7 +160,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
         </details>
       ) : null}
 
-      <CiteBlock text={cite.text} />
+      <CiteBlock cite={cite} />
     </div>
   );
 }
