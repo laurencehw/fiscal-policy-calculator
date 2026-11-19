@@ -66,7 +66,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       {cards.length ? (
         <>
           <Compare cards={cards} />
-          {cite ? <CiteBlock text={cite.text} /> : null}
+          {cite ? <CiteBlock cite={cite} /> : null}
         </>
       ) : (
         <p className="note">
