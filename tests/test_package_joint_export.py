@@ -54,7 +54,8 @@ def test_measured_share_is_reproduced_exactly(shipped):
     pair = next(p for p in shipped["pairs"] if p["kind"] == pi.KIND_INTERACTING)
     m = pi.measured_interaction_share(pair["a"], pair["b"])
     assert m is not None
-    assert pair["share"] == m.share
+    # Exact on one machine; the last binary digit differs across Python/numpy builds (3.10 CI).
+    assert pair["share"] == pytest.approx(m.share, rel=1e-12, abs=0)
     assert pair["reference"] == m.reference == "top-rate-39-6"
     assert round(m.share * 100, 2) == -16.35
 

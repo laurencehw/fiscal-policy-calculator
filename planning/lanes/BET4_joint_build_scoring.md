@@ -82,8 +82,9 @@ joint model of corporate, payroll, estate, tariffs or the TCJA composite, and th
 Laurence chose the one-window calculator total over B7's microsim-only version on the decision
 card, so the lane shipped as designed above.
 
-- **Every prediction landed.** The exported share is `measured_interaction_share` to the last
-  digit, -16.35% of the top-rate item's yield; rate x childless EITC exports as structurally
+- **Every prediction landed.** The exported share is `measured_interaction_share` to 1e-12
+  relative (to the last digit on one machine; Python 3.10 CI differs in the final binary digit,
+  so the test compares at 1e-12), -16.35% of the top-rate item's yield; rate x childless EITC exports as structurally
   additive and EITC x SALT as no overlap. The three-way microsim interaction equals the sum of the
   pairwise ones within $0.01B, so applying pairs is exact for the measurable set
   (`tests/test_package_joint_export.py`). Top rate + SALT-cap repeal: list-price sum +$923.1B,
