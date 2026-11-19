@@ -173,7 +173,7 @@ table.sheet th { font-family: var(--label); font-size: 14px; letter-spacing: 0.0
 div.cite { justify-items: start; }
 .cite .citetext { margin: 0; overflow-wrap: anywhere; }
 div.cite .citeactions { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; }
-div.cite .citeactions > button { font-family: var(--label); font-size: 12px; background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; text-decoration: underline; min-height: 24px; }
+div.cite .citeactions > button { font-family: var(--label); font-size: 12px; background: none; border: 0; padding: 0; color: var(--muted); cursor: pointer; text-decoration: underline; }
 .stalelink { border-left: 3px solid var(--warn); padding-left: 10px; color: var(--ink); }
 .packageexports { border-top: 1px solid var(--ink); padding-top: 14px; display: grid; gap: 10px; margin-top: 32px; }
 .packageexports h2 { margin: 0; }
