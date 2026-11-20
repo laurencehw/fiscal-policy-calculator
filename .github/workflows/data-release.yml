@@ -1,0 +1,83 @@
+name: Data release
+
+# Cuts a GitHub release for the scored figures the site is serving now, tagged
+# data-<scores_date>-<fingerprint>, with that snapshot attached.
+#
+# Run by hand only. Once the repository is switched on in Zenodo, every
+# published release is archived there and gets a permanent DOI, which cannot
+# be deleted. See docs/DATA_RELEASES.md before the first run.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "release" to publish. With Zenodo switched on this mints a permanent DOI.'
+        required: true
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: data-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.event.inputs.confirm == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Name the release after the current scores
+        id: names
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import hashlib, json, pathlib
+          manifest = json.loads(pathlib.Path("site_data/manifest.json").read_text())
+          snap_id = f"{manifest['scores_date']}-{manifest['scores_fingerprint']}"
+          snap = pathlib.Path("site_data/snapshots") / f"{snap_id}.json"
+          print(f"id={snap_id}")
+          print(f"tag=data-{snap_id}")
+          print(f"date={manifest['scores_date']}")
+          print(f"file={snap if snap.exists() else ''}")
+          print(f"sha256={hashlib.sha256(snap.read_bytes()).hexdigest() if snap.exists() else ''}")
+          PY
+
+      - name: Refuse a release that already exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.names.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release $TAG already exists; the figures have not changed since it was cut."
+            exit 1
+          fi
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.names.outputs.tag }}
+          SNAP_ID: ${{ steps.names.outputs.id }}
+          SCORES_DATE: ${{ steps.names.outputs.date }}
+          SNAP_FILE: ${{ steps.names.outputs.file }}
+          SNAP_SHA: ${{ steps.names.outputs.sha256 }}
+        run: |
+          {
+            echo "Scored figures as served by https://fiscal.lwilsesamson.com on ${SCORES_DATE}."
+            echo
+            if [ -n "$SNAP_FILE" ]; then
+              echo "- Snapshot: \`${SNAP_ID}\` (attached), sha256 \`${SNAP_SHA}\`"
+              echo "- Same file from the API: https://fiscal.lwilsesamson.com/api/v1/snapshots/${SNAP_ID}"
+            fi
+            echo "- Commit: ${GITHUB_SHA}"
+            echo
+            echo "Figures are billions of dollars over the budget window; positive increases the deficit."
+            echo "Report the validation tiers separately; see https://fiscal.lwilsesamson.com/methods."
+          } > notes.md
+          assets=()
+          if [ -n "$SNAP_FILE" ]; then assets+=("$SNAP_FILE"); fi
+          gh release create "$TAG" "${assets[@]}" \
+            --target "$GITHUB_SHA" \
+            --title "Fiscal Policy Calculator, figures of ${SCORES_DATE}" \
+            --notes-file notes.md
