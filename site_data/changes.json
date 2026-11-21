@@ -2,6 +2,16 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-21",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-1590-119",
+      "title": "Rural Innovation and Small Business Support Act",
+      "old": null,
+      "new": -0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/1590"
+    },
+    {
       "date": "2026-11-19",
       "category": "data",
       "kind": "cbo_estimate",
