@@ -35,8 +35,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.03476535974953495,
-            "new_etr": 0.03476535974953495
+            "baseline_etr": 0.034765359749534964,
+            "new_etr": 0.034765359749534964
           },
           {
             "name": "Middle Quintile",
@@ -61,8 +61,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.09863288962190418,
-            "new_etr": 0.09863288962190418
+            "baseline_etr": 0.09863288962190417,
+            "new_etr": 0.09863288962190417
           },
           {
             "name": "Top Quintile",
@@ -75,7 +75,7 @@
             "pct_with_increase": 15.038923799797333,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.20325767188944574,
-            "new_etr": 0.2063599782586917
+            "new_etr": 0.20635997825869168
           }
         ]
       },
@@ -83,7 +83,7 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 24.116309048694664,
+        "total_tax_change_billions": 24.11630904869466,
         "pct_with_increase": 1.7179368557163164,
         "pct_with_decrease": 0.0,
         "groups": [
@@ -123,8 +123,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.0005939159222174334,
-            "new_etr": 0.0005939159222174334
+            "baseline_etr": 0.0005939159222174335,
+            "new_etr": 0.0005939159222174335
           },
           {
             "name": "4th Decile",
@@ -209,8 +209,8 @@
             "floor": 220000.0,
             "ceiling": null,
             "returns_millions": 11.276004,
-            "avg_tax_change": 2138.7281309578534,
-            "pct_of_income": 0.4809026538602896,
+            "avg_tax_change": 2138.728130957853,
+            "pct_of_income": 0.4809026538602895,
             "share_of_total": 1.0,
             "pct_with_increase": 24.468266734136037,
             "pct_with_decrease": 0.0,
@@ -223,7 +223,7 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 24.116309048694664,
+        "total_tax_change_billions": 24.11630904869466,
         "pct_with_increase": 1.717936961617532,
         "pct_with_decrease": 0.0,
         "groups": [
@@ -263,8 +263,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": -0.026891968140422964,
-            "new_etr": -0.026891968140422964
+            "baseline_etr": -0.02689196814042297,
+            "new_etr": -0.02689196814042297
           },
           {
             "name": "$30K-$40K",
@@ -276,8 +276,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.00145417563098377,
-            "new_etr": 0.00145417563098377
+            "baseline_etr": 0.001454175630983771,
+            "new_etr": 0.001454175630983771
           },
           {
             "name": "$40K-$50K",
@@ -289,8 +289,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.030809883358346567,
-            "new_etr": 0.030809883358346567
+            "baseline_etr": 0.030809883358346574,
+            "new_etr": 0.030809883358346574
           },
           {
             "name": "$50K-$75K",
@@ -328,17 +328,17 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.10296852608261944,
-            "new_etr": 0.10296852608261944
+            "baseline_etr": 0.10296852608261947,
+            "new_etr": 0.10296852608261947
           },
           {
             "name": "$200K-$500K",
             "floor": 200000.0,
             "ceiling": 500000.0,
             "returns_millions": 10.955818,
-            "avg_tax_change": 12.849445881473956,
-            "pct_of_income": 0.005329213820513403,
-            "share_of_total": 0.005837385408341599,
+            "avg_tax_change": 12.84944588147396,
+            "pct_of_income": 0.005329213820513405,
+            "share_of_total": 0.005837385408341601,
             "pct_with_increase": 3.528865723130972,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.16242973489967996,
@@ -351,7 +351,7 @@
             "returns_millions": 1.77972,
             "avg_tax_change": 3706.6318964594984,
             "pct_of_income": 0.7206187808057023,
-            "share_of_total": 0.2735396575592511,
+            "share_of_total": 0.27353965755925114,
             "pct_with_increase": 91.79907522811207,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.23390735133763504,
@@ -490,18 +490,18 @@
       },
       {
         "model": "TPC-Microsim Pilot",
-        "ten_year_billions": -273.5241432001372,
+        "ten_year_billions": -273.52414320013713,
         "annual_billions": [
-          -27.352414320013718,
-          -27.352414320013718,
-          -27.352414320013718,
-          -27.352414320013718,
-          -27.352414320013718,
-          -27.352414320013718,
-          -27.352414320013718,
-          -27.352414320013718,
-          -27.352414320013718,
-          -27.352414320013718
+          -27.35241432001371,
+          -27.35241432001371,
+          -27.35241432001371,
+          -27.35241432001371,
+          -27.35241432001371,
+          -27.35241432001371,
+          -27.35241432001371,
+          -27.35241432001371,
+          -27.35241432001371,
+          -27.35241432001371
         ],
         "methodology": "Single-year CPS-style microsimulation with flat-horizon annualization and quintile distribution output.",
         "confidence": "pilot",
