@@ -2,5 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "npm ci",
-  "buildCommand": "npm run build"
+  "buildCommand": "npm run build",
+  "ignoreCommand": "bash ../scripts/vercel_ignored_build.sh web",
+  "git": {
+    "deploymentEnabled": {
+      "claude/**": false,
+      "codex/**": false,
+      "cursor/**": false,
+      "grok/**": false,
+      "auto/**": false
+    }
+  }
 }
