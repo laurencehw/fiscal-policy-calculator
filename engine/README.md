@@ -8,6 +8,7 @@ Vercel project settings:
 
 - Root Directory: `engine`; "Include files outside the Root Directory" on (the default).
 - Framework preset: FastAPI. `pyproject.toml` lists the dependencies and the build step.
+- Ignored build step: `engine/vercel.json` runs `scripts/vercel_ignored_build.sh engine`, so a push builds the engine only when `engine/`, `api.py`, `fiscal_model/` or `classroom/` changed, and only on `main`. The site (`web/vercel.json`) does the same for `web/` and `site_data/`.
 - Environment variables:
   - `FISCAL_API_KEYS`: `site:<secret>`, the key the Next.js site sends.
   - `ANTHROPIC_API_KEY`: only if Ask runs here.
