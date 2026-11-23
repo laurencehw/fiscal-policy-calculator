@@ -1,3 +1,4 @@
+import { linkVersion, staleNotice, versionRef, withVersion } from "./share";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -107,6 +108,18 @@ test("the committed snapshots form an unbroken hash chain, and the newest is the
     // The summary is the preset's own figure, to within the fingerprint's rounding.
     const file = JSON.parse(fs.readFileSync(path.join(process.cwd(), "..", "site_data", "presets", `${row.id}.json`), "utf8"));
     assert.ok(Math.abs((row.conventional_billions ?? NaN) - file.conventional.ten_year_deficit_impact) < 0.06, row.id);
-    assert.equal(row.page_url, `https://x.org/explore/${row.id}?v=${manifest.scores_date}`);
+    assert.equal(row.page_url, `https://x.org/explore/${row.id}?v=${latest.id}`);
+    assert.doesNotMatch(row.name, /^\p{Extended_Pictographic}/u, row.id);
+    const item = snapshot.presets.find((p) => p.id === row.id)!;
+    if (item.published.is_published_score === false) assert.equal(row.published_billions, null, row.id);
   }
+});
+
+test("a link can pin one of several snapshots made the same day", () => {
+  assert.equal(versionRef("2026-11-19", "c504675255edabcdef"), "2026-11-19-c504675255ed");
+  assert.equal(versionRef("2026-11-19", undefined), "2026-11-19");
+  assert.equal(linkVersion("2026-11-19-e31865542f02"), "2026-11-19-e31865542f02");
+  assert.equal(staleNotice("2026-11-19", "2026-11-19-c504675255ed"), null);
+  assert.match(staleNotice("2026-11-19-e31865542f02", "2026-11-19-c504675255ed") ?? "", /earlier set of figures/);
+  assert.match(withVersion("/explore/x", "2026-11-19-c504675255ed"), /v=2026-11-19-c504675255ed$/);
 });

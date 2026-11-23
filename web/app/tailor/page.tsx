@@ -1,3 +1,4 @@
+import { versionRef } from "@/lib/share";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Tailor } from "@/components/Tailor";
@@ -16,7 +17,7 @@ export const metadata: Metadata = pageMeta({
 });
 
 export default function TailorPage() {
-  const scoresDate = manifest().scores_date ?? "";
+  const scoresDate = versionRef(manifest().scores_date, manifest().scores_fingerprint);
   // The presets Tailor can reproduce, with what their pages say about the published score.
   const index = presets();
   const matches: Record<string, PresetMatch> = {};

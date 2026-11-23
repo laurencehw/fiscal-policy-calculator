@@ -8,7 +8,7 @@ import { manifest, presets, presetsByArea } from "@/lib/data";
 import { compareCards } from "@/lib/compareData";
 import { CiteBlock } from "@/components/CiteBlock";
 import { StaleLink } from "@/components/StaleLink";
-import { citation } from "@/lib/share";
+import { citation, versionRef } from "@/lib/share";
 import { siteUrl } from "@/lib/site";
 import { DEFAULT_PAIR, MAX_COMPARE, compareHref, droppedSentences, parseIds } from "@/lib/compare";
 import { shortLabel } from "@/lib/format";
@@ -23,7 +23,7 @@ export function CompareView({ ids: raw }: { ids: string | string[] | undefined }
   );
   const cards: CompareCard[] = compareCards(parsed.ids);
   const dropped = droppedSentences(parsed);
-  const scoresDate = manifest().scores_date ?? "";
+  const scoresDate = versionRef(manifest().scores_date, manifest().scores_fingerprint);
   // One citation for the page: the proposals by name, on the calculator's conventional
   // identity without a tier, since each card carries its own.
   const cite = cards.length

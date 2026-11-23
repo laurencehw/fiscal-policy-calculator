@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { versionRef } from "@/lib/share";
 import { PackageBuilder } from "@/components/PackageBuilder";
 import { buildCatalog, manifest, packageJoint, preset, valuesArchetypes } from "@/lib/data";
 import { ARCHIVED_AREA } from "@/lib/lawStatus";
@@ -57,7 +58,7 @@ export default function Build() {
           A tick that conflicts with one already ticked swaps them. A positive figure adds to the deficit and a
           negative one reduces it.
         </p>
-        <StaleLink scoresDate={frame.scores_date ?? ""} />
+        <StaleLink scoresDate={versionRef(frame.scores_date, frame.scores_fingerprint)} />
       </header>
       <PackageBuilder
         rows={ordered}
@@ -68,7 +69,7 @@ export default function Build() {
         identities={identities}
         packageIdentity={estimateIdentity(site, "package-sum")}
         archetypes={valuesArchetypes()}
-        scoresDate={frame.scores_date ?? ""}
+        scoresDate={versionRef(frame.scores_date, frame.scores_fingerprint)}
         site={siteUrl()}
       />
     </div>

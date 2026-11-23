@@ -130,19 +130,26 @@ export function snapshotRefs(index: SnapshotIndex): string[] {
 }
 
 /** One line per preset for /api/v1/presets: the headline figures and where the full record is. */
+/** A preset's name without the emoji the app's labels open with ("🏛️ TCJA Full Extension"). */
+export function plainName(name: string): string {
+  return name.replace(/^[^\p{L}\p{N}(]+/u, "").trim() || name;
+}
+
 export function presetSummaries(snapshot: Snapshot, site: string) {
   return snapshot.presets.map((item) => ({
     id: item.id,
-    name: item.name,
+    name: plainName(item.name),
     law_status: item.law_status,
     budget_window: item.conventional.budget_window,
     baseline_vintage: item.conventional.baseline_vintage,
     conventional_billions: item.conventional.ten_year_deficit_impact ?? null,
     dynamic_billions: item.dynamic.dynamic_adjusted_impact ?? null,
-    published_billions: item.published.billions,
-    published_source: item.published.source,
+    // Only a score someone published. The repository's own estimates sit in the preset
+    // file for reference, but a field named published_billions must not carry one.
+    published_billions: item.published.is_published_score === false ? null : item.published.billions,
+    published_source: item.published.is_published_score === false ? null : item.published.source,
     api_url: `${site}${API_BASE}/presets/${item.id}`,
-    page_url: `${site}/explore/${item.id}?v=${snapshot.scores_date}`,
+    page_url: `${site}/explore/${item.id}?v=${snapshot.id}`,
   }));
 }
 
@@ -152,6 +159,7 @@ export function provenance(snapshot: Snapshot, site: string) {
     api_version: API_VERSION,
     snapshot_id: snapshot.id,
     scores_date: snapshot.scores_date,
+    source_commit: snapshot.source_commit ?? null,
     scores_fingerprint: snapshot.scores_fingerprint,
     snapshot_url: `${site}${API_BASE}/snapshots/${snapshot.id}`,
     documentation: `${site}/data`,

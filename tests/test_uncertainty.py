@@ -263,3 +263,19 @@ class TestFormatSummary:
         text = analyzer.format_uncertainty_summary(mock_dict)
         assert "Uncertainty Analysis Summary" in text
         assert "Central estimate" in text
+
+
+def test_monte_carlo_is_reproducible_and_sensitivity_handles_zero():
+    """Outside review, 23 Nov 2026: unseeded draws and a zero-division on a zero total."""
+    import numpy as np
+
+    from fiscal_model.policies import PolicyType, TaxPolicy
+    from fiscal_model.uncertainty import UncertaintyAnalysis
+
+    policy = TaxPolicy(name="t", description="t", policy_type=PolicyType.INCOME_TAX, rate_change=0.01)
+    central = np.full(10, -30.0)
+    a = UncertaintyAnalysis().monte_carlo_simulation(policy, central, n_simulations=50)
+    b = UncertaintyAnalysis().monte_carlo_simulation(policy, central, n_simulations=50)
+    assert np.array_equal(a["simulations"], b["simulations"])
+    result = UncertaintyAnalysis().sensitivity_analysis(policy, np.zeros(10), "gdp_growth")
+    assert result.elasticity == 0.0
