@@ -185,9 +185,11 @@ def test_the_web_search_toggle_never_lands_on_the_shared_assistant(monkeypatch):
         return clone
 
     monkeypatch.setattr(FiscalAssistant, "spawn", _spy)
-    for flag in (False, True, False):
+    # Distinct sessions: one session's requests are spaced by the cool-down.
+    for i, flag in enumerate((False, True, False)):
         response = client.post(
-            "/ask", json={"question": "hi", "enable_web_search": flag}
+            "/ask",
+            json={"question": "hi", "enable_web_search": flag, "session_id": f"s-{i}"},
         )
         assert response.status_code == 200
     assert seen == [False, True, False]

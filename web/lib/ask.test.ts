@@ -1,6 +1,21 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { clientAddress, parseAnswer, readFrames, safeHref, validateAsk, unescapeDollars } from "./ask";
+import {
+  BODY_BYTES_MAX,
+  HISTORY_MESSAGES_MAX,
+  HISTORY_TOTAL_CHARS_MAX,
+  clientAddress,
+  finalAnswer,
+  parseAnswer,
+  readCappedText,
+  readFrames,
+  safeHref,
+  sameOrigin,
+  trimHistory,
+  validateAsk,
+  unescapeDollars,
+  type Turn,
+} from "./ask";
 
 test("a question is checked and history is held to roles and length", () => {
   assert.deepEqual(validateAsk({ question: "  What is the deficit? " }), { question: "What is the deficit?", history: [] });
@@ -76,4 +91,65 @@ test("escaped dollars read as dollars, display math as plain text", () => {
 test("a lone asterisk is not italics", () => {
   const { blocks } = parseAnswer("3 * 4 = 12 and 5 * 6 = 30");
   assert.deepEqual(blocks[0], { t: "p", v: [{ t: "text", v: "3 * 4 = 12 and 5 * 6 = 30" }] });
+});
+
+test("history is capped in messages and in total characters", () => {
+  const msgs = (n: number, len: number): Turn[] =>
+    Array.from({ length: n }, (_, i) => ({ role: i % 2 ? "assistant" : "user", content: "x".repeat(len) }));
+  assert.equal(typeof validateAsk({ question: "q", history: msgs(HISTORY_MESSAGES_MAX + 1, 1) }), "string");
+  assert.equal(typeof validateAsk({ question: "q", history: msgs(3, 6000) }), "string");
+  const atLimit = msgs(HISTORY_MESSAGES_MAX, HISTORY_TOTAL_CHARS_MAX / HISTORY_MESSAGES_MAX);
+  assert.notEqual(typeof validateAsk({ question: "q", history: atLimit }), "string");
+});
+
+test("a long conversation is trimmed to its newest turns, starting with a question", () => {
+  const turns: Turn[] = Array.from({ length: 30 }, (_, i) => ({
+    role: i % 2 ? "assistant" : "user",
+    content: `${i} ${"y".repeat(1500)}`,
+  }));
+  const kept = trimHistory(turns);
+  assert.equal(kept[0].role, "user");
+  assert.equal(kept[kept.length - 1].content, turns[29].content);
+  assert.ok(kept.length <= HISTORY_MESSAGES_MAX);
+  assert.ok(kept.reduce((n, t) => n + t.content.length, 0) <= HISTORY_TOTAL_CHARS_MAX);
+  assert.notEqual(typeof validateAsk({ question: "q", history: kept }), "string");
+  assert.deepEqual(trimHistory([]), []);
+});
+
+test("the body is capped before it is parsed", async () => {
+  const small = new Request("https://site.test/api/ask", { method: "POST", body: JSON.stringify({ question: "q" }) });
+  assert.equal(await readCappedText(small), '{"question":"q"}');
+  const declared = new Request("https://site.test/api/ask", {
+    method: "POST",
+    body: "x",
+    headers: { "content-length": String(BODY_BYTES_MAX + 1) },
+  });
+  assert.equal(await readCappedText(declared), null);
+  // No declared length: the stream is cut off once it passes the cap.
+  const chunks = [new Uint8Array(40), new Uint8Array(40)];
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      const next = chunks.shift();
+      if (next) controller.enqueue(next);
+      else controller.close();
+    },
+  });
+  const init = { method: "POST", body: stream, duplex: "half" } as RequestInit;
+  assert.equal(await readCappedText(new Request("https://site.test/api/ask", init), 64), null);
+});
+
+test("only a same-host Origin, or none, passes", () => {
+  assert.equal(sameOrigin(null, "fiscal.example.com"), true);
+  assert.equal(sameOrigin("https://fiscal.example.com", "fiscal.example.com"), true);
+  assert.equal(sameOrigin("http://localhost:3000", "localhost:3000"), true);
+  assert.equal(sameOrigin("https://evil.example", "fiscal.example.com"), false);
+  assert.equal(sameOrigin("null", "fiscal.example.com"), false);
+  assert.equal(sameOrigin("https://fiscal.example.com", null), false);
+});
+
+test("the done frame's final text replaces the streamed answer", () => {
+  const done = JSON.stringify({ final_text: "Clean [citation needed]." });
+  assert.equal(finalAnswer(done, "Raw [^3]."), "Clean [citation needed].");
+  assert.equal(finalAnswer(JSON.stringify({ model: "m" }), "Raw."), "Raw.");
+  assert.equal(finalAnswer("not json", "Raw."), "Raw.");
 });

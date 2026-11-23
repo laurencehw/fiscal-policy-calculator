@@ -110,5 +110,35 @@ class SharedLedger:
         key = self._turns_key(day, session_id)
         self._pipeline([["INCR", key], ["EXPIRE", key, _TTL_SECONDS]])
 
+    # ---- atomic reservation primitives (see RateLimiter.reserve_turn) ----
+    #
+    # Each is a single Redis command whose reply is the post-update value, so
+    # two instances reserving at once see different totals and cannot both
+    # slip under a cap that only one of them fits beneath.
+
+    def incr_spend(self, day: str, amount_usd: float) -> float:
+        """Add ``amount_usd`` (may be negative) and return the new total."""
+        key = self._spend_key(day)
+        value, _ = self._pipeline(
+            [["INCRBYFLOAT", key, f"{amount_usd:.6f}"], ["EXPIRE", key, _TTL_SECONDS]]
+        )
+        return float(value or 0.0)
+
+    def incr_turn(self, day: str, session_id: str) -> int:
+        """Count one turn and return the session's new count."""
+        key = self._turns_key(day, session_id)
+        value, _ = self._pipeline([["INCR", key], ["EXPIRE", key, _TTL_SECONDS]])
+        return int(float(value or 0))
+
+    def decr_turn(self, day: str, session_id: str) -> None:
+        self._pipeline([["DECR", self._turns_key(day, session_id)]])
+
+    def claim_cooldown(self, session_id: str, seconds: float) -> bool:
+        """Start the session's cool-down; ``False`` when one is still running."""
+        key = f"{self.prefix}:cooldown:{session_id}"
+        millis = max(1, int(seconds * 1000))
+        (value,) = self._pipeline([["SET", key, "1", "NX", "PX", millis]])
+        return value is not None
+
 
 __all__ = ["SharedLedger", "SharedLedgerError"]

@@ -70,6 +70,11 @@ class _Stream:
     def get_final_message(self) -> _Msg:
         return self._msg
 
+    @property
+    def current_message_snapshot(self) -> _Msg:
+        # The SDK's in-flight message: usage as reported so far.
+        return self._msg
+
 
 class _Client:
     """``messages.stream`` returns whatever ``script`` yields next."""
@@ -105,7 +110,7 @@ def test_usage_is_recorded_when_the_client_disconnects_mid_stream() -> None:
     a = _assistant(client)
     seen: list[dict[str, Any]] = []
     gen = a.stream_response("q", [], on_turn_end=seen.append)
-    assert next(gen) == "Hello"  # the paid call has already completed
+    assert next(gen) == "Hello"  # deltas stream while the call is in flight
     gen.close()  # client went away: GeneratorExit at the yield
 
     assert len(seen) == 1, "turn-end callback must fire exactly once"
@@ -116,6 +121,8 @@ def test_usage_is_recorded_when_the_client_disconnects_mid_stream() -> None:
     assert info["usage"]["output_tokens"] == 200
     assert info["usage"]["cost_usd"] > 0
     assert a.last_usage is not None and a.last_usage.input_tokens == 1_000
+    # The call was cut off, so the HTTP layer charges at least the reservation.
+    assert a.last_call_cut_off is True
 
 
 def test_callback_fires_once_on_normal_completion_and_constructor_callback_works() -> None:

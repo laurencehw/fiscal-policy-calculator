@@ -7,8 +7,14 @@ export type Turn = { role: "user" | "assistant"; content: string };
 export type AskInput = { question: string; history: Turn[] };
 
 export const QUESTION_MAX = 2000;
-const HISTORY_TURNS_MAX = 20;
-const HISTORY_CHARS_MAX = 8000;
+// The engine enforces the same three limits (api.py ASK_*), since it can be
+// called directly; tests/test_ask_input_caps_and_reservation.py pins them equal.
+// Every history message is resent to the model on each call of a turn.
+export const HISTORY_MESSAGES_MAX = 20;
+export const HISTORY_CHARS_MAX = 8_000;
+export const HISTORY_TOTAL_CHARS_MAX = 16_000;
+/** The request body, in bytes: the question and history at their caps, as JSON, with room to spare. */
+export const BODY_BYTES_MAX = 96 * 1024;
 
 export function validateAsk(body: unknown): AskInput | string {
   if (!body || typeof body !== "object") return "Expected an object.";
@@ -18,15 +24,80 @@ export function validateAsk(body: unknown): AskInput | string {
   const history: Turn[] = [];
   if (b.history !== undefined) {
     if (!Array.isArray(b.history)) return "History must be a list.";
-    if (b.history.length > HISTORY_TURNS_MAX * 2) return "This conversation is too long. Start a new one.";
+    if (b.history.length > HISTORY_MESSAGES_MAX) return "This conversation is too long. Start a new one.";
+    let total = 0;
     for (const t of b.history) {
       if (!t || typeof t !== "object") return "Bad history entry.";
       const { role, content } = t as Record<string, unknown>;
       if ((role !== "user" && role !== "assistant") || typeof content !== "string") return "Bad history entry.";
-      history.push({ role, content: content.slice(0, HISTORY_CHARS_MAX) });
+      const kept = content.slice(0, HISTORY_CHARS_MAX);
+      total += kept.length;
+      if (total > HISTORY_TOTAL_CHARS_MAX) return "This conversation is too long. Start a new one.";
+      history.push({ role, content: kept });
     }
   }
   return { question: b.question.trim(), history };
+}
+
+/**
+ * The most recent part of a conversation that fits the history limits, so a
+ * long conversation keeps working instead of being refused. Each message is
+ * cut to its own cap, older turns are dropped first, and the kept history
+ * starts with a question, as the model requires.
+ */
+export function trimHistory(turns: Turn[]): Turn[] {
+  const kept: Turn[] = [];
+  let total = 0;
+  for (let i = turns.length - 1; i >= 0 && kept.length < HISTORY_MESSAGES_MAX; i--) {
+    const content = turns[i].content.slice(0, HISTORY_CHARS_MAX);
+    if (total + content.length > HISTORY_TOTAL_CHARS_MAX) break;
+    total += content.length;
+    kept.unshift({ role: turns[i].role, content });
+  }
+  while (kept.length && kept[0].role !== "user") kept.shift();
+  return kept;
+}
+
+/**
+ * Read a request body as text, refusing (``null``) once it passes ``maxBytes``:
+ * a declared Content-Length over the cap is refused before anything is read,
+ * and an undeclared or understated one is cut off as it streams.
+ */
+export async function readCappedText(request: Request, maxBytes = BODY_BYTES_MAX): Promise<string | null> {
+  const declared = Number(request.headers.get("content-length") ?? "");
+  if (Number.isFinite(declared) && declared > maxBytes) return null;
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let size = 0;
+  let text = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > maxBytes) {
+      await reader.cancel().catch(() => undefined);
+      return null;
+    }
+    text += decoder.decode(value, { stream: true });
+  }
+  return text + decoder.decode();
+}
+
+/**
+ * A minimal same-origin check: a request whose Origin header names another
+ * host is refused. No Origin (a same-origin GET, curl, a server) passes; the
+ * engine's own key and limits still apply. Local to Ask until a shared helper
+ * exists, at which point this should be replaced by it.
+ */
+export function sameOrigin(origin: string | null, host: string | null): boolean {
+  if (!origin) return true;
+  if (!host) return false;
+  try {
+    return new URL(origin).host.toLowerCase() === host.trim().toLowerCase();
+  } catch {
+    return false;
+  }
 }
 
 /** The first address in X-Forwarded-For, which Vercel sets to the visitor's. */
@@ -54,6 +125,21 @@ export function readFrames(buffer: string): { frames: SseFrame[]; rest: string }
     if (data.length || event !== "message") frames.push({ event, data: data.join("\n") });
   }
   return { frames, rest };
+}
+
+/**
+ * The answer to keep once the ``done`` frame arrives: its ``final_text`` (the
+ * engine's post-processed answer) when present, else what was streamed.
+ */
+export function finalAnswer(doneData: string, streamed: string): string {
+  try {
+    const done: unknown = JSON.parse(doneData);
+    if (done && typeof done === "object") {
+      const text = (done as Record<string, unknown>).final_text;
+      if (typeof text === "string" && text.trim()) return text;
+    }
+  } catch {}
+  return streamed;
 }
 
 // ---- The answer's markdown ----

@@ -18,6 +18,7 @@ rewritten as async. See
 https://fastapi.tiangolo.com/async/#path-operation-functions
 """
 
+import hashlib
 import logging
 import math
 import posixpath
@@ -28,7 +29,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 
@@ -50,7 +51,8 @@ except ImportError:  # pragma: no cover - older assistant package
 
         status_code: int | None = None
         usage: Any = None
-from fiscal_model.assistant.rate_limit import RateLimiter, new_session_id
+from fiscal_model.assistant.rate_limit import RateLimiter, TurnReservation
+from fiscal_model.assistant.scoring_context import ScoringContext
 from fiscal_model.baseline import APP_DEFAULT_START_YEAR
 from fiscal_model.dynamic_view import run_dynamic_view
 from fiscal_model.exceptions import (
@@ -1732,13 +1734,25 @@ def score_tariff(
 # =============================================================================
 
 
+#: Input caps for Ask, the same as the website's (web/lib/ask.ts): the engine
+#: can be called directly, so it enforces them itself. Every history message is
+#: resent to the model on each of up to five calls per turn.
+ASK_MESSAGE_MAX_CHARS = 8_000
+ASK_HISTORY_MAX_MESSAGES = 20
+ASK_HISTORY_MAX_TOTAL_CHARS = 16_000
+
+
 class AskMessage(BaseModel):
     """One turn in an Ask conversation."""
 
     role: str = Field(
         ..., description="'user' or 'assistant'", pattern=r"^(user|assistant)$"
     )
-    content: str = Field(..., description="Plain-text message content")
+    content: str = Field(
+        ...,
+        max_length=ASK_MESSAGE_MAX_CHARS,
+        description="Plain-text message content",
+    )
 
 
 class AskRequest(BaseModel):
@@ -1749,27 +1763,42 @@ class AskRequest(BaseModel):
     )
     history: list[AskMessage] = Field(
         default_factory=list,
-        description="Prior turns, in order. The new question is NOT included here.",
+        max_length=ASK_HISTORY_MAX_MESSAGES,
+        description=(
+            "Prior turns, in order. The new question is NOT included here. "
+            f"At most {ASK_HISTORY_MAX_MESSAGES} messages and "
+            f"{ASK_HISTORY_MAX_TOTAL_CHARS:,} characters in all."
+        ),
     )
-    scoring_context: dict[str, Any] | None = Field(
+    scoring_context: ScoringContext | None = Field(
         None,
         description=(
             "Optional context describing a policy the caller has already "
-            "scored — e.g. {policy_name, ten_year_deficit_impact_billions, "
-            "credibility}. Injected into the assistant's system prompt for "
-            "grounding."
+            "scored. Only the listed fields are accepted, with bounded "
+            "lengths and values; it is shown to the assistant as data."
         ),
     )
     session_id: str | None = Field(
         None,
         description=(
-            "Stable identifier for rate-limiting and telemetry. If omitted, a "
-            "new id is generated per request (defeats per-session caps for "
-            "the caller's own benefit — pass a stable id to keep "
-            "conversations rate-limited as one)."
+            "Stable identifier for rate-limiting and telemetry. If omitted, "
+            "one is derived from the caller's API key (or address), so every "
+            "request from that caller counts against one session's caps."
         ),
         max_length=64,
     )
+
+    @field_validator("history")
+    @classmethod
+    def _history_total_size(cls, history: list[AskMessage]) -> list[AskMessage]:
+        total = sum(len(m.content) for m in history)
+        if total > ASK_HISTORY_MAX_TOTAL_CHARS:
+            raise ValueError(
+                f"history totals {total:,} characters; the limit is "
+                f"{ASK_HISTORY_MAX_TOTAL_CHARS:,}. Start a new conversation "
+                "or send fewer prior turns."
+            )
+        return history
     enable_web_search: bool = Field(
         True,
         description=(
@@ -1922,13 +1951,16 @@ def _record_ask_turn(
     error: str | None,
     exc: BaseException | None = None,
     answer: str | None = None,
+    reservation: TurnReservation | None = None,
 ) -> dict[str, Any]:
     """Write one ledger row for a turn, successful or not, and return its usage.
 
     Usage of calls that completed before a failure was still paid for, so it is
     recorded with the error rather than dropped. The upstream error carries it
     when the assistant package attaches one; the assistant's own ``last_usage``
-    is the fallback.
+    is the fallback. The row settles the turn's ``reservation``: its estimate
+    is replaced by the actual cost, or kept as a floor when a call was cut off
+    before its usage could be read.
     """
     usage = getattr(exc, "usage", None) or assistant.last_usage
     usage_dict = usage.to_dict() if usage else {}
@@ -1946,15 +1978,53 @@ def _record_ask_turn(
             error=error,
             question_chars=len(question),
             answer_chars=len(final_text),
+            reservation=reservation,
+            charge_at_least_reservation=bool(
+                getattr(assistant, "last_call_cut_off", False)
+            ),
         )
     except Exception:  # a ledger failure must not turn a good answer into a 500
         logger.exception("Could not record the Ask turn in the usage ledger")
     return usage_dict
 
 
+_ASK_UNAVAILABLE_DETAIL = "Ask is not available right now."
+
+
+def _ask_unavailable() -> HTTPException:
+    """The public 503 for a keyless engine; the cause goes to the log only."""
+    logger.error(
+        "Ask request refused: the assistant is not configured "
+        "(ANTHROPIC_API_KEY is not set in the server environment)"
+    )
+    return HTTPException(status_code=503, detail=_ASK_UNAVAILABLE_DETAIL)
+
+
+def _ask_session_id(
+    request: AskRequest, http_request: Request, api_key_label: str
+) -> str:
+    """The session the turn counts against.
+
+    The website sends a per-visitor id. A caller that sends none used to get a
+    fresh random id per request, which reset the per-session daily cap and
+    cool-down on every call; it now gets a stable id derived from its API key
+    label, or from its address when the engine runs without keys.
+    """
+    if request.session_id:
+        return request.session_id
+    if api_key_label and api_key_label not in {"auth_disabled", "anonymous"}:
+        identity = f"key:{api_key_label}"
+    else:
+        client = http_request.client
+        identity = f"ip:{client.host if client else 'unknown'}"
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:24]
+    return f"api-{digest}"
+
+
 @app.post("/ask", response_model=AskResponse)
 def ask(
     request: AskRequest,
+    http_request: Request,
     _api_key_label: str = Depends(require_api_key),
 ) -> AskResponse:
     """
@@ -1979,24 +2049,25 @@ def ask(
     limiter = _get_ask_limiter()
 
     if not shared.is_available():
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Ask assistant is not configured: set ANTHROPIC_API_KEY in "
-                "the server environment."
-            ),
-        )
+        raise _ask_unavailable()
 
-    session_id = request.session_id or new_session_id()
+    session_id = _ask_session_id(request, http_request, _api_key_label)
     user_turn_count = sum(1 for m in request.history if m.role == "user")
+    scoring_context = (
+        request.scoring_context.model_dump(exclude_none=True)
+        if request.scoring_context is not None
+        else None
+    )
 
-    decision = limiter.check(
+    # Checks the caps and books an estimated cost, the turn and the session's
+    # cool-down atomically, before any paid call (see RateLimiter.reserve_turn).
+    decision = limiter.reserve_turn(
         session_id=session_id,
         session_message_count=user_turn_count,
-        last_message_ts=None,  # API callers self-pace; no cooldown enforced
     )
     if not decision.allowed:
         raise HTTPException(status_code=429, detail=decision.reason)
+    reservation = decision.reservation
 
     # This request's own assistant: per-turn state and the web_search toggle
     # live on the copy, never on the shared instance.
@@ -2014,7 +2085,7 @@ def ask(
             assistant.stream_response(
                 user_message=request.question,
                 history=history_for_api,
-                scoring_context=request.scoring_context,
+                scoring_context=scoring_context,
             )
         )
     except AssistantUpstreamError as exc:
@@ -2030,6 +2101,7 @@ def ask(
             error=f"{type(exc).__name__}: {exc}",
             exc=exc,
             answer=getattr(exc, "partial_text", "") or "",
+            reservation=reservation,
         )
         raise HTTPException(status_code=502, detail=_upstream_detail(exc)) from exc
     except Exception as exc:
@@ -2041,6 +2113,7 @@ def ask(
             question=request.question,
             elapsed_s=time.time() - start,
             error=f"{type(exc).__name__}: {exc}",
+            reservation=reservation,
         )
         if type(exc).__module__.startswith("anthropic"):
             # An SDK error that escaped the assistant's own wrapping is still
@@ -2059,6 +2132,7 @@ def ask(
         elapsed_s=elapsed,
         error=None,
         answer=final_text,
+        reservation=reservation,
     )
 
     return AskResponse(
@@ -2082,6 +2156,7 @@ def ask(
 @app.post("/ask/stream")
 def ask_stream(
     request: AskRequest,
+    http_request: Request,
     _api_key_label: str = Depends(require_api_key),
 ) -> StreamingResponse:
     """
@@ -2103,7 +2178,12 @@ def ask_stream(
         event: done
         data: {"model": "...", "tool_calls": [...], "usage": {...},
                "stripped_citation_markers": [], "session_id": "...",
-               "elapsed_s": 5.41}
+               "elapsed_s": 5.41, "final_text": "..."}
+
+    ``token`` frames carry the model's raw text as it arrives. ``final_text``
+    in ``done`` is the finished answer (unsupported citation markers replaced
+    with ``[citation needed]``, notes appended); a client should replace the
+    streamed text with it.
 
     Subject to the same daily-cost cap and per-session limits as the
     non-streaming /ask and the Streamlit Ask tab — they share one sqlite
@@ -2116,24 +2196,23 @@ def ask_stream(
     limiter = _get_ask_limiter()
 
     if not shared.is_available():
-        raise HTTPException(
-            status_code=503,
-            detail=(
-                "Ask assistant is not configured: set ANTHROPIC_API_KEY in "
-                "the server environment."
-            ),
-        )
+        raise _ask_unavailable()
 
-    session_id = request.session_id or new_session_id()
+    session_id = _ask_session_id(request, http_request, _api_key_label)
     user_turn_count = sum(1 for m in request.history if m.role == "user")
+    scoring_context = (
+        request.scoring_context.model_dump(exclude_none=True)
+        if request.scoring_context is not None
+        else None
+    )
 
-    decision = limiter.check(
+    decision = limiter.reserve_turn(
         session_id=session_id,
         session_message_count=user_turn_count,
-        last_message_ts=None,
     )
     if not decision.allowed:
         raise HTTPException(status_code=429, detail=decision.reason)
+    reservation = decision.reservation
 
     # Per-request copy: state and the web_search toggle never touch the
     # shared instance (see _spawn_request_assistant).
@@ -2158,7 +2237,7 @@ def ask_stream(
         stream = assistant.stream_response(
             user_message=request.question,
             history=history_for_api,
-            scoring_context=request.scoring_context,
+            scoring_context=scoring_context,
         )
 
         def _record(error: str | None, exc: BaseException | None = None) -> dict[str, Any]:
@@ -2177,6 +2256,7 @@ def ask_stream(
                     if error is not None
                     else assistant.last_full_text or "".join(accumulated)
                 ),
+                reservation=reservation,
             )
 
         try:
@@ -2207,6 +2287,14 @@ def ask_stream(
                 "usage": {k: usage_dict.get(k, 0) for k in _USAGE_FIELDS},
                 "session_id": session_id,
                 "elapsed_s": round(elapsed, 3),
+                # The answer after citation hygiene, with any notes: the
+                # streamed tokens are the model's raw text, so a client
+                # replaces what it displayed with this.
+                "final_text": (
+                    getattr(assistant, "last_display_text", "")
+                    or assistant.last_full_text
+                    or "".join(accumulated)
+                ),
             }
             yield _sse("done", _json.dumps(done_payload))
         except AssistantUpstreamError as exc:
