@@ -924,7 +924,7 @@ PRESET_POLICIES = {
     "🏥 Repeal ACA Premium Credits (-$1.1T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "Repeal all ACA premium tax credits. Published estimate: saves about \\$1.1T over ten years (CBO, 2024), with roughly 19 million people losing subsidized coverage.",
+        "description": "Repeal all ACA premium tax credits. Published estimate: saves about \\$1.1T over ten years (CBO, 2024). CBO's February 2026 baseline projects 13.4 million people with subsidized marketplace coverage in 2026.",
         "is_tcja": False,
         "is_corporate": False,
         "is_ptc": True,
