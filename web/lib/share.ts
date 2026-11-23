@@ -7,16 +7,35 @@
 import { identityLine, type EstimateIdentity } from "./identity";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** A version a link can carry: a scores date, or a full snapshot id ("2026-11-19-c504675255ed"). */
+const REF = /^\d{4}-\d{2}-\d{2}(?:-[0-9a-f]{12})?$/;
 
-/** The link's `v`, or "" when it has none or it is not a date. */
+/**
+ * The snapshot id of the figures on screen: the scores date plus the first twelve characters of the
+ * scores fingerprint, which is how scripts/export_static.py names snapshots. Three snapshots were
+ * made on 19 Nov 2026, so a date alone does not say which figures a link was made on.
+ */
+export function versionRef(scoresDate: string | null | undefined, fingerprint: string | null | undefined): string {
+  const date = scoresDate ?? "";
+  if (!DATE.test(date)) return "";
+  const hex = (fingerprint ?? "").slice(0, 12);
+  return /^[0-9a-f]{12}$/.test(hex) ? `${date}-${hex}` : date;
+}
+
+/** The date part of a version reference. */
+export function refDate(ref: string): string {
+  return REF.test(ref) ? ref.slice(0, 10) : "";
+}
+
+/** The link's `v`, or "" when it has none or it is neither a date nor a snapshot id. */
 export function linkVersion(value: string | string[] | null | undefined): string {
   const text = (Array.isArray(value) ? value[0] : value ?? "").trim();
-  return DATE.test(text) ? text : "";
+  return REF.test(text) ? text : "";
 }
 
 /** `href` with `v=` set to the scores date. Works on a path with or without a query or a #fragment. */
 export function withVersion(href: string, scoresDate: string): string {
-  if (!DATE.test(scoresDate)) return href;
+  if (!REF.test(scoresDate)) return href;
   const hashAt = href.indexOf("#");
   const hash = hashAt >= 0 ? href.slice(hashAt) : "";
   const rest = hashAt >= 0 ? href.slice(0, hashAt) : href;
@@ -44,6 +63,7 @@ const MONTH_NAMES = [
 
 /** "2026-11-05" → "5 November 2026". */
 export function longDate(iso: string): string {
+  if (REF.test(iso)) iso = iso.slice(0, 10);
   if (!DATE.test(iso)) return iso;
   const [y, m, d] = iso.split("-").map(Number);
   return `${d} ${MONTH_NAMES[m - 1]} ${y}`;
@@ -56,7 +76,12 @@ export function longDate(iso: string): string {
  * deployment) is treated the same way, since the figures still differ.
  */
 export function staleNotice(v: string, scoresDate: string): string | null {
-  if (!v || !DATE.test(scoresDate) || v === scoresDate) return null;
+  if (!v || !REF.test(scoresDate) || v === scoresDate) return null;
+  // An older date-only link on today's date names no particular snapshot of that day: not stale.
+  if (DATE.test(v) && v === refDate(scoresDate)) return null;
+  if (refDate(v) === refDate(scoresDate)) {
+    return `This link was made on an earlier set of figures from ${longDate(v)}. I recomputed the numbers later that day, so what you see here may differ from what the sender saw.`;
+  }
   return `This link was made on figures dated ${longDate(v)}. I recomputed the numbers on ${longDate(scoresDate)}, so what you see here may differ from what the sender saw.`;
 }
 
@@ -88,8 +113,9 @@ export function citation(args: {
   doi?: string;
 }): Citation {
   const url = withVersion(`${args.site}${args.path}`, args.scoresDate);
+  const day = refDate(args.scoresDate);
   const author = args.author ?? "Wilse-Samson, Laurence";
-  const dated = DATE.test(args.scoresDate) ? ` Figures dated ${longDate(args.scoresDate)}.` : "";
+  const dated = day ? ` Figures dated ${longDate(day)}.` : "";
   const doi = (args.doi ?? "").trim();
   const doiPart = doi ? ` doi:${doi}.` : "";
   const tag = identityLine(args.identity);
@@ -99,8 +125,8 @@ export function citation(args: {
   return {
     text,
     url,
-    bibtex: bibtexEntry({ author, title: args.title, url, note, doi, scoresDate: args.scoresDate, key: citationKey(author, args.title, args.scoresDate) }),
-    ris: risRecord({ author, title: args.title, url, note, doi, scoresDate: args.scoresDate }),
+    bibtex: bibtexEntry({ author, title: args.title, url, note, doi, scoresDate: day, key: citationKey(author, args.title, day) }),
+    ris: risRecord({ author, title: args.title, url, note, doi, scoresDate: day }),
     fileStem,
   };
 }

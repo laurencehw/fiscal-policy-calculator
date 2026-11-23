@@ -17,7 +17,7 @@ import { baselineEyebrow } from "@/lib/lawStatus";
 import { LawStatusNote } from "@/components/LawStatus";
 import { CurrentLawAnswer } from "@/components/CurrentLawAnswer";
 import { currentLawFigure } from "@/lib/lawStatus";
-import { citation } from "@/lib/share";
+import { citation, versionRef } from "@/lib/share";
 import { CiteBlock } from "@/components/CiteBlock";
 import { StaleLink } from "@/components/StaleLink";
 import { siteUrl } from "@/lib/site";
@@ -74,7 +74,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
   const v = views(id);
   const strip = houseStrip(id);
   const info = presets().find((row) => row.id === id);
-  const scoresDate = manifest().scores_date ?? "";
+  const scoresDate = versionRef(manifest().scores_date, manifest().scores_fingerprint);
   const status = info?.status ?? null;
   // A score that answers the pre-2025 question never carries the current baseline's name.
   const lawAware = (identity: EstimateIdentity) => (status?.pre_2025_law ? againstPre2025Law(identity) : identity);

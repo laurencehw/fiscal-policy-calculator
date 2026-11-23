@@ -20,5 +20,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const item = data.presets.find((row) => row.id === id);
   if (!item) return notFound(`No preset with id ${id}.`);
   const site = siteUrl();
-  return json({ ...provenance(data, site), page_url: `${site}/explore/${id}?v=${data.scores_date}`, preset: item });
+  return json({ ...provenance(data, site), page_url: `${site}/explore/${id}?v=${data.id}`, preset: item });
 }

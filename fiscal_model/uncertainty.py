@@ -60,8 +60,11 @@ class UncertaintyAnalysis:
     Comprehensive uncertainty analysis for fiscal projections.
     """
 
-    def __init__(self, factors: UncertaintyFactors | None = None):
+    def __init__(self, factors: UncertaintyFactors | None = None, seed: int | None = 0):
         self.factors = factors or UncertaintyFactors()
+        # Seeded by default so a simulation is reproducible run to run; pass
+        # seed=None for fresh draws.
+        self.rng = np.random.default_rng(seed)
 
         # Correlation matrix for economic variables
         # (GDP, inflation, unemployment, interest rates)
@@ -173,6 +176,10 @@ class UncertaintyAnalysis:
                               n_simulations: int = 1000) -> dict:
         """
         Run Monte Carlo simulation for more detailed uncertainty analysis.
+
+        Draws come from ``self.rng``, seeded in the constructor, so the same
+        analyzer and inputs give the same result. No site or API surface
+        reports this simulation.
         """
         n_years = len(central_estimate)
         simulations = np.zeros((n_simulations, n_years))
@@ -186,11 +193,11 @@ class UncertaintyAnalysis:
 
             # Policy-specific uncertainty
             if isinstance(policy, TaxPolicy):
-                policy_shock = np.random.normal(0, 0.15, n_years)
-                behavioral_shock = np.random.normal(0, 0.3, n_years)
+                policy_shock = self.rng.normal(0, 0.15, n_years)
+                behavioral_shock = self.rng.normal(0, 0.3, n_years)
             else:
-                policy_shock = np.random.normal(0, 0.10, n_years)
-                behavioral_shock = np.random.normal(0, 0.15, n_years)
+                policy_shock = self.rng.normal(0, 0.10, n_years)
+                behavioral_shock = self.rng.normal(0, 0.15, n_years)
 
             # Combine shocks
             total_shock = 1 + gdp_shock * 0.5 + policy_shock + behavioral_shock
@@ -219,7 +226,11 @@ class UncertaintyAnalysis:
                             parameter: str,
                             range_pct: float = 0.5) -> SensitivityResult:
         """
-        Analyze sensitivity to a specific parameter.
+        Illustrative sensitivity to a named parameter.
+
+        This does not re-run the scorer: it scales ``central_estimate`` by a
+        fixed effect factor per parameter, so it shows the shape of a
+        sensitivity, not a measured one. No site or API surface reports it.
 
         Args:
             policy: Policy being analyzed
@@ -254,8 +265,11 @@ class UncertaintyAnalysis:
         totals = np.sum(effects, axis=1)
         central_total = np.sum(central_estimate)
 
-        # Elasticity
-        elasticity = ((totals[-1] - totals[0]) / central_total) / (2 * range_pct)
+        # Elasticity (undefined for a zero central total or a zero range)
+        if central_total == 0 or range_pct == 0:
+            elasticity = 0.0
+        else:
+            elasticity = ((totals[-1] - totals[0]) / central_total) / (2 * range_pct)
 
         return SensitivityResult(
             parameter_name=parameter,
@@ -333,7 +347,7 @@ class UncertaintyAnalysis:
         ]
 
         for t in range(n_years):
-            uncorrelated = np.random.normal(0, 1, (n_sims, 4))
+            uncorrelated = self.rng.normal(0, 1, (n_sims, 4))
             correlated = uncorrelated @ L.T
             shocks[:, t, :] = correlated * np.array(stds)
 
