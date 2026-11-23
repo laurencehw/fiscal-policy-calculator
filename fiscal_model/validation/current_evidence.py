@@ -31,6 +31,7 @@ No timestamp is recorded, so regenerating an unchanged tree is a no-op diff.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from functools import lru_cache
 from pathlib import Path
@@ -99,6 +100,36 @@ def _summary(block: Mapping[str, Any]) -> dict[str, Any]:
     return {field: block[field] for field in _SUMMARY_FIELDS}
 
 
+#: Out-of-sample rows that score one reform design under another name. The
+#: generic rule in ``reform_design`` handles edition prefixes and rate sizes.
+_DESIGN_ALIASES = {
+    "illustrative_1pp_all": "all_rates",
+    "new_payroll_tax": "new_payroll",
+    "agi_surtax_1pp_stdded": "agi_surtax_low_threshold",
+    "agi_surtax_1pp_20k": "agi_surtax_low_threshold",
+    "agi_surtax_2pp_bracket4": "agi_surtax_high_threshold",
+    "agi_surtax_2pp_100k": "agi_surtax_high_threshold",
+}
+
+
+def reform_design(policy_id: str) -> str:
+    """One label per reform design, so the same CBO option priced in several
+    *Options* editions, or at 1 and 2 points, counts once.
+
+    ``cbo2021_opt15_hi_payroll_2pp`` and ``cbo2019_opt18_hi_payroll_1pp`` are
+    both ``hi_payroll``.
+    """
+    if policy_id in _DESIGN_ALIASES:
+        return _DESIGN_ALIASES[policy_id]
+    stripped = re.sub(r"^cbo\d{0,4}_opt\d+_", "", policy_id)
+    if stripped in _DESIGN_ALIASES:
+        return _DESIGN_ALIASES[stripped]
+    if stripped == policy_id:
+        return policy_id
+    design = re.sub(r"_?\d+(?:pp|pct)\b", "", stripped)
+    return _DESIGN_ALIASES.get(design, design)
+
+
 def _round1(value: float) -> float:
     return round(float(value), 1)
 
@@ -141,6 +172,23 @@ def build_payload(
     }
 
     from fiscal_model.validation.policy_classes import classify_policy
+
+    # Disclosures the Methods page prints beside the pooled figure (outside
+    # review, 23 Nov 2026): the corporate class's credit factor is calibrated to
+    # two houses outside the scorecard, so the pooled tier is also given without
+    # it; the rows repeat designs across CBO editions; and none is a tax cut.
+    without = oos.get("summary_without_corporate_credit_factor")
+    if without is not None:
+        out_of_sample["without_corporate_credit_factor"] = _summary(without)
+        out_of_sample["corporate_credit_factor"] = oos.get("corporate_credit_factor")
+    designs = {reform_design(entry["policy_id"]) for entry in oos_entries}
+    out_of_sample["distinct_designs"] = len(designs)
+    out_of_sample["tax_cuts"] = sum(
+        1
+        for entry in oos_entries
+        if "spending" not in classify_policy(entry["policy_id"])
+        and float(entry["official_10yr_billions"]) > 0
+    )
 
     out_of_sample_rows = [
         {

@@ -68,3 +68,47 @@ export const CATEGORY_LABEL: Record<ChangeItem["category"], string> = {
   score: "Score change",
   data: "Data refresh",
 };
+
+/** A new CBO estimate under $0.1B either way: listed as a count, not one line each. */
+export function isNegligibleEstimate(item: ChangeItem): boolean {
+  return item.kind === "cbo_estimate" && typeof item.new === "number" && Math.abs(item.new) < 0.05;
+}
+
+const REPO = "https://github.com/laurencehw/fiscal-policy-calculator/pull";
+
+/**
+ * Why a preset's score moved, for the moves a reader would otherwise have to guess at.
+ * Keyed by date and preset id; the nightly export does not know why a figure moved.
+ */
+export const CHANGE_REASONS: Record<string, { text: string; href: string }> = {
+  "2026-11-19:ss-donut-250k": {
+    text: "The donut is now priced from SSA's distribution of wages against CBO's path for the taxable maximum, instead of a fitted constant",
+    href: `${REPO}/262`,
+  },
+  "2026-11-17:corporate-28pct": {
+    text: "Two changes the same day: the preset is now scored against current law, and the corporate module's credit factor was recalibrated",
+    href: `${REPO}/260`,
+  },
+  "2026-11-17:corporate-15pct": {
+    text: "Two changes the same day: the preset is now scored against current law, and the corporate module's credit factor was recalibrated",
+    href: `${REPO}/260`,
+  },
+};
+for (const id of [
+  "across-the-board-rate-cut-5pp",
+  "medicare-surcharge-2pp",
+  "middle-class-rate-cut-2pp",
+  "millionaire-surtax-5pp",
+  "top-rate-39-6",
+  "top-rate-45",
+  "ultra-millionaire-surtax-3pp",
+]) {
+  CHANGE_REASONS[`2026-11-06:${id}`] = {
+    text: "The IRS income base is now aged to each year on CBO's own income path",
+    href: `${REPO}/246`,
+  };
+}
+
+export function changeReason(item: ChangeItem): { text: string; href: string } | null {
+  return CHANGE_REASONS[`${item.date}:${item.id}`] ?? null;
+}

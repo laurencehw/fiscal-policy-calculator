@@ -13,7 +13,9 @@ export const metadata: Metadata = pageMeta({
 const TEXTBOOK_URL = "https://laurence-wilse-samson.gitbook.io/textbooks";
 
 export default function About() {
-  const oos = evidence().out_of_sample;
+  const ev = evidence();
+  const oos = ev.out_of_sample;
+  const cal = ev.calibrated;
   return (
     <>
       <header>
@@ -51,8 +53,10 @@ export default function About() {
         <p>
           I would treat every figure as an estimate with a stated source rather than as an official score. Where the model predicts a
           published score it was never tuned to, it is off by {oos.mean_abs_error}% on average across {oos.n} cases,
-          and the gap varies a lot by kind of policy. <Link href="/methods">Methods</Link> gives the figures for each
-          kind and lists every benchmark.
+          and the gap varies a lot by kind of policy. Those cases are mostly standard rate and spending options; on
+          other published scores that the model was not fitted to, the average gap is much larger (
+          {cal.reconstruction.mean_abs_error}% across {cal.reconstruction.n}). <Link href="/methods">Methods</Link>{" "}
+          gives the figures for each kind, the caveats on both groups, and every benchmark.
         </p>
       </section>
 

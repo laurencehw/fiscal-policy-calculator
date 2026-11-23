@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { byDate, changeSentence, recentChanges, type ChangeItem } from "./changes";
+import { byDate, changeReason, changeSentence, isNegligibleEstimate, recentChanges, type ChangeItem } from "./changes";
 import { changes } from "./data";
 
 function item(date: string, id: string, extra: Partial<ChangeItem> = {}): ChangeItem {
@@ -22,4 +22,12 @@ test("each kind gets its own sentence, and a score change is never called a refr
 test("the exported changes file reads", () => {
   const file = changes();
   assert.ok(Array.isArray(file.items));
+});
+
+test("tiny CBO estimates are counted, not listed, and known moves carry a reason", () => {
+  const tiny = { date: "2026-11-19", category: "data", kind: "cbo_estimate", id: "hr-1-119", title: "", old: null, new: 0, href: "" } as const;
+  assert.equal(isNegligibleEstimate(tiny), true);
+  assert.equal(isNegligibleEstimate({ ...tiny, new: 3.3 }), false);
+  const donut = { date: "2026-11-19", category: "score", kind: "preset", id: "ss-donut-250k", title: "", old: -2700, new: -1794.7, href: "" } as const;
+  assert.match(changeReason(donut)!.href, /pull\/262$/);
 });

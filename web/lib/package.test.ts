@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildCatalog } from "./data";
-import { addToPackage, choose, contributions, covered, fromQuery, replacedBy, towardTarget, total, undoReplacement, calculatorGap } from "./package";
+import { addToPackage, choose, contributions, covered, fromQuery, replacedBy, towardTarget, total, undoReplacement, calculatorGap, sameBasis } from "./package";
 
 const rows = buildCatalog();
 
@@ -85,4 +85,16 @@ test("contribution bars share one scale and the target share is signed for a def
   assert.equal(scale, Math.max(...list.map((r) => Math.abs(r.score))));
   assert.deepEqual(towardTarget(-750, 1000), { share: 0.75, remaining: 250 });
   assert.deepEqual(towardTarget(200, 1000), { share: -0.2, remaining: 1200 });
+});
+
+test("a percentage gap is printed only on the same window and baseline", () => {
+  const a = { window: "FY2026-2035", baseline: "CBO Feb 2026" };
+  assert.equal(sameBasis(a, { ...a }), true);
+  assert.equal(sameBasis(a, { window: "FY2025–2034", baseline: "CBO Feb 2026" }), false);
+  assert.equal(sameBasis(a, { window: "FY2026-2035", baseline: "CBO Jun 2024" }), false);
+  assert.equal(sameBasis(null, a), true);
+});
+
+test("a window written with or without FY is the same window", () => {
+  assert.equal(sameBasis({ window: "FY2026-2035", baseline: "" }, { window: "2026-2035", baseline: "" }), true);
 });

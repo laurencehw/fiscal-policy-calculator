@@ -194,7 +194,15 @@ export type OutOfSampleRow = {
 
 /** site_data/validation/evidence.json: the validation figures every page quotes. */
 export type Evidence = {
-  out_of_sample: EvidenceSummary;
+  out_of_sample: EvidenceSummary & {
+    /** The pooled tier with the corporate rows scored before the credit factor calibrated to TF and PWBM. */
+    without_corporate_credit_factor?: EvidenceSummary;
+    corporate_credit_factor?: number;
+    /** Reform designs behind the rows: one CBO option across editions, or at 1 and 2 points, counts once. */
+    distinct_designs?: number;
+    /** Rows that are tax cuts. */
+    tax_cuts?: number;
+  };
   out_of_sample_classes: Record<string, EvidenceSummary & { label: string }>;
   /** One point per out-of-sample row: signed model and published ten-year totals, $B. */
   out_of_sample_rows: OutOfSampleRow[];

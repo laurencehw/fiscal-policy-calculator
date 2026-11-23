@@ -1,5 +1,6 @@
 // Build's package rules, as in the app's deficit_target tab: one policy per
 // exclusive group, and a policy that already contains another hides it.
+import type { EstimateIdentity } from "./identity";
 import type { BuildRow } from "./types";
 
 /** Add ``id``, and name anything the exclusive-group rules dropped. */
@@ -110,4 +111,11 @@ export function calculatorGap(published: number, calculator: number): { share: n
   const share = Math.abs(calculator - published) / Math.abs(published);
   const flipped = Math.sign(calculator) !== Math.sign(published) && calculator !== 0;
   return { share, differs: flipped || share >= DIFFERS_AT };
+}
+
+/** True when two estimates cover the same window under the same baseline, or when either is unknown. */
+export function sameBasis(a: Pick<EstimateIdentity, "window" | "baseline"> | null, b: Pick<EstimateIdentity, "window" | "baseline"> | null): boolean {
+  if (!a || !b || !a.window || !b.window) return true;
+  const norm = (w: string) => w.replace(/\s+/g, "").replace(/[–—]/g, "-").toUpperCase().replace(/^FY/, "");
+  return norm(a.window) === norm(b.window) && (!a.baseline || !b.baseline || a.baseline === b.baseline);
 }

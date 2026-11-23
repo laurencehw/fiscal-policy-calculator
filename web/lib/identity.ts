@@ -46,7 +46,7 @@ const MONTHS: Record<string, string> = {
 
 const KIND_WORD: Record<IdentityKind, string> = {
   model: "conventional",
-  "model-dynamic": "with macroeconomic feedback",
+  "model-dynamic": "with demand-side feedback, no supply side",
   published: "published",
   unpublished: "unpublished estimate",
   "package-sum": "sum of standalone published scores",
@@ -106,7 +106,7 @@ export function classBandSentence(n: number, classLabel: string | null | undefin
   const cls = classLabel?.trim();
   const cases = n === 1 ? "proposal" : "proposals";
   const similar = cls ? `${n} ${cls} ${cases}` : `${n} similar ${cases}`;
-  return `No published score for this exact proposal. Its range comes from how far off the calculator was on ${similar} it predicted before their published scores came out.`;
+  return `No published score for this exact proposal. Its range comes from how far off the calculator was on ${similar} it scored bottom-up, each registered before the calculator was first run against its published score.`;
 }
 
 function limitationForTier(tier: string, cred: Credibility): string {
@@ -173,7 +173,8 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
       baseline: baselinePhrase(result.baseline_vintage),
       tier: "none",
       tierLabel: "not benchmarked",
-      limitation: "The macroeconomic feedback is not scored against a published dynamic estimate here.",
+      limitation:
+        "Demand-side feedback and interest on the debt only. There is no supply-side channel, so for corporate and capital taxes this can move in the opposite direction from CBO and JCT dynamic estimates. Not scored against a published dynamic estimate.",
     };
   }
   return {
