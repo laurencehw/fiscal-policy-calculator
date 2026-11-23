@@ -25,12 +25,12 @@ import re
 import threading
 import time
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 import numpy as np
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 from fiscal_model.api_security import (
     is_auth_enabled,
@@ -248,6 +248,49 @@ def _clear_readiness_cache() -> None:
         _readiness_cache = None
 
 
+class _TTLCache:
+    """One value shared for ``ttl_seconds``, computed at most once at a time.
+
+    The lock is held while the value is computed, so a burst of requests on a
+    cold cache waits for one computation instead of starting one each.
+    """
+
+    def __init__(self, ttl_seconds: float) -> None:
+        self.ttl_seconds = ttl_seconds
+        self._lock = threading.Lock()
+        self._entry: tuple[float, Any] | None = None
+
+    def get(self, compute: Any) -> Any:
+        with self._lock:
+            entry = self._entry
+            if entry is not None and _now() - entry[0] < self.ttl_seconds:
+                return entry[1]
+            value = compute()
+            self._entry = (_now(), value)
+            return value
+
+    def clear(self) -> None:
+        with self._lock:
+            self._entry = None
+
+
+#: /benchmarks re-ran every distributional benchmark (CPS microsim runs
+#: included) on each unauthenticated GET; /summary did that plus the health
+#: check. The benchmark rows change only when the code does, so they are
+#: shared for ten minutes; /summary carries live health, so it gets the
+#: readiness window.
+BENCHMARKS_CACHE_SECONDS = 600.0
+_benchmarks_cache = _TTLCache(BENCHMARKS_CACHE_SECONDS)
+_summary_cache = _TTLCache(READINESS_CACHE_SECONDS)
+
+
+def _clear_public_caches() -> None:
+    """Drop every cached public report (tests and operators)."""
+    _clear_readiness_cache()
+    _benchmarks_cache.clear()
+    _summary_cache.clear()
+
+
 app = FastAPI(
     title="Fiscal Policy Calculator API",
     description="Programmatic access to CBO-style fiscal policy scoring with dynamic effects",
@@ -266,13 +309,31 @@ app.middleware("http")(security_middleware)
 # =============================================================================
 
 
+#: Bounds on free text and numbers a caller sends. A name or description is
+#: echoed into logs and responses, so it is capped; a float field refuses
+#: NaN and infinity, which pass ``ge``/``le`` checks in some paths and poison
+#: every sum downstream.
+_MAX_NAME_LENGTH = 200
+_MAX_DESCRIPTION_LENGTH = 1000
+#: The top IRS SOI class starts at $10M; a threshold far above it selects no
+#: one and only exercises the extrapolation.
+_MAX_INCOME_THRESHOLD = 100_000_000.0
+
+
 class ScorePolicyRequest(BaseModel):
     """Request to score a custom tax policy."""
 
-    name: str = Field("Custom Policy", description="Policy name")
-    description: str = Field("User-defined policy", description="Policy description")
+    name: str = Field(
+        "Custom Policy", max_length=_MAX_NAME_LENGTH, description="Policy name"
+    )
+    description: str = Field(
+        "User-defined policy",
+        max_length=_MAX_DESCRIPTION_LENGTH,
+        description="Policy description",
+    )
     rate_change: float = Field(
         ...,
+        allow_inf_nan=False,
         ge=-1.0,
         le=1.0,
         description=(
@@ -281,10 +342,14 @@ class ScorePolicyRequest(BaseModel):
         ),
     )
     income_threshold: float = Field(
-        0, ge=0, description="Income threshold for affected taxpayers"
+        0,
+        ge=0,
+        le=_MAX_INCOME_THRESHOLD,
+        allow_inf_nan=False,
+        description="Income threshold for affected taxpayers (at most $100M)",
     )
     elasticity: float = Field(
-        0.25, ge=0, le=2.0, description="Taxable income elasticity"
+        0.25, ge=0, le=2.0, allow_inf_nan=False, description="Taxable income elasticity"
     )
     ordinary_income_base: bool = Field(
         DEFAULT_ORDINARY_INCOME_BASE,
@@ -305,6 +370,7 @@ class ScorePolicyRequest(BaseModel):
     )
     policy_type: str = Field(
         "income_tax",
+        max_length=64,
         description=(
             "'income_tax' (individual rate change above ``income_threshold``) "
             "or 'corporate_tax' (a statutory corporate rate change, scored by "
@@ -426,6 +492,7 @@ class ScorePresetRequest(BaseModel):
 
     preset_name: str = Field(
         ...,
+        max_length=_MAX_NAME_LENGTH,
         description=(
             "A preset's stable id from /presets (e.g. 'tcja-full-extension'). Display "
             "names and their older spellings are still accepted."
@@ -477,11 +544,16 @@ TARIFF_HEADLINE_NOTE = (
 class ScoreTariffRequest(BaseModel):
     """Request to score a tariff policy."""
 
-    name: str = Field("Custom Tariff", description="Tariff name")
-    tariff_rate: float = Field(..., ge=0, le=1.0, description="Tariff rate (0-1)")
+    name: str = Field(
+        "Custom Tariff", max_length=_MAX_NAME_LENGTH, description="Tariff name"
+    )
+    tariff_rate: float = Field(
+        ..., ge=0, le=1.0, allow_inf_nan=False, description="Tariff rate (0-1)"
+    )
     import_base_billions: float = Field(
         3200.0,
         gt=0,
+        allow_inf_nan=False,
         le=_MAX_IMPORT_BASE_BILLIONS,
         description=(
             "Import base the tariff applies to (billions of dollars a year). "
@@ -491,6 +563,7 @@ class ScoreTariffRequest(BaseModel):
     )
     target_country: str | None = Field(
         None,
+        max_length=_MAX_NAME_LENGTH,
         description=(
             "Not supported: the scorer prices the import base you supply and "
             "has no per-country data behind this field. Send the country's "
@@ -1101,41 +1174,15 @@ def summary():
     coverage. Suitable for status dashboards and CI gates that need a
     single source of truth.
     """
-    from fiscal_model.validation.benchmark_runners import default_model_runner
-    from fiscal_model.validation.cbo_distributions import (
-        CBO_JCT_BENCHMARKS,
-        compare_distribution,
-    )
+    return _summary_cache.get(_build_summary)
 
+
+def _build_summary() -> "SummaryResponse":
     health_data = _public(check_health())
     overall_health = health_data.get("overall", "unknown")
     microdata = health_data.get("microdata", {})
 
-    benchmark_results: list[BenchmarkResult] = []
-    benchmarks_worst = "ok"
-    for benchmark in CBO_JCT_BENCHMARKS:
-        model_result = default_model_runner(benchmark)
-        if model_result is None:
-            continue
-        comparison = compare_distribution(model_result, benchmark)
-        if comparison.overall_rating == "needs_improvement":
-            benchmarks_worst = "degraded"
-        benchmark_results.append(
-            BenchmarkResult(
-                policy_id=benchmark.policy_id,
-                policy_name=benchmark.policy_name,
-                source=benchmark.source.value,
-                source_document=benchmark.source_document,
-                analysis_year=benchmark.analysis_year,
-                rating=comparison.overall_rating,
-                mean_absolute_share_error_pp=comparison.mean_absolute_share_error_pp,
-                matched_rows=len(comparison.per_group),
-                benchmark_rows=len(benchmark.rows),
-                ranking_universe=benchmark.ranking_universe,
-                scored_universe=comparison.scored_universe,
-                universe_fell_back=comparison.universe_fell_back,
-            )
-        )
+    benchmark_results, benchmarks_worst = _cached_benchmark_results()
 
     # Overall degrades if either health or benchmarks degrade.
     overall = "degraded" if (overall_health != "ok" or benchmarks_worst == "degraded") else "ok"
@@ -1202,19 +1249,8 @@ def readiness():
     )
 
 
-@app.get("/benchmarks", response_model=BenchmarksResponse)
-def list_benchmarks():
-    """
-    List current model accuracy against every CBO/JCT distributional benchmark.
-
-    Each benchmark reports the mean-absolute-share error between the
-    DistributionalEngine's output and the published official tables.
-    ``overall_rating`` degrades when any benchmark is flagged
-    ``needs_improvement`` (≥10pp mean error).
-
-    See ``docs/VALIDATION_NOTES.md`` for root-cause analysis of current
-    outliers.
-    """
+def _compute_benchmark_results() -> tuple[list["BenchmarkResult"], str]:
+    """Run every distributional benchmark: the rows and the worst rating."""
     from fiscal_model.validation.benchmark_runners import default_model_runner
     from fiscal_model.validation.cbo_distributions import (
         CBO_JCT_BENCHMARKS,
@@ -1246,6 +1282,27 @@ def list_benchmarks():
                 universe_fell_back=comparison.universe_fell_back,
             )
         )
+    return results, worst
+
+
+def _cached_benchmark_results() -> tuple[list["BenchmarkResult"], str]:
+    return _benchmarks_cache.get(_compute_benchmark_results)
+
+
+@app.get("/benchmarks", response_model=BenchmarksResponse)
+def list_benchmarks():
+    """
+    List current model accuracy against every CBO/JCT distributional benchmark.
+
+    Each benchmark reports the mean-absolute-share error between the
+    DistributionalEngine's output and the published official tables.
+    ``overall_rating`` degrades when any benchmark is flagged
+    ``needs_improvement`` (≥10pp mean error).
+
+    See ``docs/VALIDATION_NOTES.md`` for root-cause analysis of current
+    outliers.
+    """
+    results, worst = _cached_benchmark_results()
 
     return BenchmarksResponse(
         benchmarks=results,
@@ -1532,7 +1589,10 @@ class ClassroomCheckRequest(BaseModel):
 
     assignment_id: str = Field(..., min_length=1, max_length=64)
     exercise_id: str = Field(..., min_length=1, max_length=64)
-    params: dict[str, float] = Field(default_factory=dict, description="Slider values by parameter name")
+    params: dict[
+        Annotated[str, StringConstraints(max_length=64)],
+        Annotated[float, Field(allow_inf_nan=False)],
+    ] = Field(default_factory=dict, description="Slider values by parameter name")
     answer: float = Field(..., allow_inf_nan=False, description="The student's answer, in the exercise's unit")
     hints_used: int = Field(0, ge=0, le=10)
 
@@ -2286,7 +2346,7 @@ def root():
             "docs": "GET /docs",
             "openapi": "GET /openapi.json",
         },
-        "docs_url": "http://localhost:8000/docs",
+        "docs_url": "/docs",
     }
 
 

@@ -5,10 +5,23 @@
 // FISCAL_ENGINE_KEY        a secret from the engine's FISCAL_API_KEYS, sent as X-API-Key
 // FISCAL_ENGINE_BYPASS     optional: the engine project's protection-bypass secret,
 //                          while its deployments sit behind Vercel login
+// FISCAL_VISITOR_SALT      salt for the per-visitor id sent as X-Fiscal-Visitor
+//                          (lib/visitor.ts), so the engine rate-limits each
+//                          visitor rather than the whole site as one caller
 import { NextResponse } from "next/server";
+import { isSameOrigin } from "@/lib/origin";
+import { VISITOR_HEADER, visitorIdFromHeaders } from "@/lib/visitor";
 
 export function refuse(status: number, message: string) {
   return NextResponse.json({ error: message }, { status, headers: { "Cache-Control": "no-store" } });
+}
+
+/**
+ * A 403 for a cross-site POST (an Origin header naming another site), else null.
+ * Every POST proxy calls this first; see lib/origin.ts.
+ */
+export function refuseCrossSite(request: Request): NextResponse | null {
+  return isSameOrigin(request.headers) ? null : refuse(403, "Requests from other sites are not accepted.");
 }
 
 /** Read the browser's JSON body, or a 400 response. */
@@ -24,18 +37,35 @@ function engineBase(): string | undefined {
   return process.env.FISCAL_ENGINE_URL?.trim().replace(/\/+$/, "") || undefined;
 }
 
-function engineHeaders(): Record<string, string> {
+/**
+ * The browser request's headers: from ``request`` when the route passes it,
+ * otherwise from Next's request scope (so a route that does not pass it still
+ * gets a per-visitor id). Null outside a request.
+ */
+async function incomingHeaders(request?: Request): Promise<Pick<Headers, "get"> | null> {
+  if (request) return request.headers;
+  try {
+    const { headers } = await import("next/headers");
+    return await headers();
+  } catch {
+    return null;
+  }
+}
+
+async function engineHeaders(request?: Request): Promise<Record<string, string>> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (process.env.FISCAL_ENGINE_KEY) headers["X-API-Key"] = process.env.FISCAL_ENGINE_KEY;
   if (process.env.FISCAL_ENGINE_BYPASS) headers["x-vercel-protection-bypass"] = process.env.FISCAL_ENGINE_BYPASS;
+  const incoming = await incomingHeaders(request);
+  if (incoming) headers[VISITOR_HEADER] = visitorIdFromHeaders(incoming);
   return headers;
 }
 
 /** POST ``payload`` to the engine at ``path`` and relay its answer in the site's terms. */
-export async function forward(path: string, payload: unknown): Promise<NextResponse> {
+export async function forward(path: string, payload: unknown, request?: Request): Promise<NextResponse> {
   const base = engineBase();
   if (!base) return refuse(503, "Live scoring is not connected yet. Presets on Explore still work.");
-  const headers = engineHeaders();
+  const headers = await engineHeaders(request);
 
   let response: Response;
   try {
@@ -68,14 +98,19 @@ export async function forward(path: string, payload: unknown): Promise<NextRespo
  * budget, a visitor's limit) carry the engine's own sentence, which is written
  * for people.
  */
-export async function forwardStream(path: string, payload: unknown, timeoutMs: number): Promise<Response> {
+export async function forwardStream(
+  path: string,
+  payload: unknown,
+  timeoutMs: number,
+  request?: Request,
+): Promise<Response> {
   const base = engineBase();
   if (!base) return refuse(503, "Ask is not connected yet.");
   let response: Response;
   try {
     response = await fetch(`${base}${path}`, {
       method: "POST",
-      headers: engineHeaders(),
+      headers: await engineHeaders(request),
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(timeoutMs),
       cache: "no-store",

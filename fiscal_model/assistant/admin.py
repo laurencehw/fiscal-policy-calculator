@@ -19,6 +19,7 @@ splits the spend.
 
 from __future__ import annotations
 
+import hmac
 import logging
 import os
 import sqlite3
@@ -57,7 +58,9 @@ def is_admin_request(query_params: Any) -> bool:
     if raw is None:
         return False
     candidate = raw[0] if isinstance(raw, list) and raw else raw
-    return str(candidate).strip() == expected
+    return hmac.compare_digest(
+        str(candidate).strip().encode("utf-8"), expected.encode("utf-8")
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -42,6 +42,7 @@ def _reset_security(monkeypatch):
     monkeypatch.delenv("FISCAL_API_KEYS", raising=False)
     monkeypatch.delenv("FISCAL_API_RATE_LIMIT_PER_MINUTE", raising=False)
     monkeypatch.delenv("FISCAL_API_RATE_LIMIT_BURST", raising=False)
+    monkeypatch.delenv("FISCAL_API_KEY_RATE_LIMIT_PER_MINUTE", raising=False)
     api_security.configure(keys=None)
     api_security.reset_limiter()
     yield
@@ -54,6 +55,7 @@ def _reset_security(monkeypatch):
         "FISCAL_API_KEYS",
         "FISCAL_API_RATE_LIMIT_PER_MINUTE",
         "FISCAL_API_RATE_LIMIT_BURST",
+        "FISCAL_API_KEY_RATE_LIMIT_PER_MINUTE",
     ):
         monkeypatch.delenv(name, raising=False)
     api_security.configure(keys=None)
@@ -388,3 +390,117 @@ class TestSecretsNeverReachTheLog:
             )
         assert response.status_code == 401
         assert "wrong-guess-4e6d" not in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Per-visitor buckets behind a shared key (the Next.js proxy's case)
+# ---------------------------------------------------------------------------
+
+
+_SCORE_PAYLOAD = {
+    "name": "t",
+    "rate_change": 0.01,
+    "income_threshold": 0,
+    "elasticity": 0.25,
+    "duration_years": 10,
+    "dynamic": False,
+}
+
+
+class TestVisitorBuckets:
+    """One shared key used to put every site visitor in one 80/min bucket."""
+
+    def _post(self, client, *, key=None, visitor=None):
+        headers = {}
+        if key is not None:
+            headers["X-API-Key"] = key
+        if visitor is not None:
+            headers[api_security.VISITOR_HEADER] = visitor
+        return client.post("/score", headers=headers, json=_SCORE_PAYLOAD)
+
+    def test_one_visitor_exhausting_its_bucket_does_not_block_another(self, monkeypatch):
+        monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
+        api_security.configure(keys={"site": "s"}, per_minute=2, burst=0, key_per_minute=100)
+        client = _client()
+        codes = [self._post(client, key="s", visitor="v-aaaaaaaa").status_code for _ in range(3)]
+        assert codes == [200, 200, 429]
+        # A different visitor on the same key still gets through.
+        assert self._post(client, key="s", visitor="v-bbbbbbbb").status_code == 200
+
+    def test_the_key_as_a_whole_still_has_a_ceiling(self, monkeypatch):
+        monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
+        api_security.configure(keys={"site": "s"}, per_minute=10, burst=0, key_per_minute=3)
+        client = _client()
+        codes = [
+            self._post(client, key="s", visitor=f"v-visitor{i:03d}").status_code
+            for i in range(5)
+        ]
+        assert codes == [200, 200, 200, 429, 429]
+        refused = self._post(client, key="s", visitor="v-another1")
+        assert "API key" in refused.json()["detail"]
+
+    def test_visitor_header_is_ignored_without_a_valid_key(self, monkeypatch):
+        """Anonymous callers cannot mint fresh buckets by varying the header."""
+        monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
+        # Auth off: buckets are per IP whatever the header says.
+        api_security.configure(keys={}, per_minute=2, burst=0)
+        client = _client()
+        codes = [self._post(client, visitor=f"v-visitor{i:03d}").status_code for i in range(3)]
+        assert codes == [200, 200, 429]
+
+    def test_invalid_key_with_visitor_header_is_bucketed_by_ip(self):
+        api_security.configure(keys={"site": "s"}, per_minute=2, burst=0)
+        client = _client()
+        codes = [
+            self._post(client, key="wrong", visitor=f"v-visitor{i:03d}").status_code
+            for i in range(3)
+        ]
+        # 401 from the dependency until the IP bucket is spent, then 429.
+        assert codes == [401, 401, 429]
+
+    def test_caller_identity_uses_visitor_only_with_a_key(self):
+        request = SimpleNamespace(client=SimpleNamespace(host="203.0.113.9"))
+        assert (
+            api_security._caller_identity(request, "site", "v-aaaaaaaa")
+            == "key:site|visitor:v-aaaaaaaa"
+        )
+        assert api_security._caller_identity(request, "site") == "key:site"
+        assert api_security._caller_identity(request, None, "v-aaaaaaaa") == "ip:203.0.113.9"
+
+    @pytest.mark.parametrize("bad", ["short", "has space here", "x" * 65, "semi;colon!!"])
+    def test_malformed_visitor_header_falls_back_to_the_key_bucket(self, monkeypatch, bad):
+        monkeypatch.setattr(api_module, "FiscalPolicyScorer", _DummyScorer)
+        api_security.configure(keys={"site": "s"}, per_minute=1, burst=0, key_per_minute=100)
+        client = _client()
+        assert self._post(client, key="s", visitor=bad).status_code == 200
+        # The plain key bucket (no visitor) is now spent.
+        assert self._post(client, key="s").status_code == 429
+
+    def test_key_ceiling_is_configurable_from_env(self, monkeypatch):
+        monkeypatch.setenv("FISCAL_API_KEY_RATE_LIMIT_PER_MINUTE", "7")
+        api_security.configure(keys={"site": "s"})
+        assert api_security._state.key_limiter.capacity == 7
+        monkeypatch.setenv("FISCAL_API_KEY_RATE_LIMIT_PER_MINUTE", "nope")
+        api_security.configure(keys={"site": "s"})
+        assert api_security._state.key_limiter.capacity == 600
+
+
+class TestLimiterEviction:
+    def test_idle_buckets_are_evicted(self):
+        limiter = api_security.SlidingWindowLimiter(per_minute=5, burst=0)
+        for i in range(1000):
+            assert limiter.allow(f"ip:{i}", now=float(i) * 0.01)
+        assert limiter.bucket_count() == 1000
+        # Past the window, the next call sweeps every bucket that has gone quiet.
+        assert limiter.allow("ip:late", now=200.0)
+        assert limiter.bucket_count() == 1
+
+    def test_active_buckets_survive_a_sweep_and_keep_their_count(self):
+        limiter = api_security.SlidingWindowLimiter(per_minute=2, burst=0)
+        assert limiter.allow("busy", now=0.0)
+        assert limiter.allow("quiet", now=0.0)
+        assert limiter.allow("busy", now=59.0)
+        # At 61s "quiet" is swept; "busy" keeps its 59.0 timestamp.
+        assert limiter.allow("busy", now=61.0)
+        assert limiter.bucket_count() == 1
+        assert limiter.allow("busy", now=61.5) is False

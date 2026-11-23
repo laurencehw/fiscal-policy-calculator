@@ -36,13 +36,28 @@ Env vars
 - ``FISCAL_API_RATE_LIMIT_PER_MINUTE``: requests per minute per-key (or
   per-IP if auth is disabled). Default 60.
 - ``FISCAL_API_RATE_LIMIT_BURST``: additional bucket size. Default 20.
+- ``FISCAL_API_KEY_RATE_LIMIT_PER_MINUTE``: aggregate ceiling per API key,
+  across every visitor it carries. Default 600. A trusted proxy (the Next.js
+  site) sends one key for every visitor, so the per-caller limit applies to
+  each visitor it names in ``X-Fiscal-Visitor`` and this ceiling bounds the
+  key as a whole.
+
+Per-visitor buckets behind a shared key
+---------------------------------------
+``X-Fiscal-Visitor`` is honoured **only** on a request that carries a valid
+API key: the key holder is vouching for the identifier (the site sends a
+salted hash of the visitor's address). Without a valid key the header is
+ignored and the caller is bucketed by IP, so an anonymous client cannot mint
+fresh buckets by varying it.
 """
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
 import os
+import re
 import threading
 import time
 from collections import deque
@@ -55,6 +70,9 @@ from fastapi.security import APIKeyHeader
 logger = logging.getLogger("fiscal_model.api_security")
 
 API_KEY_HEADER = "X-API-Key"
+#: Opaque per-visitor id a trusted key holder may attach (see module docstring).
+VISITOR_HEADER = "X-Fiscal-Visitor"
+_VISITOR_PATTERN = re.compile(r"^[A-Za-z0-9_-]{8,64}$")
 _api_key_scheme = APIKeyHeader(name=API_KEY_HEADER, auto_error=False)
 
 _ANON_KEY_LABEL = "anonymous"
@@ -136,6 +154,19 @@ def _rate_limits_from_env() -> tuple[int, int]:
     return per_minute, burst
 
 
+def _key_rate_limit_from_env() -> int:
+    raw = os.environ.get("FISCAL_API_KEY_RATE_LIMIT_PER_MINUTE")
+    if not raw:
+        return 600
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        logger.warning(
+            "Invalid FISCAL_API_KEY_RATE_LIMIT_PER_MINUTE=%r; using default 600", raw
+        )
+        return 600
+
+
 # ---------------------------------------------------------------------------
 # Sliding-window rate limiter
 # ---------------------------------------------------------------------------
@@ -150,7 +181,13 @@ class SlidingWindowLimiter:
     When a new request arrives, timestamps older than 60s are dropped; if
     the remaining count is below ``per_minute + burst``, it is allowed and
     recorded.
+
+    Buckets whose newest timestamp has left the window are evicted by a sweep
+    that runs at most once per window, so a stream of one-off callers (one
+    bucket per IP) cannot grow memory without bound.
     """
+
+    WINDOW_SECONDS = 60.0
 
     def __init__(self, per_minute: int, burst: int) -> None:
         self.per_minute = per_minute
@@ -158,11 +195,26 @@ class SlidingWindowLimiter:
         self.capacity = per_minute + burst
         self._buckets: dict[str, deque[float]] = {}
         self._lock = threading.Lock()
+        self._last_sweep: float | None = None
+
+    def _sweep(self, cutoff: float) -> None:
+        stale = [
+            caller
+            for caller, bucket in self._buckets.items()
+            if not bucket or bucket[-1] < cutoff
+        ]
+        for caller in stale:
+            del self._buckets[caller]
 
     def allow(self, caller: str, *, now: float | None = None) -> bool:
         now = now if now is not None else time.monotonic()
-        cutoff = now - 60.0
+        cutoff = now - self.WINDOW_SECONDS
         with self._lock:
+            if self._last_sweep is None:
+                self._last_sweep = now
+            elif now - self._last_sweep >= self.WINDOW_SECONDS:
+                self._sweep(cutoff)
+                self._last_sweep = now
             bucket = self._buckets.setdefault(caller, deque())
             while bucket and bucket[0] < cutoff:
                 bucket.popleft()
@@ -171,10 +223,16 @@ class SlidingWindowLimiter:
             bucket.append(now)
             return True
 
+    def bucket_count(self) -> int:
+        """Number of live buckets (for tests and diagnostics)."""
+        with self._lock:
+            return len(self._buckets)
+
     def reset(self) -> None:
         """Clear all buckets. Useful in tests."""
         with self._lock:
             self._buckets.clear()
+            self._last_sweep = None
 
 
 # ---------------------------------------------------------------------------
@@ -189,6 +247,10 @@ class _SecurityState:
         self.keys: dict[str, _KeyInfo] = _load_keys_from_env()
         per_minute, burst = _rate_limits_from_env()
         self.limiter = SlidingWindowLimiter(per_minute=per_minute, burst=burst)
+        #: Aggregate ceiling per API key, across every visitor it carries.
+        self.key_limiter = SlidingWindowLimiter(
+            per_minute=_key_rate_limit_from_env(), burst=0
+        )
 
     @property
     def auth_enabled(self) -> bool:
@@ -203,6 +265,7 @@ def configure(
     keys: dict[str, str] | None = None,
     per_minute: int | None = None,
     burst: int | None = None,
+    key_per_minute: int | None = None,
 ) -> None:
     """Reconfigure the security state in-process. Primarily used in tests."""
     if keys is None:
@@ -217,10 +280,17 @@ def configure(
         per_minute=per_minute if per_minute is not None else env_per_minute,
         burst=burst if burst is not None else env_burst,
     )
+    _state.key_limiter = SlidingWindowLimiter(
+        per_minute=(
+            key_per_minute if key_per_minute is not None else _key_rate_limit_from_env()
+        ),
+        burst=0,
+    )
 
 
 def reset_limiter() -> None:
     _state.limiter.reset()
+    _state.key_limiter.reset()
 
 
 def is_auth_enabled() -> bool:
@@ -232,6 +302,23 @@ def is_auth_enabled() -> bool:
 # ---------------------------------------------------------------------------
 
 
+def _lookup_key(candidate: str | None) -> _KeyInfo | None:
+    """Find the configured key matching ``candidate`` in constant time.
+
+    Every configured secret is compared with ``hmac.compare_digest`` and the
+    loop never exits early, so the response time does not reveal how much of
+    a guess matched or which entry it was compared against.
+    """
+    if not candidate:
+        return None
+    candidate_bytes = candidate.encode("utf-8")
+    found: _KeyInfo | None = None
+    for info in _state.keys.values():
+        if hmac.compare_digest(candidate_bytes, info.secret.encode("utf-8")):
+            found = info
+    return found
+
+
 def _resolve_key_or_raise(api_key: str | None) -> str:
     if not _state.auth_enabled:
         return _DISABLED_KEY_LABEL
@@ -241,7 +328,7 @@ def _resolve_key_or_raise(api_key: str | None) -> str:
             detail=f"Missing {API_KEY_HEADER} header.",
             headers={"WWW-Authenticate": API_KEY_HEADER},
         )
-    info = _state.keys.get(api_key)
+    info = _lookup_key(api_key)
     if info is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -273,14 +360,43 @@ async def require_api_key(
 OPEN_PATHS = {"/", "/health", "/docs", "/openapi.json", "/redoc"}
 
 
-def _caller_identity(request: Request, resolved_key_label: str | None) -> str:
+def _visitor_from(request: Request) -> str | None:
+    raw = request.headers.get(VISITOR_HEADER)
+    if raw and _VISITOR_PATTERN.match(raw):
+        return raw
+    return None
+
+
+def _caller_identity(
+    request: Request,
+    resolved_key_label: str | None,
+    visitor: str | None = None,
+) -> str:
+    """The rate-limit bucket for a request.
+
+    ``visitor`` is used only alongside a resolved key: the caller must have
+    checked the key before passing it, because an unauthenticated visitor
+    header would let anyone mint fresh buckets.
+    """
     if resolved_key_label and resolved_key_label not in {
         _ANON_KEY_LABEL,
         _DISABLED_KEY_LABEL,
     }:
+        if visitor:
+            return f"key:{resolved_key_label}|visitor:{visitor}"
         return f"key:{resolved_key_label}"
     client = request.client
     return f"ip:{client.host}" if client else "ip:unknown"
+
+
+def _rate_limited_response(detail: str):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        status_code=429,
+        content={"detail": detail},
+        headers={"Retry-After": "60"},
+    )
 
 
 async def security_middleware(request: Request, call_next: Callable):
@@ -300,12 +416,26 @@ async def security_middleware(request: Request, call_next: Callable):
     # present in the header. Invalid keys fall through to IP-based limits
     # here; the dependency will reject them with 401.
     header_key = request.headers.get(API_KEY_HEADER)
-    key_info = _state.keys.get(header_key) if header_key else None
+    key_info = _lookup_key(header_key)
     key_label = key_info.label if key_info else None
-    caller = _caller_identity(request, key_label)
+    # The visitor header is trusted only when the key is valid.
+    visitor = _visitor_from(request) if key_info else None
+    caller = _caller_identity(request, key_label, visitor)
 
     if path not in OPEN_PATHS:
+        refusal: str | None = None
         if not _state.limiter.allow(caller):
+            refusal = (
+                f"Rate limit exceeded ({_state.limiter.per_minute}/min "
+                f"with burst {_state.limiter.burst}). Retry after 60s."
+            )
+        elif key_label and not _state.key_limiter.allow(f"key:{key_label}"):
+            refusal = (
+                f"Rate limit exceeded for this API key "
+                f"({_state.key_limiter.per_minute}/min across all its callers). "
+                "Retry after 60s."
+            )
+        if refusal is not None:
             _log_request(
                 path=path,
                 method=method,
@@ -315,18 +445,7 @@ async def security_middleware(request: Request, call_next: Callable):
                 duration_ms=0.0,
                 reason="rate_limited",
             )
-            from fastapi.responses import JSONResponse
-
-            return JSONResponse(
-                status_code=429,
-                content={
-                    "detail": (
-                        f"Rate limit exceeded ({_state.limiter.per_minute}/min "
-                        f"with burst {_state.limiter.burst}). Retry after 60s."
-                    )
-                },
-                headers={"Retry-After": "60"},
-            )
+            return _rate_limited_response(refusal)
 
     try:
         response = await call_next(request)
@@ -383,6 +502,7 @@ __all__ = [
     "API_KEY_HEADER",
     "OPEN_PATHS",
     "UNLABELLED_KEY_PREFIX",
+    "VISITOR_HEADER",
     "SlidingWindowLimiter",
     "configure",
     "is_auth_enabled",
