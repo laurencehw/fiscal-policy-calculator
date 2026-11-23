@@ -2,7 +2,7 @@
   "id": "aca-ptc-repeal",
   "conventional": {
     "policy_name": "🏥 Repeal ACA Premium Credits (-$1.1T)",
-    "policy_description": "Repeal all ACA premium tax credits. Published estimate: saves about \\$1.1T over ten years (CBO, 2024), with roughly 19 million people losing subsidized coverage.",
+    "policy_description": "Repeal all ACA premium tax credits. Published estimate: saves about \\$1.1T over ten years (CBO, 2024). CBO's February 2026 baseline projects 13.4 million people with subsidized marketplace coverage in 2026.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -840.840383862123,
@@ -148,7 +148,7 @@
   },
   "dynamic": {
     "policy_name": "🏥 Repeal ACA Premium Credits (-$1.1T)",
-    "policy_description": "Repeal all ACA premium tax credits. Published estimate: saves about \\$1.1T over ten years (CBO, 2024), with roughly 19 million people losing subsidized coverage.",
+    "policy_description": "Repeal all ACA premium tax credits. Published estimate: saves about \\$1.1T over ten years (CBO, 2024). CBO's February 2026 baseline projects 13.4 million people with subsidized marketplace coverage in 2026.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
     "ten_year_deficit_impact": -840.840383862123,
