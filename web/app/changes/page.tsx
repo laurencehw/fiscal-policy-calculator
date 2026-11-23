@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CATEGORY_LABEL, CHANGES_DAYS, byDate, changeSentence, recentChanges } from "@/lib/changes";
+import { CATEGORY_LABEL, CHANGES_DAYS, byDate, changeReason, changeSentence, isNegligibleEstimate, recentChanges } from "@/lib/changes";
 import { changes, manifest } from "@/lib/data";
 import { shortLabel } from "@/lib/format";
 import { longDate } from "@/lib/share";
@@ -18,7 +18,9 @@ export const revalidate = 3600;
 export default function ChangesPage() {
   const file = changes();
   const today = new Date().toISOString().slice(0, 10);
-  const groups = byDate(recentChanges(file.items, today));
+  const recent = recentChanges(file.items, today);
+  const negligible = recent.filter(isNegligibleEstimate).length;
+  const groups = byDate(recent.filter((item) => !isNegligibleEstimate(item)));
   const scoresDate = manifest().scores_date;
   const threshold = `${(file.threshold * 100).toFixed(1)}%`;
   return (
@@ -38,6 +40,12 @@ export default function ChangesPage() {
         </p>
       </header>
 
+      {negligible ? (
+        <p className="note">
+          Not listed: {negligible} new CBO estimate{negligible === 1 ? "" : "s"} of under $0.1B either way, which the
+          bill tracker shows.
+        </p>
+      ) : null}
       {groups.length ? (
         groups.map((group) => (
           <section className="changes" key={group.date} aria-labelledby={`day-${group.date}`}>
@@ -52,6 +60,12 @@ export default function ChangesPage() {
                     <a href={item.href}>{item.title}</a>
                   )}
                   . {changeSentence(item)}
+                  {changeReason(item) ? (
+                    <>
+                      {" "}
+                      Why: {changeReason(item)!.text} (<a href={changeReason(item)!.href}>the change</a>).
+                    </>
+                  ) : null}
                 </li>
               ))}
             </ul>

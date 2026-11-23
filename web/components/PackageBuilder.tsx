@@ -8,7 +8,7 @@ import { cleanLabel, money, shortLabel } from "@/lib/format";
 import { ARCHIVED_AREA, ARCHIVED_NOTE, chipWorthy } from "@/lib/lawStatus";
 import { LawChip } from "@/components/LawStatus";
 import type { EstimateIdentity } from "@/lib/identity";
-import { addToPackage, calculatorGap, covered, fromQuery, total, towardTarget, undoReplacement, type Replacement } from "@/lib/package";
+import { addToPackage, calculatorGap, covered, fromQuery, sameBasis, total, towardTarget, undoReplacement, type Replacement } from "@/lib/package";
 import type { BuildRow, ValuesArchetype } from "@/lib/types";
 import { CiteBlock } from "@/components/CiteBlock";
 import { useFlash } from "@/components/ChartActions";
@@ -265,6 +265,7 @@ export function PackageBuilder({
                             published={r.score}
                             calc={calculator[r.build_id]}
                             model={identities[r.build_id]?.model ?? null}
+                            publishedIdentity={identities[r.build_id]?.published ?? null}
                           />
                         ) : null}
                       </small>
@@ -421,13 +422,19 @@ function CalculatorNote({
   published,
   calc,
   model,
+  publishedIdentity = null,
 }: {
   id: string;
   published: number;
   calc: number;
   model: EstimateIdentity | null;
+  publishedIdentity?: EstimateIdentity | null;
 }) {
-  const { share, differs } = calculatorGap(published, calc);
+  const { share, differs: apart } = calculatorGap(published, calc);
+  // A percentage gap means something only when both figures cover the same years under the same law.
+  // When the published score is for another decade or baseline, say so instead of printing a gap.
+  const comparable = sameBasis(publishedIdentity, model);
+  const differs = apart && comparable;
   return (
     <>
       {" · "}
@@ -440,6 +447,12 @@ function CalculatorNote({
           <EstimateTag identity={model} short />
         </>
       ) : null}
+      {!comparable && apart ? (
+        <span>
+          ; the published score covers {publishedIdentity?.window || "another window"}, so no gap is shown (
+          <a href="/methods">Methods</a> compares like with like)
+        </span>
+      ) : null}
       {differs ? (
         <span className="differs">
           {Number.isFinite(share) && Math.sign(calc) === Math.sign(published)
@@ -450,3 +463,4 @@ function CalculatorNote({
     </>
   );
 }
+

@@ -16,7 +16,8 @@ export function contactText(): string {
 export function privacyParagraphs(): string[] {
   return [
     "The Fiscal Policy Calculator does not ask you to create an account, and it does not sell personal information. The pages are static estimates computed nightly from public budget data. Opening one is a request for a page.",
-    "Ask is the exception. A question you submit on Ask is sent to Anthropic to answer and is not stored by this site. Anthropic's handling of that request is covered by Anthropic's own terms. Do not send secrets, account numbers, or anyone else's personal information in a question.",
+    "Four pages send what you enter to the site's own scoring engine, a separate server this site runs: Tailor (the policy settings you choose), Generations (the rates you set), Classroom (an answer you check) and Ask (your question). The engine scores the request and does not store it.",
+    "Ask also sends your question to Anthropic to answer; the question is not stored by this site. Anthropic's handling of that request is covered by Anthropic's own terms. Do not send secrets, account numbers, or anyone else's personal information in a question.",
     "The site keeps a daily cost cap and a per-visitor limit so the assistant cannot run without bound. Those counters exist only to keep the site running. They do not build a profile and are not linked to your name, which the site never asks for.",
     "Classroom saves progress in the browser on the computer you are using. Clearing that browser's storage clears it. The site does not receive a class roster.",
     "The site counts page views with Vercel Web Analytics. It records the page, the referring site, the country, and the browser and device type. It uses no third-party cookies, and it tells visits apart by a hash of the request that is discarded after 24 hours. It is not linked to your name, which the site never asks for.",

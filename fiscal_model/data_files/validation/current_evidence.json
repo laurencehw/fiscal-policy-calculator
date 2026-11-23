@@ -59,12 +59,22 @@
     "within_15pct": 6
   },
   "out_of_sample": {
+    "corporate_credit_factor": 0.739,
+    "distinct_designs": 22,
     "error_mass": 538.8,
     "mean_abs_error": 12.2,
     "median_abs_error": 10.3,
     "n": 44,
+    "tax_cuts": 0,
     "within_15pct": 30,
-    "within_25pct": 39
+    "within_25pct": 39,
+    "without_corporate_credit_factor": {
+      "mean_abs_error": 15.1,
+      "median_abs_error": 12.1,
+      "n": 44,
+      "within_15pct": 26,
+      "within_25pct": 36
+    }
   },
   "out_of_sample_classes": {
     "agi_inclusive_surtax": {

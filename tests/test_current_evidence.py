@@ -483,3 +483,16 @@ def test_the_readmes_catalog_count_is_the_catalogs() -> None:
 def test_the_report_file_is_valid_json_with_sorted_keys() -> None:
     raw = ce.EVIDENCE_PATH.read_text(encoding="utf-8")
     assert raw == json.dumps(json.loads(raw), indent=2, sort_keys=True) + "\n"
+
+
+def test_out_of_sample_carries_its_disclosures():
+    """Outside review, 23 Nov 2026: the Methods page prints these beside the pooled figure."""
+    from fiscal_model.validation.current_evidence import load_evidence, reform_design
+
+    oos = load_evidence()["out_of_sample"]
+    assert oos["tax_cuts"] == 0
+    assert oos["distinct_designs"] < oos["n"]
+    assert oos["without_corporate_credit_factor"]["n"] == oos["n"]
+    assert reform_design("cbo2021_opt15_hi_payroll_2pp") == reform_design("cbo2019_opt18_hi_payroll_1pp")
+    assert reform_design("cbo_opt61_new_payroll_tax_1pct") == reform_design("cbo2023_opt15_new_payroll_2pct")
+    assert reform_design("biden_high_income_tax") == "biden_high_income_tax"

@@ -26,8 +26,8 @@ export default function Privacy() {
           <p key={text}>{text}</p>
         ))}
         <p>
-          <Link href="/ask">Ask</Link> is the only page that sends what you type off this site.{" "}
-          <Link href="/contact">Contact</Link> is email, which you send yourself.
+          <Link href="/ask">Ask</Link> is the only page that sends what you type to a company other than this
+          site&apos;s host. <Link href="/contact">Contact</Link> is email, which you send yourself.
         </p>
       </section>
     </>

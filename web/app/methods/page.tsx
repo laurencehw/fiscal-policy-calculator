@@ -25,7 +25,7 @@ const TIER_NAME: Record<Tier, string> = {
 
 const TIER_NOTE: Record<Tier, string> = {
   out_of_sample:
-    "These are built bottom-up from IRS filer counts, the CBO baseline and each module's revenue arithmetic. I did not tune anything to these targets, and I registered each one before it was first scored.",
+    "These are built bottom-up from IRS filer counts, the CBO baseline and each module's revenue arithmetic. No constant is fitted to these targets, and I registered each one before it was first scored. One exception to read with them: the four corporate rows use a credit factor calibrated to Tax Foundation and Penn Wharton estimates of other corporate rate changes (see above).",
   fitted:
     "I chose a constant in the module so that the model reproduces this score. Small errors here follow by construction and say little about accuracy.",
   reconstruction:
@@ -124,7 +124,10 @@ export default function Methods() {
               The &ldquo;with economic feedback&rdquo; view runs the change through multipliers calibrated to the
               Federal Reserve&apos;s FRB/US model. It then books the revenue that follows from higher or lower output
               and nets out the interest on the extra debt. There is no long-run supply channel, so this view captures
-              demand effects only.
+              demand effects only. Every tax change enters it the same way, as a change in receipts, so a corporate
+              rate rise comes out about 12% larger with feedback and a cut about 13% costlier. CBO, JCT and Penn
+              Wharton find the reverse for corporate and capital taxes, because their models let investment respond.
+              Read this view as the short-run demand effect, not as a full dynamic score.
             </p>
           </div>
         </div>
@@ -170,6 +173,39 @@ export default function Methods() {
           median case). {share(oos, "within_15pct")} land within 15% and {share(oos, "within_25pct")} within 25%. The
           error depends a great deal on the kind of policy:
         </p>
+        <p>Four things to read with that figure.</p>
+        <ul>
+          {oos.without_corporate_credit_factor ? (
+            <li>
+              <b>The corporate rows are not fully independent.</b> Their credit factor (
+              {oos.corporate_credit_factor?.toFixed(3)}) is calibrated to Tax Foundation and Penn Wharton estimates of
+              corporate rate changes. Neither house&apos;s figure is one of these rows, but it is the same kind of
+              change, so the four corporate rows test how well a calibration carries across estimators. Without the
+              factor, the pooled average is {oos.without_corporate_credit_factor.mean_abs_error}% (
+              {share(oos.without_corporate_credit_factor, "within_25pct")} within 25%).
+            </li>
+          ) : null}
+          {oos.distinct_designs ? (
+            <li>
+              <b>{oos.n} rows are {oos.distinct_designs} distinct reforms.</b> CBO prices several of the same options in
+              each edition of <em>Options</em>, and many options come in a 1-point and a 2-point version, which miss by
+              about the same share. Rows of one design are not independent tests.
+            </li>
+          ) : null}
+          {oos.tax_cuts === 0 ? (
+            <li>
+              <b>None of the rows is a tax cut.</b> CBO&apos;s <em>Options</em> volumes list ways to reduce the deficit,
+              so every tax row raises revenue. How the calculator does on a cut is not tested here.
+            </li>
+          ) : null}
+          <li>
+            <b>The rows have been looked at.</b> Each was registered before it was first scored, but several later
+            fixes to the model were found by studying where these rows missed. That makes them closer to a
+            development set than to a sealed test. Unfitted reconstructions of other published scores, below, miss by
+            much more ({cal.reconstruction.mean_abs_error}% on average), and that is the fairer guide for policies
+            unlike these.
+          </li>
+        </ul>
         <div className="tablescroll">
           <table className="sheet">
             <thead>
@@ -213,9 +249,11 @@ export default function Methods() {
           {cal.reconstruction_retired_held_in_place.mean_abs_error}% over {cal.reconstruction_retired_held_in_place.n}.
         </p>
         <p>
-          A third check refits each fitted module without one of its targets and asks whether it can put that target
-          back. Across {loo.n} such cases the gap is {loo.mean_abs_error}% on average; a further{" "}
-          {loo.not_cross_validatable} cannot be tested this way.
+          A third check removes each fitted constant in turn and asks whether the module can put its target back
+          without it. For payroll the module is refitted on its remaining targets; for the other modules the
+          constant is rebuilt from the module&apos;s shared base data, using none of the targets. Across {loo.n} such
+          cases the gap is {loo.mean_abs_error}% on average; a further {loo.not_cross_validatable} cannot be tested this
+          way.
         </p>
         <h3>Every benchmark</h3>
         {tiers.map((tier) => (
@@ -250,8 +288,15 @@ export default function Methods() {
         <h2>How much to trust each part</h2>
         <ul>
           <li>
-            <b>Core, checked against published scores:</b> revenue scoring with behaviour, the who-pays tables, and the
-            view with economic feedback.
+            <b>Core, checked against published scores:</b> revenue scoring with behaviour, and the who-pays tables. The
+            who-pays check is narrow: seven published CBO and JCT tables, of which only two run on the household
+            microsimulation. The other five use a simpler bracket method, two of those read back the source&apos;s own
+            shares (so they agree by construction), and three CBO tables rank tax filing units where CBO ranks
+            households.
+          </li>
+          <li>
+            <b>Not checked against published dynamic scores:</b> the view with economic feedback. It is a short-run
+            demand calculation with interest costs, described above.
           </li>
           <li>
             <b>Specialised, narrower:</b> the policy-area modules (corporate, trade, estate, payroll, credits and the
