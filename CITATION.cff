@@ -1,0 +1,28 @@
+# Citation metadata. GitHub reads this file for "Cite this repository", and
+# Zenodo reads .zenodo.json (which takes precedence there) when a release is archived.
+cff-version: 1.2.0
+message: >-
+  If you use the Fiscal Policy Calculator or its figures, please cite it as below.
+  For a single figure, cite the page's own "Cite as" line, which carries the
+  scores date, and give the snapshot id from https://fiscal.lwilsesamson.com/data.
+type: software
+title: Fiscal Policy Calculator
+abstract: >-
+  Ten-year budget estimates for U.S. tax and spending proposals, each shown
+  beside the published score (CBO, JCT, Treasury and others) it is checked
+  against, with out-of-sample error reported by policy class. Includes the
+  Python scoring engine, the nightly static export the website reads, and
+  frozen snapshots of every set of scored figures the site has published.
+authors:
+  - family-names: Wilse-Samson
+    given-names: Laurence
+license: MIT
+repository-code: https://github.com/laurencehw/fiscal-policy-calculator
+url: https://fiscal.lwilsesamson.com
+keywords:
+  - fiscal policy
+  - budget scoring
+  - tax policy
+  - public finance
+  - microsimulation
+  - CBO
