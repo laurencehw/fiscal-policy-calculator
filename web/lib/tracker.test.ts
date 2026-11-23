@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { billMoney, filterBills } from "./tracker";
+import { billMoney, filterBills, showsAutoFigure } from "./tracker";
 import { money } from "./format";
 import type { TrackerRow } from "./types";
 
@@ -24,4 +24,13 @@ test("amounts that round to zero say so instead of printing a signed zero", () =
   assert.equal(billMoney(-0.01, money), "- under $0.1B");
   assert.equal(billMoney(0, money), "$0.0B");
   assert.equal(billMoney(3.3, money), "+$3.3B");
+});
+
+test("an automated figure shows only when confident, unwithheld and non-zero", () => {
+  const base = { auto_ten_year_billions: -50, auto_confidence: "medium" };
+  assert.equal(showsAutoFigure(row(base)), true);
+  assert.equal(showsAutoFigure(row({ ...base, auto_confidence: "low" })), false);
+  assert.equal(showsAutoFigure(row({ ...base, auto_ten_year_billions: 0 })), false);
+  assert.equal(showsAutoFigure(row({ ...base, auto_ten_year_billions: null })), false);
+  assert.equal(showsAutoFigure(row({ ...base, auto_withheld: ["a reason"] })), false);
 });

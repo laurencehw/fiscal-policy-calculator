@@ -11,6 +11,7 @@ import type { BaselineFile } from "./baseline";
 import type { ChangesFile } from "./changes";
 import { INDEX_NOTE, orderSnapshots, type Snapshot, type SnapshotIndex, type SnapshotIndexEntry } from "./research";
 import { ARCHIVED_AREA, isArchived } from "./lawStatus";
+import { showsAutoFigure } from "./tracker";
 import type { BuildRow, Evidence, Manifest, ScorecardEntry, PresetFile, PresetInfo, ResultViews, ScoreResult, StatesData, TrackerIndex, TrackerRow, ValuesArchetype, YearlyEffect } from "./types";
 
 export const DATA_DIR = path.join(process.cwd(), "..", "site_data");
@@ -192,11 +193,10 @@ export function trackerGroups(index: TrackerIndex = trackerIndex()): {
     size(b[key]) - size(a[key]) || a.id.localeCompare(b.id);
   const cbo = index.rows.filter((r) => r.cbo_ten_year_billions !== null).sort(bySize("cbo_ten_year_billions"));
   const autoOnly = index.rows.filter((r) => r.cbo_ten_year_billions === null && r.auto_ten_year_billions !== null);
-  const confident = (r: TrackerRow) => r.auto_confidence === "high" || r.auto_confidence === "medium";
   return {
     cbo,
-    auto: autoOnly.filter(confident).sort(bySize("auto_ten_year_billions")),
-    autoLow: autoOnly.filter((r) => !confident(r)).sort(bySize("auto_ten_year_billions")),
+    auto: autoOnly.filter(showsAutoFigure).sort(bySize("auto_ten_year_billions")),
+    autoLow: autoOnly.filter((r) => !showsAutoFigure(r)).sort(bySize("auto_ten_year_billions")),
   };
 }
 

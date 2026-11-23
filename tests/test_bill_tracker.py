@@ -626,9 +626,11 @@ class TestAutoScorer:
         from bill_tracker.auto_scorer import AutoScorer
         mock_scorer = MagicMock()
         mock_result = MagicMock()
-        mock_result.static_revenue_effect = -250_000_000_000.0
-        mock_result.behavioral_offset = 10_000_000_000.0
-        mock_result.final_deficit_effect = 240_000_000_000.0
+        # Billions, as score_policy reports them (this fixture once used dollars,
+        # which the plausibility ceiling now reads as a $240 trillion reading).
+        mock_result.static_revenue_effect = -250.0
+        mock_result.behavioral_offset = 10.0
+        mock_result.final_deficit_effect = 240.0
         mock_scorer.score_policy.return_value = mock_result
 
         scorer = AutoScorer(scorer=mock_scorer)

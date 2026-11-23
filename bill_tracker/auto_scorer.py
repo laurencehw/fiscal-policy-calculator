@@ -117,6 +117,15 @@ class AutoScorer:
         if not scored_policies:
             return None
 
+        confidence = mapping_result.confidence
+        if mapping_result.extraction_method != "manual":
+            from bill_tracker.plausibility import reading_problems
+
+            problems = reading_problems(scored_policies, total_ten_year)
+            if problems:
+                confidence = "low"
+                notes_parts.extend(problems)
+
         return BillScore(
             bill_id=mapping_result.bill_id,
             scored_at=utc_now(),
@@ -124,7 +133,7 @@ class AutoScorer:
             annual_effects=annual_effects,
             static_cost=total_static,
             behavioral_offset=total_behavioral,
-            confidence=mapping_result.confidence,
+            confidence=confidence,
             policies_json=scored_policies,
             notes="; ".join(notes_parts),
         )
@@ -242,14 +251,14 @@ class AutoScorer:
 
         if policy_type in ("transfer", "other"):
             # Model transfers as spending
-            amount = float(params.get("transfer_change_billions", 0.0))
+            amount = float(params.get("transfer_change_billions") or 0.0)
             if abs(amount) > 0:
                 return SpendingPolicy(
                     name=name,
                     description=f"Transfer/other: ${amount:.1f}B",
                     policy_type=PolicyType.MANDATORY_SPENDING,
                     annual_spending_change_billions=amount,
-                    duration_years=10,
+                    duration_years=int(params.get("duration_years") or 10),
                 )
 
         return None

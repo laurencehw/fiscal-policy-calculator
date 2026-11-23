@@ -337,6 +337,10 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
 
     from bill_tracker.cbo_fetcher import carries_cost_estimate
     from bill_tracker.ingestor import congress_gov_url
+    from bill_tracker.plausibility import reading_problems
+    from bill_tracker.provision_mapper import ProvisionMapper
+
+    mapper = ProvisionMapper(anthropic_client=object())  # overrides only; never calls a model
 
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
@@ -370,6 +374,18 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
         # another bill's publication (H.Con.Res. 14 drew two about P.L. 119-21).
         estimate = cbo.get(bill_id) if carries_cost_estimate(bill_id) else None
         score = auto.get(bill_id)
+        problems: list[str] = []
+        confidence = score["confidence"] if score else None
+        if score:
+            # Re-checked on every export, so a reading stored before the checks
+            # existed is withheld tonight rather than after its bill is re-read.
+            problems = reading_problems(
+                _json_or(score["policies_json"], []),
+                score["ten_year_cost_billions"],
+                manual=mapper._load_override(bill_id) is not None,
+            )
+            if problems:
+                confidence = "low"
         rows.append(
             {
                 "id": bill_id,
@@ -388,7 +404,9 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
                 "url": congress_gov_url(bill["congress"], bill["bill_type"], bill["number"]) or bill["url"],
                 "cbo_ten_year_billions": estimate["ten_year_cost_billions"] if estimate else None,
                 "auto_ten_year_billions": score["ten_year_cost_billions"] if score else None,
-                "auto_confidence": score["confidence"] if score else None,
+                "auto_confidence": confidence,
+                # Present only when a plausibility check withheld the figure.
+                **({"auto_withheld": problems} if problems else {}),
             }
         )
         if estimate or score:
@@ -410,7 +428,8 @@ def tracker_payloads(db_path: Path = BILLS_DB) -> tuple[dict[str, Any], dict[str
                     "scored_at": score["scored_at"],
                     "ten_year_billions": score["ten_year_cost_billions"],
                     "annual_billions": _json_or(score["annual_effects"], []),
-                    "confidence": score["confidence"],
+                    "confidence": confidence,
+                    "withheld_because": problems,
                     "provisions": _json_or(score["policies_json"], []),
                 },
             }

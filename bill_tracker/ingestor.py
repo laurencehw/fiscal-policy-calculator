@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -41,6 +42,40 @@ FISCAL_SUBJECTS = [
     "Government spending",
     "Federal budget deficit and debt",
 ]
+
+#: congress.gov "policy area" names with fiscal content. The list endpoint the
+#: nightly job reads carries no policy area, so these apply only to bills whose
+#: metadata has one (a detail fetch); everything else is gated by its summary.
+FISCAL_POLICY_AREAS = [
+    "Taxation",
+    "Economics and Public Finance",
+    "Social Welfare",
+    "Health",
+    "Armed Forces and National Security",
+    "Finance and Financial Sector",
+    "Foreign Trade and International Finance",
+]
+
+_FISCAL_WORDS = re.compile(
+    r"\b(tax\w*|tariff\w*|duty|duties|appropriat\w*|authoriz\w* to be appropriated|"
+    r"credit|deduction|exclusion|revenue|spending|outlays?|deficit|budget|"
+    r"medicare|medicaid|social security|snap|subsid\w*|grant\w*|\$\s?\d)",
+    re.IGNORECASE,
+)
+
+
+def looks_fiscal(summary: str | None, subjects: list[str] | None = None) -> bool:
+    """Whether a bill is worth sending to the language-model extractor.
+
+    False when the bill has a policy area and none is fiscal, or when its CRS
+    summary mentions no tax, spending or dollar amount at all. A bill with no
+    summary is not sent either: there is nothing to read.
+    """
+    known = [s for s in (subjects or []) if s]
+    if known and not any(s in FISCAL_SUBJECTS or s in FISCAL_POLICY_AREAS for s in known):
+        return False
+    return bool(summary and _FISCAL_WORDS.search(summary))
+
 
 STATUS_MAP = {
     "Introduced in House": "introduced",
@@ -145,12 +180,14 @@ class BillIngestor:
 
         Args:
             congress: Congress number (119 = 2025–2027).
-            subjects: CRS subject filter. Defaults to FISCAL_SUBJECTS.
+            subjects: Not applied here. The tracker follows every bill (its
+                count is "bills followed"), and the list endpoint carries no
+                subjects to filter on; ``looks_fiscal`` decides which bills go
+                to the language-model extractor. Kept for compatibility.
             since_date: Only return bills updated since this date.
             limit: Max bills to return per call.
         """
-        if subjects is None:
-            subjects = FISCAL_SUBJECTS
+        del subjects  # see the docstring: extraction, not ingestion, is gated
 
         bills: list[BillMetadata] = []
         offset = 0

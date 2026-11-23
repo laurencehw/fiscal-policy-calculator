@@ -6,7 +6,7 @@ import { pageMeta } from "@/lib/meta";
 
 export const metadata: Metadata = pageMeta({
   title: "Bill tracker",
-  description: "Bills in Congress with a ten-year budget estimate, from CBO or from the calculator's reading of the text.",
+  description: "Bills in Congress with a CBO ten-year cost estimate, plus the calculator's experimental readings of the rest.",
   path: "/tracker",
 });
 
@@ -35,8 +35,10 @@ export default function Tracker() {
         <h1>Bills with a budget estimate</h1>
         <p className="sentence">
           Of {index.bills.toLocaleString("en-US")} bills in the 119th Congress followed nightly,{" "}
-          {(cbo.length + auto.length + autoLow.length).toLocaleString("en-US")} have a ten-year estimate. A
-          positive figure adds to the deficit; a negative one reduces it. Updated {day(index.last_update)}.
+          {cbo.length.toLocaleString("en-US")} have a CBO cost estimate. Another{" "}
+          {(auto.length + autoLow.length).toLocaleString("en-US")} have an experimental reading by the calculator,
+          hidden below by default. A positive figure adds to the deficit; a negative one reduces it. Updated{" "}
+          {day(index.last_update)}.
         </p>
       </header>
 
