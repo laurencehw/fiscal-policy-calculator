@@ -123,7 +123,7 @@ def main() -> int:
     from bill_tracker.auto_scorer import AutoScorer
     from bill_tracker.cbo_fetcher import CBOScoreFetcher, load_fallback_estimates
     from bill_tracker.database import BillDatabase
-    from bill_tracker.ingestor import BillIngestor
+    from bill_tracker.ingestor import BillIngestor, looks_fiscal
     from bill_tracker.provision_mapper import ProvisionMapper
 
     db = BillDatabase(str(db_path) if not args.dry_run else ":memory:")
@@ -206,6 +206,12 @@ def main() -> int:
 
         if db.has_manual_override(bill.bill_id):
             logger.debug("  Using manual override for %s", bill.bill_id)
+
+        if not db.has_manual_override(bill.bill_id) and not looks_fiscal(bill.summary, bill.crs_subjects):
+            logger.debug("  Skipping extraction: nothing fiscal in the summary")
+            skipped += 1
+            updated += 1
+            continue
 
         mapping = mapper.map_bill(bill.bill_id, bill.summary)
         logger.debug(

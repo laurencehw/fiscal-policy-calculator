@@ -64,6 +64,9 @@ test("the tracker groups hold every bill with an estimate, once", () => {
   const expected = index.rows.filter((r) => r.cbo_ten_year_billions !== null || r.auto_ten_year_billions !== null);
   assert.equal(ids.length, expected.length);
   assert.ok(auto.every((r) => r.auto_confidence === "high" || r.auto_confidence === "medium"));
+  // No withheld, zero or implausibly large automated reading reaches the visible list.
+  assert.ok(auto.every((r) => !r.auto_withheld && r.auto_ten_year_billions !== 0));
+  assert.ok(auto.every((r) => Math.abs(r.auto_ten_year_billions!) <= 500));
   for (let i = 1; i < cbo.length; i++) {
     assert.ok(Math.abs(cbo[i - 1].cbo_ten_year_billions!) >= Math.abs(cbo[i].cbo_ten_year_billions!));
   }

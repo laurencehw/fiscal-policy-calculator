@@ -32,7 +32,7 @@ extract all fiscal provisions and return a JSON array of policy objects.
 Each policy object MUST have these fields:
   - "policy_type": one of:
       income_tax, capital_gains, corporate, credits, spending, transfer,
-      payroll, estate, trade, tcja_extension, other
+      payroll, estate, tcja_extension, other
   - "parameters": dict of numeric/boolean parameters matching the calculator's Policy classes:
       income_tax:      rate_change, affected_income_threshold, taxable_income_elasticity
       capital_gains:   rate_change, affected_income_threshold
@@ -51,7 +51,22 @@ Each policy object MUST have these fields:
 
 Rules:
 - Use rate_change as a decimal fraction (e.g. 2.6 percentage points = 0.026)
-- Dollar amounts in billions unless noted otherwise
+- Signs: rate_change is POSITIVE when the bill raises a tax rate and NEGATIVE
+  when it lowers one. spending_change_billions and transfer_change_billions are
+  POSITIVE for more federal spending and NEGATIVE for less.
+  credit_amount_billions is POSITIVE when a credit grows or is created and
+  NEGATIVE when it shrinks or is repealed.
+- Dollar amounts are YEARLY budget totals in billions. Never put a per-person,
+  per-vehicle or per-household amount (e.g. "a credit of up to $7,500") in a
+  *_billions field. If the bill gives no budget total, use policy_type "other".
+- A one-time or multi-year total (e.g. "$70 billion through FY2029") is not a
+  yearly amount: divide it by the number of years it covers and set
+  "duration_years" to that number.
+- Use income_tax, capital_gains, corporate or payroll with a rate_change ONLY
+  when the bill changes a statutory tax rate for everyone above the threshold.
+  A deduction, exclusion, exemption, election, opt-in, minimum tax or a rule
+  for one occupation or industry is NOT a rate change: use "other".
+- Tariffs and trade provisions: use "other".
 - If no fiscal provisions found, return []
 - Return ONLY valid JSON (no markdown, no explanation)
 
@@ -194,8 +209,11 @@ class ProvisionMapper:
         # LLM extraction
         raw_response, policies = self._extract_with_llm(summary)
 
-        # Regex validation
+        # Regex validation, then the plausibility rules the export also applies
         warnings = self._validate_with_regex(policies, summary)
+        from bill_tracker.plausibility import reading_problems
+
+        warnings += [w for w in reading_problems(policies, None) if w not in warnings]
 
         # Compute overall confidence
         if not policies:
@@ -212,8 +230,9 @@ class ProvisionMapper:
             reason = f"{len(policies)} provision(s) extracted with mixed confidence"
 
         if warnings:
-            if confidence == "high":
-                confidence = "medium"
+            # A warning means a number may be misread, so the reading is not
+            # one to show; "medium" used to survive any number of warnings.
+            confidence = "low"
             reason += f"; {len(warnings)} validation warning(s)"
 
         if policies and covers_part_of_bill(summary, policies):
@@ -313,6 +332,7 @@ class ProvisionMapper:
                     warnings.append(
                         f"{policy_type}: implausible rate_change={rate_change:.3f} (>50pp)"
                     )
+                # Narrower per-type ceilings live in bill_tracker.plausibility.
                 # Verify the numeric value appears in the summary text
                 rate_pct = abs(rate_change) * 100
                 rate_str = f"{rate_pct:.1f}"
@@ -323,9 +343,9 @@ class ProvisionMapper:
 
             # Check for implausible spending amounts
             spending = params.get("spending_change_billions") or params.get("credit_amount_billions")
-            if spending is not None and abs(spending) > 10_000:
+            if spending is not None and abs(spending) > 1_000:
                 warnings.append(
-                    f"{policy_type}: implausible amount ${spending:.0f}B (>$10T)"
+                    f"{policy_type}: implausible amount ${spending:.0f}B a year (>$1T)"
                 )
 
         return warnings

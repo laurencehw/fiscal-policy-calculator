@@ -160,6 +160,8 @@ export type TrackerRow = {
   cbo_ten_year_billions: number | null;
   auto_ten_year_billions: number | null;
   auto_confidence: string | null;
+  /** Why a plausibility check withheld the automated figure; absent when none did. */
+  auto_withheld?: string[];
 };
 
 export type TrackerIndex = {
