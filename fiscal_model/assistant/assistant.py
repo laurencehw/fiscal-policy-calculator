@@ -14,6 +14,8 @@ After the generator completes, the caller can read:
 * ``assistant.last_provenance`` — list of tool calls performed this turn
 * ``assistant.last_usage``      — :class:`TurnUsage`
 * ``assistant.last_full_text``  — the raw full answer (post-citation-cleanup)
+* ``assistant.last_display_text`` — that answer plus any appended note: what
+  a client should show in place of the streamed (raw) chunks
 * ``assistant.last_message``    — appended to history for next turn
 * ``assistant.last_error``      — ``None``, or the message of the upstream
   failure that ended the turn (see :class:`AssistantUpstreamError`)
@@ -34,7 +36,7 @@ import logging
 import os
 import threading
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Generator, Iterator
 from typing import Any
 
 from .citations import annotate_unsupported
@@ -46,6 +48,7 @@ from .rate_limit import (
     budget_allows,
     record_paid_call,
 )
+from .scoring_context import coerce_scoring_context
 from .system_prompt import build_system_prompt, stable_prompt_prefix
 from .tools import TOOL_SCHEMAS, AssistantTools, web_search_tool_definition
 
@@ -189,6 +192,13 @@ class FiscalAssistant:
         # Back-compat for callers that used to find upstream failures spliced
         # into the answer text: they can now test this instead.
         self.last_error: str | None = None
+        # The post-processed answer as the reader should finally see it
+        # (citation hygiene applied, notes appended). The streamed tokens are
+        # the raw model text; a client replaces them with this when done.
+        self.last_display_text: str = ""
+        # True when a paid call was cut off (client disconnect) before its
+        # final usage could be read, so the recorded cost may be short.
+        self.last_call_cut_off: bool = False
         self._turn_text: str = ""
         self._cache_prewarmed: bool = False
 
@@ -232,6 +242,8 @@ class FiscalAssistant:
         self.last_stop_reason = None
         self.last_truncated = False
         self.last_error = None
+        self.last_display_text = ""
+        self.last_call_cut_off = False
         self._turn_text = ""
 
     # ---- lazy client -----------------------------------------------------
@@ -460,15 +472,22 @@ class FiscalAssistant:
             ``last_error`` is set and the turn-end callback still fires with
             ``error=...`` and the usage of any calls that did complete.
 
-        The paid model call finishes before its text is yielded, so usage is
-        recorded the moment each call returns and the turn-end callback runs
-        in a ``finally`` — a client that disconnects mid-stream (the
-        generator is closed with ``GeneratorExit``) is still billed against
-        the daily cap. ``on_turn_end`` (or the constructor's) receives one
-        dict: ``usage``, ``tools_used``, ``stripped_markers``, ``elapsed_s``,
-        ``answer_chars``, ``error`` and ``disconnected``; callers should record
-        the turn from it rather than from code after the ``for`` loop, which a
-        disconnect never reaches. The callback fires exactly once per turn.
+        Text deltas are yielded as they arrive from the model. Each call's
+        usage is recorded the moment the call finishes, and a call cut off by
+        a client disconnect (the generator is closed with ``GeneratorExit``)
+        books whatever usage the stream had reported and sets
+        ``last_call_cut_off``; the turn-end callback runs in a ``finally``,
+        so the turn is still billed against the daily cap.
+
+        The streamed text is the model's raw output. The answer the reader
+        should end with (unsupported citation markers replaced, notes
+        appended) is ``last_display_text`` once the generator finishes.
+
+        ``on_turn_end`` (or the constructor's) receives one dict: ``usage``,
+        ``tools_used``, ``stripped_markers``, ``elapsed_s``, ``answer_chars``,
+        ``error`` and ``disconnected``; callers should record the turn from it
+        rather than from code after the ``for`` loop, which a disconnect never
+        reaches. The callback fires exactly once per turn.
 
         Parameters
         ----------
@@ -483,6 +502,8 @@ class FiscalAssistant:
             Current scoring result snapshot (optional). Injected into the
             system prompt for grounding.
         """
+        # Only the known, bounded fields reach the prompt and the tool.
+        scoring_context = coerce_scoring_context(scoring_context)
         self._tools.reset_provenance()
         self._tools.set_scoring_context(scoring_context)
         self._reset_turn_state()
@@ -575,22 +596,15 @@ class FiscalAssistant:
         final_message = None
         hit_iteration_cap = False
         for iteration in range(MAX_TOOL_ITERATIONS):
-            stream_result = self._run_one_stream(
+            # Deltas are yielded as they arrive; the call's usage is booked
+            # inside the iterator the moment the call finishes.
+            stream_result = yield from self._iter_one_stream(
                 system_blocks=system_blocks,
                 messages=messages,
                 tools=tools_param,
             )
-            # The call is paid for as soon as it returns: book it *before*
-            # yielding, so a client that disconnects while we yield cannot
-            # leave a completed, billed call off the ledger.
-            self._record_usage(stream_result.get("usage"))
             final_message = stream_result["final_message"]
-            iter_text = ""
-            for chunk in stream_result["text_chunks"]:
-                iter_text += chunk
-                self._turn_text += chunk
-                yield chunk
-            accumulated_text += iter_text
+            accumulated_text += "".join(stream_result["text_chunks"])
 
             # Capture any web_search citations from the model's output for
             # later citation cross-referencing.
@@ -682,17 +696,13 @@ class FiscalAssistant:
             if stub_results:
                 messages.append({"role": "user", "content": stub_results})
             # One last call, tools disabled, to force a real answer.
-            forced = self._run_one_stream(
+            forced = yield from self._iter_one_stream(
                 system_blocks=system_blocks,
                 messages=messages,
                 tools=[],  # no tools → model must answer or end_turn
             )
-            self._record_usage(forced.get("usage"))
             final_message = forced["final_message"]
-            for chunk in forced["text_chunks"]:
-                accumulated_text += chunk
-                self._turn_text += chunk
-                yield chunk
+            accumulated_text += "".join(forced["text_chunks"])
 
         # ------------------------------------------------------------------
         # If the final call ran out of output budget, say so rather than
@@ -721,15 +731,20 @@ class FiscalAssistant:
         )
         self.last_full_text = cleaned
         self.last_stripped_markers = stripped
+        self.last_display_text = cleaned
 
-        # If we stripped markers, append a transparency note.
+        # If we stripped markers, append a transparency note. The streamed
+        # tokens still carry the raw markers, so the note describes the
+        # finished answer, ``last_display_text``, which the web client and the
+        # Streamlit tab swap in for the streamed text when the turn ends.
         if stripped:
             note = (
                 "\n\n> ⚠️ The model emitted "
                 f"{len(stripped)} citation marker(s) without supporting tool "
-                "calls or sources. They were replaced with `[citation needed]` "
-                "above."
+                "calls or sources. In this final answer they are replaced "
+                "with `[citation needed]`."
             )
+            self.last_display_text = cleaned + note
             yield note
 
         # ------------------------------------------------------------------
@@ -747,14 +762,22 @@ class FiscalAssistant:
 
     # ---- helpers ---------------------------------------------------------
 
-    def _run_one_stream(
+    def _iter_one_stream(
         self,
         *,
         system_blocks: list[dict[str, Any]],
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
-    ) -> dict[str, Any]:
-        """Run a single ``messages.stream`` call. Returns chunks + final msg."""
+    ) -> Generator[str, None, dict[str, Any]]:
+        """Run one ``messages.stream`` call, yielding text deltas as they arrive.
+
+        Use as ``result = yield from self._iter_one_stream(...)``: the return
+        value is ``{"text_chunks", "final_message", "usage"}``. The call's
+        usage is recorded here as soon as the call finishes. If the consumer
+        closes the generator mid-call (a client disconnect), the usage the
+        stream had reported so far is recorded and ``last_call_cut_off`` is
+        set before the close propagates.
+        """
         text_chunks: list[str] = []
         final_message = None
         usage = None
@@ -768,10 +791,20 @@ class FiscalAssistant:
                 messages=messages,
                 tools=tools,
             ) as stream:
-                for text in stream.text_stream:
-                    text_chunks.append(text)
+                try:
+                    for text in stream.text_stream:
+                        if not text:
+                            continue
+                        text_chunks.append(text)
+                        self._turn_text += text
+                        yield text
+                except GeneratorExit:
+                    self._record_partial_usage(stream)
+                    raise
                 final_message = stream.get_final_message()
                 usage = getattr(final_message, "usage", None)
+        except GeneratorExit:
+            raise
         except Exception as exc:
             logger.exception("Anthropic stream failed")
             raise AssistantUpstreamError(
@@ -781,11 +814,27 @@ class FiscalAssistant:
                 usage=self.last_usage,
             ) from exc
 
+        # Paid for as soon as it returns: book it before handing control back.
+        self._record_usage(usage)
         return {
             "text_chunks": text_chunks,
             "final_message": final_message,
             "usage": usage,
         }
+
+    def _record_partial_usage(self, stream: Any) -> None:
+        """Book what a call cut off mid-stream had reported, and flag it."""
+        self.last_call_cut_off = True
+        try:
+            snapshot = stream.current_message_snapshot
+            usage = getattr(snapshot, "usage", None)
+        except Exception:
+            usage = None
+        if usage is not None:
+            try:
+                self._record_usage(usage)
+            except Exception:
+                logger.warning("Could not record a cut-off call's usage", exc_info=True)
 
     def _record_usage(self, usage: Any) -> None:
         turn = self.cost.record(usage, self._model)

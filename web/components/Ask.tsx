@@ -1,7 +1,7 @@
 "use client";
 // Ask: a conversation with the citation-grounded assistant, streamed from the engine.
 import { Fragment, useEffect, useRef, useState } from "react";
-import { QUESTION_MAX, parseAnswer, readFrames, unescapeDollars, type Inline, type Turn } from "@/lib/ask";
+import { QUESTION_MAX, finalAnswer, parseAnswer, readFrames, trimHistory, unescapeDollars, type Inline, type Turn } from "@/lib/ask";
 
 const STARTERS = [
   "What does CBO project for the 10-year deficit, and what's driving it?",
@@ -37,7 +37,8 @@ export function Ask() {
       const response = await fetch("/api/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q, history }),
+        // Only the most recent turns that fit the limits are sent; the page keeps the whole conversation.
+        body: JSON.stringify({ question: q, history: trimHistory(history) }),
         signal: controller.signal,
       });
       if (!response.ok || !response.body) {
@@ -65,6 +66,9 @@ export function Ask() {
             } catch {}
             throw new Error(detail);
           } else if (frame.event === "done") {
+            // The tokens are the model's raw text; the finished answer (unsupported
+            // citations replaced, notes appended) replaces what was shown.
+            answer = finalAnswer(frame.data, answer);
             finished = true;
           }
         }
