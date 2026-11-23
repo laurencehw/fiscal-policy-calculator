@@ -144,3 +144,89 @@ def test_the_cli_still_reports_full_detail():
     report = build_readiness_report()
     runtime = next(c for c in report.checks if c.name == "runtime")
     assert runtime.details.get("executable")
+
+
+# ---------------------------------------------------------------------------
+# /benchmarks and /summary: unauthenticated, so their reruns are cached
+# ---------------------------------------------------------------------------
+
+
+def _fake_benchmarks(calls):
+    def compute():
+        calls.append(1)
+        return [], "ok"
+
+    return compute
+
+
+def test_benchmarks_and_summary_share_one_cached_benchmark_run(monkeypatch):
+    calls: list[int] = []
+    clock = {"now": 5000.0}
+    monkeypatch.setattr(api_module, "_compute_benchmark_results", _fake_benchmarks(calls))
+    monkeypatch.setattr(api_module, "check_health", lambda: {"overall": "ok", "timestamp": "t"})
+    monkeypatch.setattr(api_module, "_now", lambda: clock["now"])
+    api_module._clear_public_caches()
+    try:
+        client = _client()
+        for _ in range(3):
+            assert client.get("/benchmarks").status_code == 200
+            assert client.get("/summary").status_code == 200
+        assert len(calls) == 1
+
+        clock["now"] += api_module.BENCHMARKS_CACHE_SECONDS + 1
+        client.get("/benchmarks")
+        assert len(calls) == 2  # expired: one fresh run
+    finally:
+        api_module._clear_public_caches()
+
+
+def test_summary_caches_its_health_check_for_the_readiness_window(monkeypatch):
+    health_calls: list[int] = []
+    clock = {"now": 9000.0}
+
+    def health():
+        health_calls.append(1)
+        return {"overall": "ok", "timestamp": f"t{len(health_calls)}"}
+
+    monkeypatch.setattr(api_module, "_compute_benchmark_results", _fake_benchmarks([]))
+    monkeypatch.setattr(api_module, "check_health", health)
+    monkeypatch.setattr(api_module, "_now", lambda: clock["now"])
+    api_module._clear_public_caches()
+    try:
+        client = _client()
+        assert client.get("/summary").json()["timestamp"] == "t1"
+        assert client.get("/summary").json()["timestamp"] == "t1"
+        assert len(health_calls) == 1
+        clock["now"] += api_module.READINESS_CACHE_SECONDS + 1
+        assert client.get("/summary").json()["timestamp"] == "t2"
+    finally:
+        api_module._clear_public_caches()
+
+
+def test_concurrent_cold_requests_compute_the_benchmarks_once(monkeypatch):
+    import threading
+    import time as _time
+
+    calls: list[int] = []
+
+    def slow():
+        calls.append(1)
+        _time.sleep(0.2)
+        return [], "ok"
+
+    monkeypatch.setattr(api_module, "_compute_benchmark_results", slow)
+    api_module._clear_public_caches()
+    try:
+        results: list[tuple] = []
+        threads = [
+            threading.Thread(target=lambda: results.append(api_module._cached_benchmark_results()))
+            for _ in range(8)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert len(calls) == 1
+        assert len(results) == 8
+    finally:
+        api_module._clear_public_caches()

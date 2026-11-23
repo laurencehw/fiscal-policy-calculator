@@ -1,6 +1,17 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
+// Browser features the site never uses, denied to it and to anything it frames.
+const PERMISSIONS_POLICY = [
+  "camera=()",
+  "microphone=()",
+  "geolocation=()",
+  "payment=()",
+  "usb=()",
+  "interest-cohort=()",
+  "browsing-topics=()",
+].join(", ");
+
 // Pages read ../site_data (written nightly by scripts/export_static.py) at build
 // time, so the repository root must be in the tracing root.
 const config: NextConfig = {
@@ -39,10 +50,15 @@ const config: NextConfig = {
         ],
       },
       {
+        // No script-src policy yet: Next's inline bootstrap scripts and Vercel
+        // Analytics would need nonces or hashes, which this config cannot verify.
         source: "/:path*",
         headers: [
           { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: PERMISSIONS_POLICY },
         ],
       },
     ];

@@ -12,10 +12,10 @@ jobs:
       FISCAL_POLICY_APP_URL: ${{ vars.FISCAL_POLICY_APP_URL || 'https://fiscal-policy-calculator.streamlit.app' }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
 
@@ -36,7 +36,7 @@ jobs:
 
       - name: Upload public app health report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: public-app-health-report
           path: public-app-health.json
@@ -51,10 +51,10 @@ jobs:
       FISCAL_SITE_URL: ${{ vars.FISCAL_SITE_URL || 'https://fiscal.lwilsesamson.com' }}
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
 
@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload public site health report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: public-site-health-report
           path: public-site-health.json
