@@ -2,6 +2,16 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-25",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "s-983-119",
+      "title": "Hearing Device Coverage Clarification Act",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/senate-bill/983"
+    },
+    {
       "date": "2026-11-21",
       "category": "data",
       "kind": "cbo_estimate",
