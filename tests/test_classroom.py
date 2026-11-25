@@ -1125,3 +1125,19 @@ def test_the_values_exercises_accept_what_the_composer_returns():
     gain_pp = (compose_values_package(unprotected).coverage - package.coverage) * 100
     gain = exercises["values_ug_ex2"].validation
     assert gain.min_acceptable <= gain_pp <= gain.max_acceptable
+
+
+def test_deficit_ug_ex1_target_responds_to_multiplier_slider():
+    from classroom.engine import RelativeValidator
+
+    loader = AssignmentLoader()
+    assignment = loader.load("deficit_financing")
+    ex1 = next(e for e in assignment.exercises if e.id == "deficit_ug_ex1")
+    validator = RelativeValidator()
+
+    low = validator._compute_model_answer(ex1.validation, {"annual_change_billions": 100.0, "multiplier": 0.5})
+    high = validator._compute_model_answer(ex1.validation, {"annual_change_billions": 100.0, "multiplier": 2.0})
+    assert low is not None and high is not None
+    # Higher spending multiplier produces stronger GDP feedback and therefore smaller net deficit cost
+    assert high < low
+

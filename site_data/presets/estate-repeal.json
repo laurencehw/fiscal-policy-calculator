@@ -135,7 +135,7 @@
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
-        "Target revised (target_revisions.eliminate_estate_tax.v2) from a model estimate to a published figure; no constant moved. The two agency figures were examined and not adopted: JCT's 2017 rows bundle repeal with the exemption doubling and the 35% gift rate (-$171.5B / -$150.7B), and CBO/JCT's 2015 Death Tax Repeal Act score ($269B) prices repeal of a tax with a $5.43M exemption.",
+        "Target revised from a model estimate to a published figure; no constant moved. The two agency figures were examined and not adopted: JCT's 2017 rows bundle repeal with the exemption doubling and the 35% gift rate (-$171.5B / -$150.7B), and CBO/JCT's 2015 Death Tax Repeal Act score ($269B) prices repeal of a tax with a $5.43M exemption.",
         "Window stated rather than adjusted: CY2027-2036 against the runner's FY2025-2034, on `biden_corporate_28_fy2022`'s precedent."
       ],
       "caption": "No out-of-sample band: no pre-registered row scores an estate-tax reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
@@ -277,7 +277,7 @@
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
-        "Target revised (target_revisions.eliminate_estate_tax.v2) from a model estimate to a published figure; no constant moved. The two agency figures were examined and not adopted: JCT's 2017 rows bundle repeal with the exemption doubling and the 35% gift rate (-$171.5B / -$150.7B), and CBO/JCT's 2015 Death Tax Repeal Act score ($269B) prices repeal of a tax with a $5.43M exemption.",
+        "Target revised from a model estimate to a published figure; no constant moved. The two agency figures were examined and not adopted: JCT's 2017 rows bundle repeal with the exemption doubling and the 35% gift rate (-$171.5B / -$150.7B), and CBO/JCT's 2015 Death Tax Repeal Act score ($269B) prices repeal of a tax with a $5.43M exemption.",
         "Window stated rather than adjusted: CY2027-2036 against the runner's FY2025-2034, on `biden_corporate_28_fy2022`'s precedent."
       ],
       "caption": "No out-of-sample band: no pre-registered row scores an estate-tax reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."

@@ -34,16 +34,18 @@ exercises:
         ΔGDP = Multiplier × ΔSpending
 
       Standard estimates:
-      - CBO: spending multiplier ~1.0 in normal times
-      - FRB/US calibrated: ~1.4 in year 1, decaying over time
-      - At zero lower bound (recession): 1.5-2.0
 
-      Estimate the year-1 GDP boost and the 10-year cumulative boost
-      from a $100B/year spending increase using a multiplier of 1.4.
+        - CBO: spending multiplier ~1.0 in normal times
+        - FRB/US calibrated: ~1.4 in year 1, decaying over time
+        - At zero lower bound (recession): 1.5-2.0
 
-      The answer box checks the conventional score, not the GDP boost. Enter
-      the package's 10-year cost to the deficit, in billions of dollars (a
-      positive number, since the deficit rises).
+      Using the spending and multiplier sliders below, estimate how growth
+      feedback offsets part of the cost.
+
+      Enter the package's 10-year net deficit cost after growth-driven revenue
+      feedback (conventional spending cost minus revenue feedback from the
+      multiplier, excluding debt service), in billions of dollars (a positive
+      number, since the deficit rises).
     parameters:
       - name: annual_change_billions
         label: "Annual spending change ($B, positive = increase)"
@@ -62,16 +64,16 @@ exercises:
     hints:
       - level: 1
         text: >
-          Year-1 GDP boost = $100B × 1.4 = $140B.
-          But multipliers decay as crowding out occurs: year-2 effect ≈ 1.4 × 0.75 = 1.05×,
-          etc. Cumulative 10-year GDP boost ≈ $100B × (1.4 + 1.05 + 0.79 + ...) ≈ $560B.
-          Revenue feedback = 25% of GDP boost ≈ $140B over 10 years.
+          Conventional 10-year cost of $100B/year growing 2%/yr is about $1,095B.
+          With a 1.4× year-1 spending multiplier (decaying with crowding out and
+          Fed offset), FRB/US-Lite estimates roughly $740B of cumulative GDP
+          expansion over 10 years.
       - level: 2
         text: >
-          The answer checked here is the conventional score: the spending itself, with
-          the $100B growing 2% a year, so about $1,095B over 10 years. Growth feedback
-          (about $140B by the rough arithmetic above) is reported separately and would
-          bring the dynamic cost down toward $950B.
+          At a 25% marginal revenue rate, ~$740B of extra GDP generates roughly
+          $185B of revenue feedback. Subtracting that from the ~$1,095B
+          conventional cost brings the net 10-year cost (before interest) to
+          roughly $910B. Adjust proportionally if you moved either slider.
     validation:
       method: relative_to_model
       policy_type: spending
@@ -79,7 +81,8 @@ exercises:
         name: "Infrastructure Package"
         description: "Annual spending increase"
         annual_change_billions: "{annual_change_billions}"
-      target_field: total_10_year_cost
+        multiplier: "{multiplier}"
+      target_field: dynamic_10_year_cost_ex_interest
       tolerance: 0.05
     expected_insight: >
       Spending multipliers above 1.0 mean that each dollar of government spending
@@ -100,9 +103,10 @@ exercises:
       deficit reduces private capital by $0.33 in the long run.
 
       Given:
-      - US private investment is ~$4.5T/year
-      - Current deficit is ~$1.8T/year (6% of $30T GDP)
-      - Proposed policy adds $200B/year in new borrowing
+
+        - US private investment is ~$4.5T/year
+        - Current deficit is ~$1.8T/year (6% of $30T GDP)
+        - Proposed policy adds $200B/year in new borrowing
 
       Estimate: how much private investment is displaced by the new $200B/year
       borrowing (using the $0.33 coefficient)?
@@ -152,10 +156,11 @@ exercises:
       g = real GDP growth rate, S = primary surplus (positive = surplus)
 
       Current US parameters (2026):
-      - D/Y = 100% (approx $30T debt / $30T GDP)
-      - r = 2.5% (10-year TIPS yield)
-      - g = 2.0% (CBO baseline real growth)
-      - Primary deficit ≈ 3% of GDP (S = −3%)
+
+        - D/Y = 100% (approx $30T debt / $30T GDP)
+        - r = 2.5% (10-year TIPS yield)
+        - g = 2.0% (CBO baseline real growth)
+        - Primary deficit ≈ 3% of GDP (S = −3%)
 
       Is current policy sustainable? What primary surplus is needed to
       stabilize debt at 100%?

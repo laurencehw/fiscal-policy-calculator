@@ -135,10 +135,7 @@
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
-        "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
-        "This scenario is illustrative rather than matched to a single official score.",
-        "Target revised (target_revisions.tcja_rates_only.v2) from the repository's own $3,185B decomposition to CRS R48286 Table 1's $2,158.7B. The row went 2.2% -> 44.3% and nothing in the module moved: the old error measured a decomposition of a fitted aggregate reproducing itself.",
-        "JCT's JCX-35-25 p. 1 row 1, 'Extension and limited enhancement of reduced rates', gives -$2,193.4B over the same window (1.6% from the adopted figure) but prices P.L. 119-21's enhancement rather than TCJA's rate structure, so it is not this target."
+        "This scenario is illustrative rather than matched to a single official score."
       ],
       "caption": "No out-of-sample band: no pre-registered row scores a bundle of rates, brackets, the standard deduction, the CTC, the AMT and QBI together. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
     },
@@ -279,10 +276,7 @@
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
-        "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
-        "This scenario is illustrative rather than matched to a single official score.",
-        "Target revised (target_revisions.tcja_rates_only.v2) from the repository's own $3,185B decomposition to CRS R48286 Table 1's $2,158.7B. The row went 2.2% -> 44.3% and nothing in the module moved: the old error measured a decomposition of a fitted aggregate reproducing itself.",
-        "JCT's JCX-35-25 p. 1 row 1, 'Extension and limited enhancement of reduced rates', gives -$2,193.4B over the same window (1.6% from the adopted figure) but prices P.L. 119-21's enhancement rather than TCJA's rate structure, so it is not this target."
+        "This scenario is illustrative rather than matched to a single official score."
       ],
       "caption": "No out-of-sample band: no pre-registered row scores a bundle of rates, brackets, the standard deduction, the CTC, the AMT and QBI together. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
     },

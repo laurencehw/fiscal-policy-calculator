@@ -134,10 +134,8 @@
       "holdout_status": "calibration_reference_only",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
-        "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
-        "This scenario is illustrative rather than matched to a single official score.",
-        "Target revised (target_revisions.tcja_rates_only.v2) from the repository's own $3,185B decomposition to CRS R48286 Table 1's $2,158.7B. The row went 2.2% -> 44.3% and nothing in the module moved: the old error measured a decomposition of a fitted aggregate reproducing itself.",
-        "JCT's JCX-35-25 p. 1 row 1, 'Extension and limited enhancement of reduced rates', gives -$2,193.4B over the same window (1.6% from the adopted figure) but prices P.L. 119-21's enhancement rather than TCJA's rate structure, so it is not this target."
+        "Scored on all four of the thresholds the Green Book prints (report p. 78): $450,000 joint and surviving spouses, $425,000 head of household, $400,000 unmarried, $225,000 married filing separately. This is the one row in the battery whose base GREW under the filing-status split - the separate-return floor is $175,000 BELOW the unmarried one, so those returns had been under-counted, not over-counted - and the row moved 12.0% to 9.2%.",
+        "The thresholds are on taxable income and SOI's classes are on AGI. The thresholds are C-CPI-U indexed after 2024 by the proposal's own text and the model's do not move; the base now does, so the two no longer push the same way."
       ],
       "caption": "Out-of-sample accuracy, ordinary rate change: 11 pre-registered rows miss their published scores by 15.0% on average (median 16.0%), worst 36.7% — 5 of the 11 fall inside the average. On this figure that is -$356.2B to -$263.3B typical, -$423.4B to -$196.1B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
     },
@@ -277,10 +275,8 @@
       "holdout_status": "calibration_reference_only",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
-        "Aggregate calibration is strong, but the extension decomposition is not backed by CPS ASEC return-level microsimulation.",
-        "This scenario is illustrative rather than matched to a single official score.",
-        "Target revised (target_revisions.tcja_rates_only.v2) from the repository's own $3,185B decomposition to CRS R48286 Table 1's $2,158.7B. The row went 2.2% -> 44.3% and nothing in the module moved: the old error measured a decomposition of a fitted aggregate reproducing itself.",
-        "JCT's JCX-35-25 p. 1 row 1, 'Extension and limited enhancement of reduced rates', gives -$2,193.4B over the same window (1.6% from the adopted figure) but prices P.L. 119-21's enhancement rather than TCJA's rate structure, so it is not this target."
+        "Scored on all four of the thresholds the Green Book prints (report p. 78): $450,000 joint and surviving spouses, $425,000 head of household, $400,000 unmarried, $225,000 married filing separately. This is the one row in the battery whose base GREW under the filing-status split - the separate-return floor is $175,000 BELOW the unmarried one, so those returns had been under-counted, not over-counted - and the row moved 12.0% to 9.2%.",
+        "The thresholds are on taxable income and SOI's classes are on AGI. The thresholds are C-CPI-U indexed after 2024 by the proposal's own text and the model's do not move; the base now does, so the two no longer push the same way."
       ],
       "caption": "Out-of-sample accuracy, ordinary rate change: 11 pre-registered rows miss their published scores by 15.0% on average (median 16.0%), worst 36.7% — 5 of the 11 fall inside the average. On this figure that is -$356.2B to -$263.3B typical, -$423.4B to -$196.1B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
     },

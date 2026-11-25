@@ -77,20 +77,18 @@ PRESET_AREA_TO_SCORECARD_CATEGORY: dict[str, str] = {
     "ACA / Healthcare": "PTC",
     "Tax Expenditures": "Expenditures",
     "Income Tax": "Generic",
-    "International Tax": "Generic",
-    "IRS Enforcement": "Generic",
-    "Drug Pricing": "Generic",
-    "Trade / Tariffs": "Generic",
-    "Climate / Energy": "Generic",
+    "International Tax": "International",
+    "IRS Enforcement": "Enforcement",
+    "Drug Pricing": "Pharma",
+    "Trade / Tariffs": "Trade",
+    "Climate / Energy": "Climate",
     # H12's demoted group (`app_data.ILLUSTRATIVE_GROUP_LABEL`, spelled out
     # here rather than imported so a validation module keeps no dependency on
     # the app's preset data; `tests/test_illustrative_group.py` pins the two
-    # equal). "Generic" is what all five members already resolved to through
-    # `Drug Pricing` and `IRS Enforcement`, so the limitations list and the
-    # holdout label they show are unchanged — the entry is here because
-    # `test_mapping_dicts_cover_every_preset_area` requires a new area to be a
-    # decision rather than a silent fallback, which is the right requirement.
-    "Illustrative - unfitted reconstructions": "Generic",
+    # equal). `category_for_result` resolves each member to its underlying
+    # module category (`Pharma` or `Enforcement`) instead of dumping the
+    # entire Generic benchmark list onto it.
+    "Illustrative - unfitted reconstructions": "Illustrative",
 }
 
 
@@ -355,6 +353,98 @@ def format_band_caption(
 # ---------------------------------------------------------------------------
 
 
+_POLICY_CLASS_LIMITATIONS: dict[str, list[str]] = {
+    "ordinary_rate_change": [
+        "Thresholds are statutory taxable-income boundaries applied to IRS SOI AGI size classes; real bracket creep is not modelled.",
+        "Behavioral response uses a static Elasticity of Taxable Income (ETI) formula without income-shifting or multi-year timing lags.",
+    ],
+    "agi_inclusive_surtax": [
+        "Applies to IRS SOI AGI above the stated threshold; unindexed nominal thresholds grow implicitly with the projected base.",
+        "Behavioral response uses a static Elasticity of Taxable Income (ETI) formula without multi-year timing lags.",
+    ],
+    "capital_gains": [
+        "Capital-gains realizations are sensitive to lock-in effects and enactment-year timing; the module does not model fiscal-year receipts lags.",
+    ],
+    "corporate": [
+        "Corporate rate changes are priced on CBO's corporate receipts path converted to a statutory base with a calibrated marginal credit-absorption factor.",
+        "Corporate Alternative Minimum Tax (CAMT) interactions and firm-level carryforward constraints are not modelled separately.",
+    ],
+    "payroll": [
+        "Payroll estimates grow covered earnings with CBO's wage path and model compensation shifting with a single ETI parameter.",
+    ],
+    "tax_expenditure": [
+        "Tax expenditure estimates rely on aggregate IRS SOI / JCT expenditure bases rather than return-level itemization transitions.",
+    ],
+    "discretionary_spending": [
+        "Discretionary outlay paths apply account-class spend-out profiles rather than program-specific obligation schedules.",
+    ],
+    "enacted_law_spending": [
+        "Mandatory and enacted-law spending paths rely on simplified growth and spend-out assumptions rather than program-level microsimulation.",
+    ],
+}
+
+_POLICY_CLASS_NAME_TO_CATEGORY: dict[str, str] = {
+    "TariffPolicy": "Trade",
+    "ClimateEnergyPolicy": "Climate",
+    "InternationalTaxPolicy": "International",
+    "DrugPricingPolicy": "Pharma",
+    "IRSEnforcementPolicy": "Enforcement",
+    "CorporateTaxPolicy": "Corporate",
+    "TCJAExtensionPolicy": "TCJA",
+    "TaxCreditPolicy": "Credits",
+    "EstateTaxPolicy": "Estate",
+    "PayrollTaxPolicy": "Payroll",
+    "AMTPolicy": "AMT",
+    "PremiumTaxCreditPolicy": "PTC",
+    "TaxExpenditurePolicy": "Expenditures",
+    "CapitalGainsPolicy": "CapitalGains",
+    "CapitalGainsTaxPolicy": "CapitalGains",
+}
+
+
+def _sanitize_limitation(text: str) -> str | None:
+    """Strip internal repo/engineering references from a limitation string.
+
+    Scorecard ``known_limitations`` entries double as provenance notes in the
+    validation ledger and often mention internal PR numbers, review waves,
+    planning-lane files, or benchmark revision IDs. Those belong in the repo
+    audit trail, not on public preset pages.
+    """
+    import re
+
+    cleaned = text.strip()
+    if not cleaned:
+        return None
+
+    # Drop whole sentences that are purely internal engineering / revision notes.
+    internal_sentence_re = re.compile(
+        r"\b(?:PR\s*#\d+|Wave\s+[0-9A-Z]+|lane\s+[A-Za-z0-9_-]+|"
+        r"planning/[A-Za-z0-9_./-]+|scripts/[A-Za-z0-9_./-]+|tests/[A-Za-z0-9_./-]+|"
+        r"loo\.py|owner Decision \d+|registered regression|Phase [A-Z])\b",
+        re.IGNORECASE,
+    )
+    # Split on sentence boundaries (keeping decimal numbers intact).
+    sentences = re.split(r"(?<=[.!?])\s+(?=[A-Z(])", cleaned)
+    kept: list[str] = []
+    for sentence in sentences:
+        if internal_sentence_re.search(sentence):
+            continue
+        # Remove inline revision-ID parentheticals like `(foo.v1 -> .v2)`.
+        s = re.sub(r"\s*\([^()]*\.v\d+[^()]*\)", "", sentence)
+        # Remove leading rating labels like "Poor: " that only make sense in a scorecard table.
+        s = re.sub(r"^(?:Poor|Fair|Acceptable|Good|Excellent):\s*", "", s)
+        s = re.sub(r"\s{2,}", " ", s).strip()
+        if s:
+            kept.append(s)
+
+    if not kept:
+        return None
+    result = " ".join(kept)
+    if result and result[0].islower():
+        result = result[0].upper() + result[1:]
+    return result
+
+
 def _category_for_preset_area(area: str | None) -> str:
     if not area:
         return "Generic"
@@ -365,6 +455,23 @@ def _category_for_policy_type(policy_type: str | None) -> str:
     if not policy_type:
         return "Generic"
     return POLICY_TYPE_TO_SCORECARD_CATEGORY.get(policy_type, "Generic")
+
+
+def _category_for_preset_dict(preset: dict[str, Any], area_category: str) -> str:
+    """Resolve an illustrative preset to its underlying module category."""
+    if area_category != "Illustrative":
+        return area_category
+    if preset.get("is_pharma"):
+        return "Pharma"
+    if preset.get("is_enforcement"):
+        return "Enforcement"
+    if preset.get("is_trade"):
+        return "Trade"
+    if preset.get("is_climate"):
+        return "Climate"
+    if preset.get("is_international"):
+        return "International"
+    return area_category
 
 
 def category_for_result(
@@ -378,33 +485,68 @@ def category_for_result(
 
             preset = PRESET_POLICIES.get(policy_name)
             if preset is not None:
-                return _category_for_preset_area(_preset_category(preset))
+                area_cat = _category_for_preset_area(_preset_category(preset))
+                return _category_for_preset_dict(preset, area_cat)
         except Exception:
-            # Preset lookup is best-effort; fall through to policy_type.
+            # Preset lookup is best-effort; fall through to policy class / type.
             pass
     if policy is not None:
+        cls_cat = _POLICY_CLASS_NAME_TO_CATEGORY.get(type(policy).__name__)
+        if cls_cat:
+            return cls_cat
         raw = getattr(getattr(policy, "policy_type", None), "value", None)
         if raw:
             return _category_for_policy_type(raw)
     return "Generic"
 
 
-def _category_entry_limitations(category: str) -> list[str]:
-    """Collect known limitations from scorecard entries in a category."""
+def _category_entry_limitations(
+    category: str,
+    *,
+    own_policy_id: str | None = None,
+    policy_class: str | None = None,
+) -> list[str]:
+    """Collect user-facing limitations for a policy or its category.
+
+    When ``own_policy_id`` matches a scorecard entry, only that entry's
+    limitations are surfaced (preventing unrelated policies in the same
+    category from leaking onto a preset page). Generic runs without a matching
+    row use concise class-level caveats instead of concatenating all 44
+    out-of-sample rows.
+    """
     try:
         from fiscal_model.validation import cached_default_scorecard
 
         summary = cached_default_scorecard()
     except Exception:
-        return []
+        summary = None
 
     limitations: list[str] = []
-    for entry in summary.entries:
-        if entry.category != category:
-            continue
-        for limitation in entry.known_limitations:
-            if limitation not in limitations:
-                limitations.append(limitation)
+
+    def _add(raw_items: list[str]) -> None:
+        for raw in raw_items:
+            cleaned = _sanitize_limitation(raw)
+            if cleaned and cleaned not in limitations:
+                limitations.append(cleaned)
+
+    if summary is not None and own_policy_id:
+        for entry in summary.entries:
+            if entry.policy_id == own_policy_id:
+                _add(list(entry.known_limitations))
+                break
+        if limitations:
+            return limitations
+
+    if category == "Generic":
+        if policy_class and policy_class in _POLICY_CLASS_LIMITATIONS:
+            return list(_POLICY_CLASS_LIMITATIONS[policy_class])
+        return list(_POLICY_CLASS_LIMITATIONS["ordinary_rate_change"])
+
+    if summary is not None:
+        for entry in summary.entries:
+            if entry.category != category:
+                continue
+            _add(list(entry.known_limitations))
     return limitations
 
 
@@ -554,7 +696,11 @@ def get_credibility_for_result(
             "No pre-registered out-of-sample row scores a policy of this class, "
             "so this model's accuracy on one has not been measured."
         )
-    for limitation in _category_entry_limitations(category):
+    for limitation in _category_entry_limitations(
+        category,
+        own_policy_id=None if own is None else own.policy_id,
+        policy_class=None if band is None else band.policy_class,
+    ):
         if limitation not in limitations:
             limitations.append(limitation)
 

@@ -27,6 +27,7 @@ export function WhoPays({ dist, firstYear }: { dist: Distribution; firstYear?: Y
   const g = dist.groupings[key] ?? dist.groupings.quintile;
   if (!g) return null;
   const rows = g.groups.map((r) => ({ name: r.name.replace(/ Quintile| Decile/, ""), value: r.avg_tax_change }));
+  const dense = rows.length > 5;
   return (
     <>
       <div className="seg" role="group" aria-label="Income grouping">
@@ -52,10 +53,19 @@ export function WhoPays({ dist, firstYear }: { dist: Distribution; firstYear?: Y
         </div>
       </div>
       <div className="plot" role="img" aria-label={`Average tax change per return by income group, ${g.year}`}>
-        <ResponsiveContainer width="100%" height={240}>
-          <BarChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+        <ResponsiveContainer width="100%" height={dense ? 275 : 240}>
+          <BarChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: dense ? 24 : 0, left: 8 }}>
             <CartesianGrid stroke="var(--grid)" vertical={false} />
-            <XAxis dataKey="name" tick={{ fill: "var(--muted)", fontSize: 11 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} interval={0} />
+            <XAxis
+              dataKey="name"
+              tick={{ fill: "var(--muted)", fontSize: dense ? 10 : 11 }}
+              tickLine={false}
+              axisLine={{ stroke: "var(--rule)" }}
+              interval={0}
+              angle={dense ? -35 : 0}
+              textAnchor={dense ? "end" : "middle"}
+              height={dense ? 64 : 30}
+            />
             <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={64} tickFormatter={(v: number) => dollars(v)} />
             <ReferenceLine y={0} stroke="var(--ink)" />
             <Tooltip
@@ -81,7 +91,8 @@ export function WhoPays({ dist, firstYear }: { dist: Distribution; firstYear?: Y
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <div className="tablewrap">
+      <p className="scrollhint" aria-hidden="true">Scroll table sideways to see all columns →</p>
+      <div className="tablewrap" tabIndex={0} role="region" aria-label="Distribution table by income group">
         <table className="sheet">
           <thead>
             <tr>

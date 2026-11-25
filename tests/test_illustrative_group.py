@@ -333,19 +333,21 @@ def test_the_new_area_is_declared_in_the_credibility_map_not_defaulted():
     ``_category_for_preset_area`` defaults anything unmapped to ``"Generic"``,
     so the demotion would have *worked* with no entry at all — and
     ``test_confidence_band.py::test_mapping_dicts_cover_every_preset_area``
-    fails on exactly that, which is the right requirement. "Generic" is also
-    what all five already resolved to through ``Drug Pricing`` and
-    ``IRS Enforcement``, so nothing a user reads moved; this pins the spelling
-    so a rename cannot reintroduce the fallback.
+    fails on exactly that, which is the right requirement. Each illustrative
+    preset resolves to its underlying module category (``Pharma`` or
+    ``Enforcement``) rather than ``Generic``, so it never inherits the 90
+    unrelated limitations from the Generic tier.
     """
     from fiscal_model.validation.credibility import (
         PRESET_AREA_TO_SCORECARD_CATEGORY,
         category_for_result,
     )
 
-    assert PRESET_AREA_TO_SCORECARD_CATEGORY[ILLUSTRATIVE_GROUP_LABEL] == "Generic"
+    assert PRESET_AREA_TO_SCORECARD_CATEGORY[ILLUSTRATIVE_GROUP_LABEL] == "Illustrative"
     for preset_id in sorted(THE_FIVE):
-        assert category_for_result(policy_name=label_for_preset_id(preset_id)) == "Generic"
+        cat = category_for_result(policy_name=label_for_preset_id(preset_id))
+        expected = "Enforcement" if preset_id == "irs-enforcement-double" else "Pharma"
+        assert cat == expected, (preset_id, cat)
 
 
 def test_a_package_containing_a_demoted_preset_says_so():
