@@ -200,6 +200,7 @@ class FiscalAssistant:
         # final usage could be read, so the recorded cost may be short.
         self.last_call_cut_off: bool = False
         self._turn_text: str = ""
+        self._stream_reset_count: int = 0
         self._cache_prewarmed: bool = False
 
     # ---- per-request instances -------------------------------------------
@@ -245,6 +246,7 @@ class FiscalAssistant:
         self.last_display_text = ""
         self.last_call_cut_off = False
         self._turn_text = ""
+        self._stream_reset_count = 0
 
     # ---- lazy client -----------------------------------------------------
 
@@ -604,7 +606,6 @@ class FiscalAssistant:
                 tools=tools_param,
             )
             final_message = stream_result["final_message"]
-            accumulated_text += "".join(stream_result["text_chunks"])
 
             # Capture any web_search citations from the model's output for
             # later citation cross-referencing.
@@ -614,11 +615,30 @@ class FiscalAssistant:
 
             stop_reason = getattr(final_message, "stop_reason", None)
             if stop_reason != "tool_use":
+                accumulated_text = _join_answer_parts(
+                    accumulated_text,
+                    _extract_final_answer_text(
+                        final_message, stream_result["text_chunks"]
+                    ),
+                )
                 break
 
             tool_uses = _collect_tool_uses(final_message)
             if not tool_uses:
+                accumulated_text = _join_answer_parts(
+                    accumulated_text,
+                    _extract_final_answer_text(
+                        final_message, stream_result["text_chunks"]
+                    ),
+                )
                 break
+
+            # Intermediate tool_use turns often emit planning narration ("Let me
+            # search the knowledge base..."). Never carry that preamble into the
+            # final answer, and signal SSE clients to clear any streamed preamble.
+            if stream_result["text_chunks"]:
+                self._turn_text = ""
+                self._stream_reset_count += 1
 
             # If this was the last allowed iteration, fall through to the
             # "force final answer" code below WITHOUT running these tools.
@@ -702,7 +722,10 @@ class FiscalAssistant:
                 tools=[],  # no tools → model must answer or end_turn
             )
             final_message = forced["final_message"]
-            accumulated_text += "".join(forced["text_chunks"])
+            accumulated_text = _join_answer_parts(
+                accumulated_text,
+                _extract_final_answer_text(final_message, forced["text_chunks"]),
+            )
 
         # ------------------------------------------------------------------
         # If the final call ran out of output budget, say so rather than
@@ -792,12 +815,55 @@ class FiscalAssistant:
                 tools=tools,
             ) as stream:
                 try:
-                    for text in stream.text_stream:
-                        if not text:
-                            continue
-                        text_chunks.append(text)
-                        self._turn_text += text
-                        yield text
+                    # Prefer raw SDK stream events when available so we can
+                    # detect server-side web_search boundaries and separate
+                    # adjacent text blocks cleanly; fall back to text_stream
+                    # for lightweight test fakes.
+                    if hasattr(stream, "__iter__") and not getattr(
+                        stream, "_use_text_stream_only", False
+                    ):
+                        saw_text_block = False
+                        need_block_sep = False
+                        for event in stream:
+                            etype = getattr(event, "type", None)
+                            if etype == "content_block_start":
+                                cb = getattr(event, "content_block", None)
+                                cb_type = getattr(cb, "type", None)
+                                if cb_type in ("tool_use", "server_tool_use", "web_search_tool_result"):
+                                    if text_chunks:
+                                        text_chunks.clear()
+                                        self._turn_text = ""
+                                        self._stream_reset_count += 1
+                                    saw_text_block = False
+                                    need_block_sep = False
+                                elif cb_type == "text":
+                                    if saw_text_block:
+                                        need_block_sep = True
+                                    saw_text_block = True
+                            elif etype == "content_block_delta":
+                                delta = getattr(event, "delta", None)
+                                if getattr(delta, "type", None) == "text_delta":
+                                    text = getattr(delta, "text", "")
+                                    if not text:
+                                        continue
+                                    if need_block_sep:
+                                        need_block_sep = False
+                                        prev = self._turn_text
+                                        if prev and not prev[-1].isspace() and not text[0].isspace():
+                                            sep = "\n\n"
+                                            text_chunks.append(sep)
+                                            self._turn_text += sep
+                                            yield sep
+                                    text_chunks.append(text)
+                                    self._turn_text += text
+                                    yield text
+                    else:
+                        for text in stream.text_stream:
+                            if not text:
+                                continue
+                            text_chunks.append(text)
+                            self._turn_text += text
+                            yield text
                 except GeneratorExit:
                     self._record_partial_usage(stream)
                     raise
@@ -856,6 +922,59 @@ class FiscalAssistant:
 # ---------------------------------------------------------------------------
 # Anthropic content-block helpers
 # ---------------------------------------------------------------------------
+
+
+def _join_answer_parts(existing: str, addition: str) -> str:
+    """Join two answer segments with a clean separator so tokens never collide."""
+    if not existing:
+        return addition
+    if not addition:
+        return existing
+    if existing[-1].isspace() or addition[0].isspace():
+        return existing + addition
+    return existing + "\n\n" + addition
+
+
+def _extract_final_answer_text(
+    final_message: Any, fallback_chunks: list[str]
+) -> str:
+    """Extract only the final user-facing text blocks from an Anthropic message.
+
+    Drops any text blocks that preceded a ``tool_use``, ``server_tool_use``, or
+    ``web_search_tool_result`` block (which are tool-planning narration like
+    "Let me do a targeted web search...") and joins remaining text blocks with
+    clean whitespace boundaries so adjacent blocks never concatenate as
+    ``"...estimate.Here..."``.
+    """
+    content = getattr(final_message, "content", None) or []
+    last_tool_idx = -1
+    for idx, block in enumerate(content):
+        btype = getattr(block, "type", None) or (
+            block.get("type") if isinstance(block, dict) else None
+        )
+        if btype in ("tool_use", "server_tool_use", "web_search_tool_result"):
+            last_tool_idx = idx
+
+    parts: list[str] = []
+    for block in content[last_tool_idx + 1 :]:
+        btype = getattr(block, "type", None) or (
+            block.get("type") if isinstance(block, dict) else None
+        )
+        if btype != "text":
+            continue
+        text = getattr(block, "text", None)
+        if text is None and isinstance(block, dict):
+            text = block.get("text")
+        if text:
+            parts.append(str(text))
+
+    if not parts:
+        return "".join(fallback_chunks)
+
+    joined = ""
+    for part in parts:
+        joined = _join_answer_parts(joined, part)
+    return joined
 
 
 def _collect_tool_uses(final_message: Any) -> list[dict[str, Any]]:

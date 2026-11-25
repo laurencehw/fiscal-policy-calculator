@@ -442,12 +442,14 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
 
     # The projected corners moved +3.02% in lane B2a (the base is aged on CBO's
     # own AGI path, planning/lanes/B2a_cbo_income_path.md); the flat corners do
-    # not depend on the projection and did not move.
-    assert shipped == pytest.approx(-483.7381, abs=5e-4)
-    assert agi_projected == pytest.approx(-407.74600, abs=5e-4)
-    assert agi_flat == pytest.approx(-283.4695, abs=5e-4)
-    assert ordinary_projected == pytest.approx(-193.62837, abs=5e-4)
-    assert ordinary_flat == pytest.approx(-134.6126, abs=5e-4)
+    # not depend on the projection and did not move. Lane SSG then moved every
+    # corner by (1 - 0.25w)/0.875, w = 0.847 on this preset's AGI column
+    # (planning/lanes/SSG_bracket_behavioural_offset.md).
+    assert shipped == pytest.approx(-435.8271, abs=5e-4)
+    assert agi_projected == pytest.approx(-367.36157, abs=5e-4)
+    assert agi_flat == pytest.approx(-255.3938, abs=5e-4)
+    assert ordinary_projected == pytest.approx(-174.45081, abs=5e-4)
+    assert ordinary_flat == pytest.approx(-121.2801, abs=5e-4)
 
     # The flat/projected ratio is exactly this lane's window-mean index inverted.
     assert agi_projected / agi_flat == pytest.approx(float(factors.mean()), rel=1e-9)
@@ -471,10 +473,18 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
         ]
     )
     taxable_column = float(np.sum(path * swap)) / column_ratio
+    # Since lane SSG the behavioural weight is read on the policy's own column,
+    # so the column caption also undoes the AGI column's weight.
+    from fiscal_model.ui.tabs.results_summary import _column_erosion_factor
+
+    erosion = _column_erosion_factor(policy)
+    # The AGI column's larger z_m gives a smaller weight, so the taxable
+    # column eroded more and printed a smaller figure.
+    assert erosion < 1.0
     assert agi_projected / taxable_column == pytest.approx(
         float(np.sum(path)) / float(np.sum(path * swap)), rel=1e-9
     )
-    assert format_money(taxable_column, escape=True) in column_caption
+    assert format_money(taxable_column * erosion, escape=True) in column_caption
     assert format_money(shipped, escape=True) in column_caption
     for caption in (base_caption, proj_caption, column_caption):
         assert format_money(ordinary_flat, escape=True) not in caption

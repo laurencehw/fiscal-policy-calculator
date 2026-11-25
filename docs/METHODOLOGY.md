@@ -418,10 +418,15 @@ Taxpayers respond to rate changes by adjusting reported taxable income through a
 The **behavioral offset** shrinks the magnitude of the static estimate:
 
 ```python
-behavioral_offset = static_effect * ETI * 0.5   # signed, same sign as static
+behavioral_offset = static_effect * ETI * w   # signed, same sign as static
 ```
 
-The factor of 0.5 converts from the income elasticity to the revenue offset (accounting for the fact that the base only partially overlaps the rate change).
+`w` converts the income elasticity into a share of the rate change's mechanical revenue. For a plain `TaxPolicy` of type `INCOME_TAX` with a non-zero rate change it is Saez, Slemrod and Giertz's (2012, *JEL* 50(1), eq. 3) erosion weight, `w = τ/(1−τ) × a` with `a = z_m/(z_m − z*)`, computed in `fiscal_model/behavioral_weight.py`:
+
+- `τ` is CBO's statutory ordinary rate (publication 53724, via `cbo_tax_parameters`) at each SOI class's mean taxable income per return, in its own filing status's schedule, weighted by that class's income above the floor.
+- `a` comes from SOI Table 1.1, apportioned across filing statuses as the static base is, measured in the policy's own `income_measure`. `z*` is the return-weighted mean of the per-status floors; a $0 floor gives `a = 1`.
+
+The weight is about 0.35 for a change to every bracket and 1.0-1.4 above $200K-$600K. Every other policy keeps the flat `w = 0.5` the engine used before lane SSG (`planning/lanes/SSG_bracket_behavioural_offset.md`), including capital gains, corporate, payroll, credits and every `TaxPolicy` subclass. τ is federal only; state and payroll rates are not in it.
 
 *(This line carried a leading minus until the 2026-09 docs sync. `TaxPolicy.estimate_behavioral_offset` returns `static_effect * self.taxable_income_elasticity * 0.5` and its docstring says "Returns a SIGNED value with the same sign as `static_effect`", so the minus was a transcription error — and reading it as written is precisely the defect PR #119's sweep found in seven modules.)*
 
@@ -2239,8 +2244,8 @@ commit that lands *before* the commit that first scores it.
 | Corporate rate +1pp | −$136B | −$145B | 7% | CBO Options 2025–2034 #64 (a **JCT** estimate) |
 | CBO Option 46 alternative 1 (AGI surtax +1pp, $20K) | −$1,440B | −$723B | 50% | CBO Options 2025–2034 #46 |
 
-**44 pre-registered cases, mean absolute error 12.2% (median 10.3%); 30 of 44
-within 15%, 39 of 44 within 25%** (`scripts/cold_holdout.py`; full table in
+**44 pre-registered cases, mean absolute error 10.6% (median 8.3%); 34 of 44
+within 15%, 40 of 44 within 25%** (`scripts/cold_holdout.py`; full table in
 [VALIDATION.md](VALIDATION.md)). The same 44 rows read 18.0% and 35 of 44
 until PR #173 priced the three pre-2024 corporate rows on the CBO Outlook
 their own *Options* editions name. The selected rows above are a sample and some

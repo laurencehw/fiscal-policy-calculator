@@ -135,14 +135,7 @@
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "Covered-wage bands are SSA-aligned aggregates, not worker-level SSA earnings records.",
-        "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology.",
-        "On the record: from the target revision of 2026-09-11 until 2026-11-19 this row scored -$2,700.0B, 89.2% from CBO, because the module's annual (270.0) was the superseded untraceable -$2,700B over ten. That 89.2% was the size of the old target's error. Lane B3 replaced the annual with a mechanism (planning/lanes/B3_ss_donut_mechanism.md); the row is a reconstruction scored for the first time, not a retuning.",
-        "Base: SSA net compensation, 2025, the latest year published. Scaled forward uniformly (wage/AWI shape held at 2025); the same rule applied 2023 -> 2025 understates SSA's actual wages above $250K by 8.0%, because the top grew faster than the average.",
-        "Self-employment earnings above $250K (taxable under SECA) are absent from net compensation, which understates the base.",
-        "The first fiscal year takes 0.75 of a year (effective January). Wages above $250K arrive late in the calendar year, so this overstates FY2025 against CBO's $35.7B.",
-        "Offset: the module's payroll rule (compensation shifting at ETI 0.25 plus incidence at the 50% employer share, tau = 0.31), 0.3122 of gross. CBO's table note says an income-and-payroll offset was applied; its size is not printed. tau is the economy-wide marginal rate, below top earners' own.",
-        "The base grows about 7% a year against CBO's own path ($122.0B in 2026 to $192.0B in 2034, about 5.8%).",
-        "Pass-through income exposure is modeled with simplified aggregate distributions rather than return-level business-owner data."
+        "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology."
       ],
       "caption": "Out-of-sample accuracy, payroll: 8 pre-registered rows miss their published scores by 18.6% on average (median 16.4%), worst 34.6% — 4 of the 8 fall inside the average. On this figure that is -$3,795.2B to -$2,604.8B typical, -$4,307.2B to -$2,092.8B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
     },
@@ -283,14 +276,7 @@
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "Covered-wage bands are SSA-aligned aggregates, not worker-level SSA earnings records.",
-        "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology.",
-        "On the record: from the target revision of 2026-09-11 until 2026-11-19 this row scored -$2,700.0B, 89.2% from CBO, because the module's annual (270.0) was the superseded untraceable -$2,700B over ten. That 89.2% was the size of the old target's error. Lane B3 replaced the annual with a mechanism (planning/lanes/B3_ss_donut_mechanism.md); the row is a reconstruction scored for the first time, not a retuning.",
-        "Base: SSA net compensation, 2025, the latest year published. Scaled forward uniformly (wage/AWI shape held at 2025); the same rule applied 2023 -> 2025 understates SSA's actual wages above $250K by 8.0%, because the top grew faster than the average.",
-        "Self-employment earnings above $250K (taxable under SECA) are absent from net compensation, which understates the base.",
-        "The first fiscal year takes 0.75 of a year (effective January). Wages above $250K arrive late in the calendar year, so this overstates FY2025 against CBO's $35.7B.",
-        "Offset: the module's payroll rule (compensation shifting at ETI 0.25 plus incidence at the 50% employer share, tau = 0.31), 0.3122 of gross. CBO's table note says an income-and-payroll offset was applied; its size is not printed. tau is the economy-wide marginal rate, below top earners' own.",
-        "The base grows about 7% a year against CBO's own path ($122.0B in 2026 to $192.0B in 2034, about 5.8%).",
-        "Pass-through income exposure is modeled with simplified aggregate distributions rather than return-level business-owner data."
+        "Benefit-offset and taxable-benefit interactions are simplified relative to Trustees methodology."
       ],
       "caption": "Out-of-sample accuracy, payroll: 8 pre-registered rows miss their published scores by 18.6% on average (median 16.4%), worst 34.6% — 4 of the 8 fall inside the average. On this figure that is -$3,795.2B to -$2,604.8B typical, -$4,307.2B to -$2,092.8B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
     },

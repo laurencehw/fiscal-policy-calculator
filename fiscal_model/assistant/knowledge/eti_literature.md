@@ -72,26 +72,36 @@ labor supply (#1). That matters because:
 
 ## How the app applies ETI
 
-The app uses ETI in `TaxPolicy` via a single behavioral-offset formula:
+Since November 2026 the app applies Saez, Slemrod and Giertz's (2012,
+eq. 3) erosion share to an ordinary income-tax rate change:
 
 ```
-behavioral_offset = ETI × 0.5 × static_effect
-final = static × (1 − ETI × 0.5)
+behavioral_offset = ETI × w × static_effect
+w = τ / (1 − τ) × a,   a = z_m / (z_m − z*)
+final = static × (1 − ETI × w)
 ```
 
-The **0.5** factor reflects two things:
-1. **Asymmetry**: ETI estimates are dominated by tax *increases* in
-   the literature. Tax *cuts* tend to have smaller behavioral
-   responses (the marginal-rate change is in the "good" direction).
-2. **Caution**: CBO and JCT also apply roughly this fraction in their
-   behavioral adjustments.
+- **τ** is the federal statutory marginal rate the affected income
+  already faces, read from CBO's tax-parameter schedule (publication
+  53724) for each filing status.
+- **a** is the Pareto-style ratio of mean income above the floor `z*`
+  to the income above it, from IRS SOI Table 1.1. A $0 floor gives
+  `a = 1`.
 
-For a +2.6pp marginal-rate increase on \$400K+ income:
-- Static effect: roughly **-\$250B** over 10 years.
-- ETI offset: **+\$31B** (saves about 12% of revenue).
-- Final: **-\$219B**.
+So the weight is small for a rate change on every bracket (w ≈ 0.35)
+and large at the top (w ≈ 1.2-1.4 above $400K). Before this, every
+rate change used a flat w = 0.5. Capital gains, corporate, payroll,
+credits and the specialized modules keep their own responses.
 
-This roughly matches CBO's published scoring.
+For a +2.6pp marginal-rate increase above \$400K (one floor for every
+filing status, FY2026-2035):
+- Static effect: about **-\$354B** over 10 years.
+- Weight w = 1.385, so the offset is about 35% of the static effect.
+- Final: about **-\$231B**.
+
+With the Green Book's own per-status floors (\$400K single, \$450K
+joint) the weight is 1.232 and the model scores **-\$242.7B** against
+Treasury's **-\$245.9B** (FY2025-2034).
 
 ## Why ETI uncertainty matters for policy
 

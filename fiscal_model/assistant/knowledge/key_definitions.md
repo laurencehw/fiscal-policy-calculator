@@ -20,7 +20,10 @@ docs/METHODOLOGY.md.
 - **Behavioral offset (ETI)**: adjusts the static effect for taxpayers'
   reported-income response to a rate change. The app uses an elasticity
   of taxable income (ETI) of **0.25** (Saez, Slemrod, Giertz 2012),
-  applied as `Final = Static × (1 − ETI × 0.5)`.
+  applied as `Final = Static × (1 − ETI × w)`, where for an ordinary
+  income-tax rate change `w = τ/(1−τ) × a` (Saez, Slemrod and Giertz
+  2012): about 0.35 for every bracket, about 1.2-1.4 above $400K.
+  Other policies keep w = 0.5.
 - **Dynamic scoring**: adds macro feedback — GDP and employment respond
   to fiscal stance, generating revenue feedback. The app's
   `FRBUSAdapterLite` uses FRB/US-calibrated multipliers: spending **1.4**

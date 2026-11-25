@@ -1239,6 +1239,30 @@ def agi_inclusive_base_caption(policy: Any, result: Any) -> str:
     )
 
 
+def _column_erosion_factor(policy) -> float:
+    """``(1 - e w_taxable) / (1 - e w_agi)`` for an AGI-column policy, else 1.
+
+    Lane SSG (``planning/lanes/SSG_bracket_behavioural_offset.md``) measures
+    the behavioural weight on the policy's own ``income_measure``, so the
+    taxable-column figure a caption reconstructs carries the taxable column's
+    weight, not this run's.
+    """
+    import dataclasses
+
+    if getattr(policy, "income_measure", None) != "agi":
+        return 1.0
+    try:
+        taxable = dataclasses.replace(policy, income_measure="taxable_income")
+        e = float(policy.taxable_income_elasticity)
+        here = 1.0 - e * float(policy.behavioral_erosion_weight())
+        there = 1.0 - e * float(taxable.behavioral_erosion_weight())
+    except (TypeError, ValueError, AttributeError):
+        return 1.0
+    if here == 0.0:
+        return 1.0
+    return there / here
+
+
 def agi_income_column_caption(policy: Any, result: Any) -> str:
     """One line saying the base is AGI itself, because the source says AGI.
 
@@ -1301,6 +1325,10 @@ def agi_income_column_caption(policy: Any, result: Any) -> str:
         )
         if np.all(np.isfinite(swap)) and np.all(swap > 0):
             previous = float(np.sum(path * swap)) / ratio
+    # Since lane SSG the behavioural weight is measured in the policy's own
+    # income column too (``a = z_m / (z_m - z*)`` reads z_m on that column), so
+    # undoing the column undoes that weight as well.
+    previous *= _column_erosion_factor(policy)
 
     return (
         f"Income column: the base is **AGI itself**, not taxable income, because "
@@ -1566,6 +1594,54 @@ def cbo_income_path_caption(policy: Any, result: Any) -> str:
         rf"{gdp.mean():.4f}×. On the GDP path this policy scored "
         rf"{format_money(previous, escape=True)}; it now scores "
         rf"{format_money(total, escape=True)}, a {shift:+.2f}% move."
+    )
+
+
+def behavioural_weight_caption(policy: Any, result: Any) -> str:
+    """Decision 6 for lane SSG: the behavioural offset's weight is bracket-specific.
+
+    Until lane SSG (``planning/lanes/SSG_bracket_behavioural_offset.md``) every
+    income-tax rate change kept ``ETI x 0.5`` of its static effect. A plain
+    ``INCOME_TAX`` rate change now keeps ``ETI x w``, with
+    ``w = tau/(1-tau) x a`` from Saez, Slemrod and Giertz (2012, eq. 3).
+
+    The old figure is **computed**, never stored: the conventional total
+    times ``(1 - e x 0.5) / (1 - e x w)``, which is exact because the offset
+    is the static path times one constant. Returns ``""`` when the policy
+    still uses 0.5 or the weight could not be computed.
+    """
+    from fiscal_model.behavioral_weight import LEGACY_WEIGHT
+
+    if not isinstance(policy, TaxPolicy):
+        return ""
+    weight_of = getattr(policy, "behavioral_erosion_weight", None)
+    if weight_of is None:
+        return ""
+    weight = float(weight_of())
+    if abs(weight - LEGACY_WEIGHT) < 1e-9:
+        return ""
+    e = float(getattr(policy, "taxable_income_elasticity", 0.0) or 0.0)
+    if e == 0.0:
+        return ""
+    now = 1.0 - e * weight
+    then = 1.0 - e * LEGACY_WEIGHT
+    if now == 0.0:
+        return ""
+    total = conventional_total(result)
+    if total == 0.0:
+        return ""
+    previous = total * then / now
+    return (
+        f"Behavioural response: the share of this rate change lost to the "
+        f"taxable-income response is now measured for the incomes it reaches, "
+        f"ETI {e:.2f} × {weight:.3f}, rather than ETI × 0.5 for every income-tax "
+        f"change. The {weight:.3f} is Saez, Slemrod and Giertz's (2012) "
+        f"τ/(1−τ) × a: τ is the statutory rate this income already faces "
+        f"(CBO's tax-parameter schedule) and a is how far the average income "
+        f"above the floor sits above it (IRS SOI Table 1.1). It is larger at "
+        f"the top and smaller for broad changes. With 0.5 this policy scored "
+        rf"{format_money(previous, escape=True)}; it now scores "
+        rf"{format_money(total, escape=True)}."
     )
 
 
@@ -2584,6 +2660,9 @@ def render_headline_block(st_module: Any, scored: Any, result_data: dict[str, An
     income_path_note = cbo_income_path_caption(policy, result)
     if income_path_note:
         st_module.caption(income_path_note)
+    weight_note = behavioural_weight_caption(policy, result)
+    if weight_note:
+        st_module.caption(weight_note)
     transcription_note = cbo_baseline_transcription_caption(policy, result)
     if transcription_note:
         st_module.caption(transcription_note)

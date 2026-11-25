@@ -11,7 +11,19 @@ import { estimateIdentity, type EstimateIdentity } from "@/lib/identity";
 import { matchingPreset } from "@/lib/adjust";
 import { withVersion } from "@/lib/share";
 import { frozenFrom, frozenQuery, frozenRefusal, type Frozen } from "@/lib/frozen";
-import { DEFAULT_INPUT, RATE_MAX, RATE_MIN, WHO_CHOICES, describe, fromQuery, toQuery, type TailorInput } from "@/lib/tailor";
+import {
+  DEFAULT_ETI,
+  DEFAULT_INPUT,
+  ETI_MAX,
+  ETI_MIN,
+  RATE_MAX,
+  RATE_MIN,
+  WHO_CHOICES,
+  describe,
+  fromQuery,
+  toQuery,
+  type TailorInput,
+} from "@/lib/tailor";
 import type { Credibility, ScoreResult, Views } from "@/lib/types";
 
 /** A preset Tailor can reproduce, with its page's published-score record. */
@@ -25,6 +37,14 @@ export type PresetMatch = {
 
 /** One-tap rate changes, in percentage points. */
 const RATE_PICKS = [-2, -1, 1, 2, 5];
+
+/** One-tap ETI sensitivity presets (0 = static, 0.25 = Saez/CBO baseline). */
+const ETI_PICKS: { value: number; label: string }[] = [
+  { value: 0, label: "0 (static)" },
+  { value: 0.15, label: "0.15" },
+  { value: 0.25, label: "0.25 (base)" },
+  { value: 0.4, label: "0.40" },
+];
 
 type ViewsState = { status: "idle" | "loading" } | { status: "done"; views: Views } | { status: "error"; message: string };
 
@@ -216,6 +236,41 @@ export function Tailor({
                 onChange={(e) => set({ duration: Math.max(1, Math.min(10, Math.trunc(Number(e.target.value) || 1))) })}
               />
             </label>
+            {input.kind === "income" ? (
+              <div className="field">
+                <label className="field">
+                  <span>Behavioral ETI</span>
+                  <input
+                    type="number"
+                    min={ETI_MIN}
+                    max={ETI_MAX}
+                    step={0.05}
+                    value={input.eti ?? DEFAULT_ETI}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      if (!Number.isFinite(v)) return;
+                      const clamped = Math.max(ETI_MIN, Math.min(ETI_MAX, Math.round(v * 100) / 100));
+                      set({ eti: Math.abs(clamped - DEFAULT_ETI) > 1e-6 ? clamped : undefined });
+                    }}
+                  />
+                </label>
+                <div className="chips" role="group" aria-label="Common ETI values">
+                  {ETI_PICKS.map((p) => {
+                    const active = Math.abs((input.eti ?? DEFAULT_ETI) - p.value) < 1e-6;
+                    return (
+                      <button
+                        key={p.value}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => set({ eti: Math.abs(p.value - DEFAULT_ETI) > 1e-6 ? p.value : undefined })}
+                      >
+                        {p.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
           <div className="tailorgo">
             <button type="submit" disabled={state.status === "scoring" || input.rate === 0}>
@@ -226,7 +281,8 @@ export function Tailor({
                 "Choose a rate change other than zero."
               ) : (
                 <>
-                  Scores <b>{describe(input)}</b>, for {input.duration} year{input.duration === 1 ? "" : "s"}.
+                  Scores <b>{describe(input)}</b>, for {input.duration} year{input.duration === 1 ? "" : "s"}
+                  {input.kind === "income" && input.eti !== undefined ? ` (ETI ${input.eti.toFixed(2)})` : ""}.
                 </>
               )}
             </p>

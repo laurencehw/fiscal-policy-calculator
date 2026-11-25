@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { checkedSentence, displayedGapPct, hasOther, whoPaysReconciliation, yearRows } from "./scoreparts";
+import { checkedExtraNote, checkedSentence, displayedGapPct, hasOther, whoPaysReconciliation, yearRows } from "./scoreparts";
 import type { Credibility, PresetFile } from "./types";
 
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
@@ -33,6 +33,15 @@ test("when the page figure is the scorecard figure, the short sentence stands", 
   assert.equal(checkedSentence(none, -95, "FY2026-2035"), "No published score for this exact policy is on file.");
 });
 
+test("checkedExtraNote keeps only the non-redundant qualifier after the em-dash", () => {
+  const cred = {
+    own_row_official_billions: -2171.1,
+    own_row_caption: "Unfitted reconstruction, 36.4% from -$2.17T (Tax Foundation (Fiscal Fact 861)) — no constant is fitted to this figure.",
+  } as Credibility;
+  assert.equal(checkedExtraNote(cred), "No constant is fitted to this figure.");
+  assert.equal(checkedExtraNote({ own_row_official_billions: null, own_row_caption: "x — y" } as Credibility), "");
+});
+
 const top45 = JSON.parse(readFileSync(new URL("../../site_data/presets/top-rate-45.json", import.meta.url), "utf8")) as PresetFile;
 
 test("the conventional deficit is minus revenue and the behavioural response (review B6)", () => {
@@ -52,6 +61,6 @@ test("the Who pays note names both first-year figures", () => {
   const first = yearRows(top45.conventional, top45.dynamic)[0];
   const text = whoPaysReconciliation(first, 2026, 63.99);
   assert.match(text, /\+\$98\.6B before the behavioural response/);
-  assert.match(text, /\+\$86\.3B after it/);
+  assert.match(text, /\+\$73\.4B after it/);
   assert.match(text, /totals \+\$64\.0B/);
 });

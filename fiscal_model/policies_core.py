@@ -1116,17 +1116,50 @@ class TaxPolicy(Policy):
         )
         return 1.0 - pref
 
+    def behavioral_erosion_weight(self) -> float:
+        """The weight on ``ETI x static`` in the behavioural offset.
+
+        For a plain ``TaxPolicy`` that changes an income-tax rate, this is
+        Saez-Slemrod-Giertz's ``tau / (1 - tau) * a`` measured from IRS SOI and
+        CBO's statutory schedule (:mod:`fiscal_model.behavioral_weight`). Every
+        other policy, and any case where the data cannot be read, keeps the
+        legacy 0.5. ``type(self) is TaxPolicy`` is deliberate: subclasses price
+        their own behaviour. Lane: planning/lanes/SSG_bracket_behavioural_offset.md.
+        """
+        from fiscal_model.behavioral_weight import LEGACY_WEIGHT, ssg_weight
+
+        if (
+            type(self) is not TaxPolicy
+            or self.policy_type != PolicyType.INCOME_TAX
+            or not self.rate_change
+        ):
+            return LEGACY_WEIGHT
+        cached = getattr(self, "_ssg_weight_cache", None)
+        if cached is not None:
+            return cached
+        try:
+            year = self.resolve_soi_base_tax_year() or 0
+            weight = ssg_weight(
+                self.resolved_filing_status_thresholds(), self.income_measure, int(year)
+            )
+        except Exception:  # pragma: no cover - data missing or malformed
+            weight = None
+        result = LEGACY_WEIGHT if weight is None else float(weight)
+        object.__setattr__(self, "_ssg_weight_cache", result)
+        return result
+
     def estimate_behavioral_offset(self, static_effect: float) -> float:
-        """Behavioral revenue offset under standard ETI methodology.
+        """Behavioral revenue offset under the ETI methodology.
 
         Returns a SIGNED value with the same sign as ``static_effect`` so the
         engine's ``deficit_after = static_deficit + behavioral`` (where
         ``static_deficit = -static_revenue``) shrinks the magnitude of the
         revenue change in both directions: erodes the gain on a tax increase
-        and recovers some revenue on a tax cut. Magnitude follows the
-        Saez-style 0.5·ETI·|static| convention.
+        and recovers some revenue on a tax cut. Magnitude is
+        ``ETI x weight x |static|``, with the weight from
+        :meth:`behavioral_erosion_weight`.
         """
-        return static_effect * self.taxable_income_elasticity * 0.5
+        return static_effect * self.taxable_income_elasticity * self.behavioral_erosion_weight()
 
     def validate_inputs(self) -> list[str]:
         """Validate inputs and return warning strings for unusual parameters."""

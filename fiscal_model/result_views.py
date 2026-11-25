@@ -269,16 +269,36 @@ def olg_view(capital_tax_rate: float, payroll_tax_rate: float, replacement_rate:
     accounts = None
     if ga is not None:
         frame = ga.to_dataframe()
+        newborn_pct = ga.to_pct_lifetime_earnings(ga.newborn_burden_change)
+        weighted_pct = ga.to_pct_lifetime_earnings(ga.weighted_burden_change())
+        shift_pct = (
+            float(newborn_pct - weighted_pct)
+            if newborn_pct is not None and weighted_pct is not None
+            else None
+        )
+        has_pct = "change_pct_earnings" in frame.columns
         accounts = {
             "newborn_burden_change": float(ga.newborn_burden_change),
             "weighted_burden_change": float(ga.weighted_burden_change()),
             "generational_imbalance": float(ga.generational_imbalance),
+            "newborn_burden_change_pct": newborn_pct,
+            "weighted_burden_change_pct": weighted_pct,
+            "shift_to_young_pct": shift_pct,
             "by_age": [
                 {
                     "age": int(row["age"]),
                     "baseline": float(row["baseline_burden"]),
                     "reform": float(row["reform_burden"]),
                     "change": float(row["burden_change"]),
+                    **(
+                        {
+                            "baseline_pct": float(row["baseline_pct_earnings"]),
+                            "reform_pct": float(row["reform_pct_earnings"]),
+                            "change_pct": float(row["change_pct_earnings"]),
+                        }
+                        if has_pct
+                        else {}
+                    ),
                 }
                 for _, row in frame.iterrows()
             ],

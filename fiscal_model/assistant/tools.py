@@ -630,11 +630,30 @@ class AssistantTools:
         }
 
     def tool_get_preset(self, name: str) -> dict[str, Any]:
-        spec = self._presets.get(name)
+        resolved_name = name
+        spec = self._presets.get(resolved_name)
+        if spec is None:
+            try:
+                from fiscal_model.preset_ids import resolve_preset
+
+                canonical = resolve_preset(name)
+                if canonical and canonical in self._presets:
+                    resolved_name = canonical
+                    spec = self._presets[canonical]
+            except Exception:
+                pass
+        if spec is None:
+            needle = name.strip().lower()
+            if needle:
+                for label, candidate in self._presets.items():
+                    if needle in label.lower():
+                        resolved_name = label
+                        spec = candidate
+                        break
         if spec is None:
             return {"error": f"preset {name!r} not found"}
-        score = self._cbo_score_map.get(name, {})
-        return {"name": name, "config": spec, "official_score": score}
+        score = self._cbo_score_map.get(resolved_name, {})
+        return {"name": resolved_name, "config": spec, "official_score": score}
 
     def tool_score_hypothetical_policy(
         self,
