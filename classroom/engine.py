@@ -598,8 +598,12 @@ class RelativeValidator:
             baseline_deficit_gdp=float(params.get("baseline_deficit_gdp", 0.06)),
         )
         model = SimpleOLGModel(params=olg_params)
+        raw_debt_shock = float(params.get("debt_shock_pct_gdp", 0.0))
+        # Classroom sliders declare unit="% GDP" (e.g. 2.0 for 2% of GDP),
+        # while SimpleOLGModel expects a decimal fraction (0.02).
+        debt_shock = raw_debt_shock / 100.0 if abs(raw_debt_shock) > 0.5 else raw_debt_shock
         result = model.run(
-            debt_shock_pct_gdp=float(params.get("debt_shock_pct_gdp", 0.0)),
+            debt_shock_pct_gdp=debt_shock,
             ss_replacement_change=float(params.get("ss_replacement_change", 0.0)),
             labor_tax_change=float(params.get("labor_tax_change", 0.0)),
         )
