@@ -366,8 +366,10 @@ class FRBUSAdapterLite(MacroModelAdapter):
                 through year 10 — demand-multiplier arithmetic applied at
                 full employment (~28% feedback offsets vs CBO's far smaller
                 dynamic feedback for permanent tax changes). Demand effects
-                are temporary in FRB/US under a Taylor rule; this model has
-                no supply-side channel to sustain long-run effects.
+                are temporary in FRB/US under a Taylor rule. The only
+                persistent channel is the corporate capital-stock path a
+                scenario can carry (``supply_gdp_fraction``, lane SUPPLY);
+                every other policy is demand-only.
         """
         self.spending_multiplier = spending_multiplier
         self.tax_multiplier = tax_multiplier
@@ -410,19 +412,33 @@ class FRBUSAdapterLite(MacroModelAdapter):
             gdp_change[t] *= self.monetary_offset ** t
 
         # Convert to percent
-        gdp_level_pct = gdp_change / self.baseline_gdp * 100
+        demand_pct = gdp_change / self.baseline_gdp * 100
+
+        # Supply side: the capital-stock channel, where the scenario carries
+        # one (lane SUPPLY; corporate rate changes only). It persists rather
+        # than fading with the monetary offset, because it moves potential
+        # output, not the output gap.
+        supply_dollars = np.zeros(n_years)
+        supply_pct = np.zeros(n_years)
+        if scenario.supply_gdp_fraction is not None and scenario.baseline_nominal_gdp is not None:
+            fraction = np.asarray(scenario.supply_gdp_fraction, dtype=float)[:n_years]
+            levels = np.asarray(scenario.baseline_nominal_gdp, dtype=float)[:n_years]
+            supply_dollars[: len(fraction)] = fraction * levels
+            supply_pct[: len(fraction)] = fraction * 100
+        gdp_level_pct = demand_pct + supply_pct
 
         # Growth rate effect
         gdp_growth_ppts = np.zeros(n_years)
         gdp_growth_ppts[0] = gdp_level_pct[0]
         gdp_growth_ppts[1:] = np.diff(gdp_level_pct)
 
-        # Employment (FRB/US shows ~0.4% employment per 1% GDP)
-        employment_pct = gdp_level_pct * 0.4
+        # Employment (FRB/US shows ~0.4% employment per 1% GDP). Demand only:
+        # the capital channel moves output per worker, not the output gap.
+        employment_pct = demand_pct * 0.4
         employment_change = employment_pct / 100 * 160
 
         # Unemployment (Okun coefficient ~-0.5)
-        unemployment_ppts = -gdp_level_pct * 0.5
+        unemployment_ppts = -demand_pct * 0.5
 
         # Interest rates (FRB/US shows ~3bp per 1% GDP deficit)
         deficit_change = outlays_chg - receipts_chg
@@ -437,7 +453,7 @@ class FRBUSAdapterLite(MacroModelAdapter):
         short_rate_ppts = long_rate_ppts * 0.7  # Fed responds less than long rates
 
         # Revenue feedback
-        revenue_feedback = gdp_change * self.marginal_tax_rate
+        revenue_feedback = (gdp_change + supply_dollars) * self.marginal_tax_rate
 
         # Interest cost
         interest_cost = cumulative_deficit * 0.04
@@ -454,6 +470,9 @@ class FRBUSAdapterLite(MacroModelAdapter):
             long_rate_ppts=long_rate_ppts,
             revenue_feedback_billions=revenue_feedback,
             interest_cost_billions=interest_cost,
+            supply_revenue_feedback_billions=(
+                supply_dollars * self.marginal_tax_rate if np.any(supply_dollars) else None
+            ),
         )
 
     def get_baseline(self) -> pd.DataFrame:

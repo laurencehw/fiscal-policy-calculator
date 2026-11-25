@@ -2943,7 +2943,9 @@ figure for this model, and any document that states one is wrong.
 `| Spending multiplier (Year 1) | 1.4 | FR`. The rows above are read back from
 `FRBUSAdapterLite.__init__`'s own defaults in
 `fiscal_model/models/macro_adapter_frbus.py` rather than reconstructed from
-memory. There is **no supply-side channel**; demand-side GDP effects fade over
+memory. The only supply-side channel is the corporate capital stock, for a
+corporate statutory rate change only (`fiscal_model/supply_channel.py`,
+`planning/lanes/SUPPLY_corporate_capital_channel.md`); demand-side GDP effects fade over
 roughly five to seven years at the 0.65 retention, and the dynamic surface nets
 debt-service costs against revenue feedback.*
 

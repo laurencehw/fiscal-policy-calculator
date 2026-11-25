@@ -272,8 +272,15 @@ FRB/US-calibrated multipliers (FRBUSAdapterLite):
 - **Crowding out**: 15% of cumulative deficit
 - **Monetary offset / return to potential**: 0.65 annual retention of the
   demand effect — demand-side GDP effects fade over ~5-7 years rather than
-  persisting for the full decade; there is **no supply-side channel**, and
-  the dynamic tab nets debt-service costs against revenue feedback
+  persisting for the full decade, and the dynamic tab nets debt-service
+  costs against revenue feedback
+- **Supply side**: one channel, for a `CorporateTaxPolicy` statutory rate
+  change **only** (`fiscal_model/supply_channel.py`, lane SUPPLY). The
+  C-corporation capital stock moves through the user cost, built from CBO's
+  own effective marginal tax rates (publication 53724) and the repository's
+  α/δ/K/Y, and closes the gap at the Solow rate. It adds to output and to
+  revenue feedback. Every other policy has **no supply-side channel**; there
+  is no labor-supply channel at all
 
 Static revenue formula:
 ```
