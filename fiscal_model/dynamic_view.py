@@ -145,6 +145,15 @@ def build_macro_scenario(
         receipts_change = np.array(-net_deficit)
         outlays_change = np.zeros(horizon)
 
+    from fiscal_model.supply_channel import corporate_supply_path
+
+    supply = corporate_supply_path(policy, result.baseline)
+    extra: dict[str, Any] = {}
+    if supply is not None:
+        extra["supply_gdp_fraction"] = supply[:horizon]
+        extra["baseline_nominal_gdp"] = np.asarray(
+            result.baseline.nominal_gdp, dtype=float
+        )[:horizon]
     return macro_scenario_cls(
         name=policy.name,
         description=f"Dynamic scoring for {policy.name}",
@@ -152,6 +161,7 @@ def build_macro_scenario(
         horizon_years=horizon,
         receipts_change=receipts_change,
         outlays_change=outlays_change,
+        **extra,
     )
 
 

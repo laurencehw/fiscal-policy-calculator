@@ -113,7 +113,7 @@ export default async function PresetPage({ params }: { params: Promise<{ id: str
           <span className="q">{direction(headline)}</span>
         </div>
         <div className="stage">
-          <span className="q">With demand feedback and debt service (no supply side)</span>
+          <span className="q">With demand feedback and debt service (supply side for corporate rates only)</span>
           <span className="v">{dyn === null ? "Not available" : money(dyn)}</span>
           <EstimateTag identity={dynamicIdentity} />
           <span className="q">{d.dynamic_model ?? d.error_message ?? ""}</span>

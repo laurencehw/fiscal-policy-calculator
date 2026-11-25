@@ -153,9 +153,11 @@ def _dynamic_view_payload(policy: Any, result: Any, *, is_spending: bool) -> dic
             "debt_service_10yr_billions, positive = adds to the deficit. It is "
             "computed on this engine run, not on a benchmark-anchored "
             "headline. Quote it as a labelled dynamic view beside the "
-            "conventional figure, never as the headline. The model is "
-            "demand-side only: GDP effects fade as the Fed responds, and there "
-            "is no supply-side channel."
+            "conventional figure, never as the headline. Demand-side GDP "
+            "effects fade as the Fed responds. The one supply-side channel is "
+            "the corporate capital stock, for a corporate statutory rate change "
+            "only (built from CBO's effective marginal tax rates); every other "
+            "policy is demand-side only."
         ),
     }
 

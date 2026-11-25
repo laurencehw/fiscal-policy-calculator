@@ -68,7 +68,7 @@ test("the dynamic tag names the feedback and does not inherit the conventional t
   const identity = estimateIdentity(corp.dynamic, "model-dynamic");
   assert.equal(identity.tier, "none");
   const line = identityLine(identity);
-  assert.match(line, /with demand-side feedback, no supply side/);
+  assert.match(line, /with demand-side feedback, supply side for corporate rates only/);
   assert.doesNotMatch(line, /calibrated/i);
   assert.match(line, /not benchmarked/);
 });

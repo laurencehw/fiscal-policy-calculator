@@ -139,4 +139,56 @@ comparison is the first follow-up, through Laurence's browser.
 
 ## Outturn
 
-*(appended after implementation)*
+*(appended after implementation, 2026-11-25)*
+
+**Every pre-registered figure landed, to the decimal.** FY2026-2035, February
+2026 vintage, FRB/US-Lite, ten-year sums in $B:
+
+| Preset | Conventional | Feedback before | Supply feedback | Feedback after | Dynamic total after | Band |
+|---|--:|--:|--:|--:|--:|---|
+| Biden Corporate 28% | −968.8 | −86.6 | **−162.2** | **−248.8** | **−923.7** | inside |
+| Trump Corporate 15% | +1,230.2 | +96.5 | **+139.0** | **+235.5** | **+1,251.3** | inside |
+
+Long-run output effect of the 28% preset in FY2035: **−0.842%** of GDP
+(predicted −0.84%), with `s = 0.441` and `EMTR_c = 15.69%`. Effect reached by
+FY2035: **−0.288%** (predicted −0.29%).
+
+**Falsification tests, all passed.**
+- Non-corporate presets: a sweep of every preset under both adapters against
+  `main` changed exactly two entries, the two corporate presets under
+  FRB/US-Lite. The Simple Keynesian adapter ignores the channel by design, and
+  a test pins that.
+- `cold_holdout.py --json`, `run_validation_dashboard.py` and
+  `run_loo.py --donor-matrix` are byte-identical to `main`.
+- A test parses the module's source and fails if it contains a float other
+  than 0, 1 or 100, or names a scorecard registry.
+- Signs: a rise lowers output, a cut raises it, a zero change gives exactly
+  zero, and a sunset decays back. All pinned.
+- `s` stays inside (0, 1) in every year of every vintage that publishes the
+  five EMTRs.
+
+**Not predicted, and recorded.**
+- **The two older vintages carry no housing EMTR.** `cbo_feb_2024` and
+  `cbo_jan_2025` in `cbo_tax_parameters` lack
+  `tp_emtr_capital_housing`, so `s_bo` cannot be read back and the channel
+  returns `None` there: a run on either vintage is demand-only, as before.
+  Nothing on the app's default vintage is affected. A test lists the two
+  vintages so the gap is visible if a later transcription fills it.
+- **CBO's EMTR series starts in CY2026, after the statutory rows.** Years
+  outside the published span are held at the nearest published year, which
+  only matters for a window that starts before 2026.
+- **Employment and unemployment stay demand-only.** The capital channel moves
+  output per worker, not the output gap, so the adapter's Okun and employment
+  rules read the demand part alone. This was a design choice made while
+  implementing, not a prediction.
+
+**Surfaces.** The Streamlit dynamic tab, the site's dynamic tag and
+Economic effects note, the Ask tool description, `CLAUDE.md` and
+`docs/METHODOLOGY.md` now say the one supply channel is the corporate capital
+stock, for corporate rate changes only. The Streamlit dynamic tab carries a
+Decision 6 caption that computes the demand-only feedback from the same run.
+`site_data` is regenerated for the two corporate presets only; the nightly
+export refreshes the rest.
+
+**Still open.** The long-run figure is not yet checked against a published
+dynamic score (Tax Foundation, PWBM). That is the first follow-up.

@@ -46,7 +46,7 @@ const MONTHS: Record<string, string> = {
 
 const KIND_WORD: Record<IdentityKind, string> = {
   model: "conventional",
-  "model-dynamic": "with demand-side feedback, no supply side",
+  "model-dynamic": "with demand-side feedback, supply side for corporate rates only",
   published: "published",
   unpublished: "unpublished estimate",
   "package-sum": "sum of standalone published scores",
@@ -174,7 +174,7 @@ export function estimateIdentity(result: IdentityResult, kind: IdentityKind): Es
       tier: "none",
       tierLabel: "not benchmarked",
       limitation:
-        "Demand-side feedback and interest on the debt only. There is no supply-side channel, so for corporate and capital taxes this can move in the opposite direction from CBO and JCT dynamic estimates. Not scored against a published dynamic estimate.",
+        "Demand-side feedback and interest on the debt, plus a capital-stock supply channel for a corporate statutory rate change only. Other taxes have no supply-side channel, so for capital and individual taxes this can move in the opposite direction from CBO and JCT dynamic estimates. Not scored against a published dynamic estimate.",
     };
   }
   return {

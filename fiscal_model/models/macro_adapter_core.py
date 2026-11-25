@@ -65,6 +65,13 @@ class MacroScenario:
     initial_debt_gdp: float = 1.0  # Starting debt-to-GDP ratio
     target_debt_gdp: float | None = None  # Long-run target
 
+    # Supply side (lane SUPPLY, planning/lanes/SUPPLY_corporate_capital_channel.md).
+    # Output change from the capital stock, as a fraction of GDP by year, and
+    # the vintage's own nominal GDP path in $B to price it. ``None`` for every
+    # policy the channel does not cover, which leaves an adapter demand-only.
+    supply_gdp_fraction: np.ndarray | None = None
+    baseline_nominal_gdp: np.ndarray | None = None
+
     def __post_init__(self):
         if self.receipts_change is None:
             self.receipts_change = np.zeros(self.horizon_years)
@@ -105,6 +112,10 @@ class MacroResult:
     # Investment and capital
     investment_pct: np.ndarray | None = None
     capital_stock_pct: np.ndarray | None = None
+
+    # The part of ``revenue_feedback_billions`` that comes from the supply
+    # channel (lane SUPPLY), by year. ``None`` when the run had none.
+    supply_revenue_feedback_billions: np.ndarray | None = None
 
     @property
     def cumulative_gdp_effect(self) -> float:

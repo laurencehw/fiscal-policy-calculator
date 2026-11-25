@@ -83,7 +83,7 @@ export function EconomicEffects({ econ }: { econ: Economic }) {
         </table>
       </div>
       <p className="note">
-        {econ.model}. Demand effects fade over five to seven years as monetary policy responds; there is no supply-side channel. The
+        {econ.model}. Demand effects fade over five to seven years as monetary policy responds. The one supply-side channel is the corporate capital stock, for a corporate statutory rate change only. The
         dynamic score is the conventional score, plus the deficit effects of the GDP change and of interest on the debt:{" "}
         {money(econ.conventional_billions)} {money(-econ.revenue_feedback_billions).replace(/^([+-])/, "$1 ")} {money(econ.debt_service_billions).replace(/^([+-])/, "$1 ")} ={" "}
         {money(econ.dynamic_total_billions)}.

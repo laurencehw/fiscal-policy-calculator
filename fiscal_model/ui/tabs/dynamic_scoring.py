@@ -276,14 +276,20 @@ def render_dynamic_scoring_tab(
             f"computed here from {model_name}."
         )
         st_module.caption(
-            "⚠️ Demand-side model only: GDP effects come from temporary "
+            "⚠️ Mostly demand-side: GDP effects come from temporary "
             "fiscal-impulse multipliers that fade as the Fed responds and "
-            "output returns to potential. There is no supply-side channel "
-            "(labor supply, capital deepening, potential GDP), which is where "
-            "CBO's dynamic analyses locate most long-run effects of permanent "
-            "tax changes — treat the dynamic score as illustrative, not a "
-            "CBO-comparable dynamic estimate."
+            "output returns to potential. The one supply-side channel is the "
+            "corporate capital stock, for a corporate statutory rate change "
+            "only; there is no labor-supply channel and none for any other "
+            "tax, which is where CBO's dynamic analyses locate most long-run "
+            "effects of permanent tax changes — treat the dynamic score as "
+            "illustrative, not a CBO-comparable dynamic estimate."
         )
+        from fiscal_model.supply_channel import supply_feedback_caption
+
+        supply_caption = supply_feedback_caption(macro_result)
+        if supply_caption:
+            st_module.caption(f"ℹ️ {supply_caption}".replace("$", "\\$"))
 
         st_module.markdown("---")
         st_module.subheader("Year-by-Year Macroeconomic Effects")
@@ -480,7 +486,9 @@ def render_dynamic_scoring_tab(
                             **Key Assumptions:**
                             - Monetary policy follows Taylor rule (not at zero lower bound)
                             - Fiscal closure via surplus ratio targeting
-                            - No supply-side effects on potential GDP
+                            - No supply-side effects on potential GDP, except the
+                              corporate capital-stock channel for a corporate
+                              statutory rate change
 
                             **References:**
                             - Coenen et al. (2012). "Effects of Fiscal Stimulus in Structural Models"
