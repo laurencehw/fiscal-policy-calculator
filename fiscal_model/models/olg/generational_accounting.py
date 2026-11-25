@@ -73,6 +73,12 @@ class GenerationalAccounts:
     # Discount rate used (= r from the baseline steady state)
     discount_rate: float
 
+    # Present value of full-career baseline labor earnings for a newborn (j=0),
+    # in the same model units as lifetime_burden_*. Used to express net-tax
+    # burdens as a percentage of baseline lifetime earnings rather than raw
+    # model units.
+    baseline_lifetime_earnings_pv: float = 0.0
+
     @property
     def burden_change(self) -> np.ndarray:
         """Change in lifetime burden: reform − baseline, shape (n_cohorts,)."""
@@ -105,11 +111,17 @@ class GenerationalAccounts:
         denom = max(abs(self.newborn_burden_baseline), 1e-10)
         return self.newborn_burden_change / denom
 
+    def to_pct_lifetime_earnings(self, value: float) -> float | None:
+        """Express a model-unit burden as % of baseline lifetime earnings."""
+        if self.baseline_lifetime_earnings_pv <= 1e-10:
+            return None
+        return float(value / self.baseline_lifetime_earnings_pv * 100.0)
+
     def to_dataframe(self, start_age: int = 21) -> pd.DataFrame:
         """Export burden profiles to DataFrame."""
         n = len(self.lifetime_burden_baseline)
         ages = np.arange(start_age, start_age + n)
-        return pd.DataFrame({
+        df = pd.DataFrame({
             "age": ages,
             "cohort_index": np.arange(n),
             "baseline_burden": self.lifetime_burden_baseline,
@@ -117,6 +129,12 @@ class GenerationalAccounts:
             "burden_change": self.burden_change,
             "cohort_size": self.cohort_sizes,
         })
+        if self.baseline_lifetime_earnings_pv > 1e-10:
+            scale = 100.0 / self.baseline_lifetime_earnings_pv
+            df["baseline_pct_earnings"] = self.lifetime_burden_baseline * scale
+            df["reform_pct_earnings"] = self.lifetime_burden_reform * scale
+            df["change_pct_earnings"] = self.burden_change * scale
+        return df
 
     def weighted_burden_change(self) -> float:
         """Population-weighted average change in lifetime burden."""
@@ -169,11 +187,19 @@ class GenerationalAccounting:
             r=baseline_ss.r,  # Discount at baseline rate for comparability
         )
 
+        # PV of full-career baseline labor earnings for a newborn (j=0)
+        r_base = baseline_ss.r
+        R_work = p.retirement_age_cohort
+        disc_work = (1.0 + r_base) ** (-np.arange(R_work, dtype=float))
+        earnings_profile = baseline_ss.w * p.earnings_profile[:R_work]
+        baseline_lifetime_earnings_pv = float(np.dot(earnings_profile, disc_work))
+
         return GenerationalAccounts(
             lifetime_burden_baseline=burden_baseline,
             lifetime_burden_reform=burden_reform,
             cohort_sizes=p.cohort_sizes,
             discount_rate=baseline_ss.r,
+            baseline_lifetime_earnings_pv=baseline_lifetime_earnings_pv,
         )
 
     def _compute_burden_profile(

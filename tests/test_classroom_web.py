@@ -82,9 +82,11 @@ def test_the_endpoint(monkeypatch):
     import api
 
     client = TestClient(api.app)
+    # SimpleOLGModel baseline mean net tax rate moved 15.8% -> 17.5% after
+    # calibrating initial TFP to $29T GDP (positive real r) and wiring tau_k.
     ok = client.post(
         "/classroom/check",
-        json={"assignment_id": "olg_generational", "exercise_id": "olg_ug_ex1", "answer": 15.8},
+        json={"assignment_id": "olg_generational", "exercise_id": "olg_ug_ex1", "answer": 17.5},
     )
     assert ok.status_code == 200 and ok.json()["correct"]
     missing = client.post("/classroom/check", json={"assignment_id": "x", "exercise_id": "y", "answer": 1})
