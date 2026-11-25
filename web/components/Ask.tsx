@@ -56,7 +56,10 @@ export function Ask() {
         const { frames, rest } = readFrames(buffer);
         buffer = rest;
         for (const frame of frames) {
-          if (frame.event === "token") {
+          if (frame.event === "reset") {
+            answer = "";
+            setPending("");
+          } else if (frame.event === "token") {
             answer += frame.data;
             setPending(answer);
           } else if (frame.event === "error") {

@@ -27,7 +27,7 @@
       "title": "Spending Multiplier: $100B Infrastructure Package",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "The government proposes a $100 billion per year infrastructure investment package, deficit-financed (no offsetting tax increases).\nThe spending multiplier measures the total GDP boost per dollar of spending:\n  ΔGDP = Multiplier × ΔSpending\n\nStandard estimates: - CBO: spending multiplier ~1.0 in normal times - FRB/US calibrated: ~1.4 in year 1, decaying over time - At zero lower bound (recession): 1.5-2.0\nEstimate the year-1 GDP boost and the 10-year cumulative boost from a $100B/year spending increase using a multiplier of 1.4.\nThe answer box checks the conventional score, not the GDP boost. Enter the package's 10-year cost to the deficit, in billions of dollars (a positive number, since the deficit rises).",
+      "prompt": "The government proposes a $100 billion per year infrastructure investment package, deficit-financed (no offsetting tax increases).\nThe spending multiplier measures the total GDP boost per dollar of spending:\n  ΔGDP = Multiplier × ΔSpending\n\nStandard estimates:\n\n  - CBO: spending multiplier ~1.0 in normal times\n  - FRB/US calibrated: ~1.4 in year 1, decaying over time\n  - At zero lower bound (recession): 1.5-2.0\n\nUsing the spending and multiplier sliders below, estimate how growth feedback offsets part of the cost.\nEnter the package's 10-year net deficit cost after growth-driven revenue feedback (conventional spending cost minus revenue feedback from the multiplier, excluding debt service), in billions of dollars (a positive number, since the deficit rises).",
       "parameters": [
         {
           "name": "annual_change_billions",
@@ -53,11 +53,11 @@
       "hints": [
         {
           "level": 1,
-          "text": "Year-1 GDP boost = $100B × 1.4 = $140B. But multipliers decay as crowding out occurs: year-2 effect ≈ 1.4 × 0.75 = 1.05×, etc. Cumulative 10-year GDP boost ≈ $100B × (1.4 + 1.05 + 0.79 + ...) ≈ $560B. Revenue feedback = 25% of GDP boost ≈ $140B over 10 years."
+          "text": "Conventional 10-year cost of $100B/year growing 2%/yr is about $1,095B. With a 1.4× year-1 spending multiplier (decaying with crowding out and Fed offset), FRB/US-Lite estimates roughly $740B of cumulative GDP expansion over 10 years."
         },
         {
           "level": 2,
-          "text": "The answer checked here is the conventional score: the spending itself, with the $100B growing 2% a year, so about $1,095B over 10 years. Growth feedback (about $140B by the rough arithmetic above) is reported separately and would bring the dynamic cost down toward $950B."
+          "text": "At a 25% marginal revenue rate, ~$740B of extra GDP generates roughly $185B of revenue feedback. Subtracting that from the ~$1,095B conventional cost brings the net 10-year cost (before interest) to roughly $910B. Adjust proportionally if you moved either slider."
         }
       ],
       "checked": true,
@@ -70,7 +70,7 @@
       "title": "Crowding Out: Does Government Borrowing Displace Investment?",
       "type": "parameter_exploration",
       "level": "undergraduate",
-      "prompt": "When the government borrows, it competes with private borrowers for loanable funds, potentially \"crowding out\" private investment.\nCBO assumes a \"crowding out coefficient\" of ~$0.33: each dollar of deficit reduces private capital by $0.33 in the long run.\nGiven: - US private investment is ~$4.5T/year - Current deficit is ~$1.8T/year (6% of $30T GDP) - Proposed policy adds $200B/year in new borrowing\nEstimate: how much private investment is displaced by the new $200B/year borrowing (using the $0.33 coefficient)?\nEnter the displaced private investment, in billions of dollars a year (a positive number).",
+      "prompt": "When the government borrows, it competes with private borrowers for loanable funds, potentially \"crowding out\" private investment.\nCBO assumes a \"crowding out coefficient\" of ~$0.33: each dollar of deficit reduces private capital by $0.33 in the long run.\nGiven:\n\n  - US private investment is ~$4.5T/year\n  - Current deficit is ~$1.8T/year (6% of $30T GDP)\n  - Proposed policy adds $200B/year in new borrowing\n\nEstimate: how much private investment is displaced by the new $200B/year borrowing (using the $0.33 coefficient)?\nEnter the displaced private investment, in billions of dollars a year (a positive number).",
       "parameters": [
         {
           "name": "new_borrowing_billions",
@@ -109,7 +109,7 @@
       "title": "Debt Dynamics: Is Current Debt Sustainable?",
       "type": "target_finding",
       "level": "graduate",
-      "prompt": "The debt dynamics equation: Δ(D/Y) = (r−g)(D/Y) − S where D/Y = debt-to-GDP ratio, r = real interest rate, g = real GDP growth rate, S = primary surplus (positive = surplus)\nCurrent US parameters (2026): - D/Y = 100% (approx $30T debt / $30T GDP) - r = 2.5% (10-year TIPS yield) - g = 2.0% (CBO baseline real growth) - Primary deficit ≈ 3% of GDP (S = −3%)\nIs current policy sustainable? What primary surplus is needed to stabilize debt at 100%?\nFor stabilization: S = (r−g) × D/Y = (0.025 − 0.020) × 1.00 = 0.5% of GDP\nBut actual S = −3%. Annual gap = 3.5% of GDP. Enter the required primary balance improvement (pp of GDP) to stabilize.",
+      "prompt": "The debt dynamics equation: Δ(D/Y) = (r−g)(D/Y) − S where D/Y = debt-to-GDP ratio, r = real interest rate, g = real GDP growth rate, S = primary surplus (positive = surplus)\nCurrent US parameters (2026):\n\n  - D/Y = 100% (approx $30T debt / $30T GDP)\n  - r = 2.5% (10-year TIPS yield)\n  - g = 2.0% (CBO baseline real growth)\n  - Primary deficit ≈ 3% of GDP (S = −3%)\n\nIs current policy sustainable? What primary surplus is needed to stabilize debt at 100%?\nFor stabilization: S = (r−g) × D/Y = (0.025 − 0.020) × 1.00 = 0.5% of GDP\nBut actual S = −3%. Annual gap = 3.5% of GDP. Enter the required primary balance improvement (pp of GDP) to stabilize.",
       "parameters": [
         {
           "name": "real_interest_rate_pct",

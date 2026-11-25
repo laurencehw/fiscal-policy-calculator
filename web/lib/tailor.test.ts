@@ -47,6 +47,20 @@ test("points become the engine's decimal fraction", () => {
   const body = engineRequest({ kind: "income", rate: 2.6, who: 400_000, duration: 10, dynamic: false });
   assert.equal(body.rate_change, 0.026);
   assert.equal(body.income_threshold, 400_000);
+  assert.equal(body.elasticity, 0.25);
   assert.equal(body.policy_type, "income_tax");
   assert.equal(body.dynamic, true);
 });
+
+test("eti round-trips when non-default, validates bounds, and passes to engine", () => {
+  const custom = { kind: "income" as const, rate: 2.6, who: 400_000, duration: 10, dynamic: false, eti: 0.4 };
+  const qs = toQuery(custom);
+  assert.match(qs, /eti=0\.4/);
+  assert.deepEqual(fromQuery(new URLSearchParams(qs)).input, custom);
+  assert.equal(engineRequest(custom).elasticity, 0.4);
+  assert.equal(typeof validate({ kind: "income", rate: 1, who: 0, duration: 10, eti: 1.5 }), "string");
+  assert.equal(typeof validate({ kind: "income", rate: 1, who: 0, duration: 10, eti: -0.1 }), "string");
+  const valid = validate({ kind: "income", rate: 1, who: 0, duration: 10, eti: 0 });
+  assert.deepEqual(valid, { kind: "income", rate: 1, who: 0, duration: 10, dynamic: false, eti: 0 });
+});
+

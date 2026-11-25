@@ -62,6 +62,7 @@ class OLGParams:
     baseline_capital_tax_rate: float = 0.20   # Average capital income tax rate
     baseline_ss_replacement: float = 0.40     # SS replaces 40% of wages
     baseline_deficit_gdp: float = 0.06        # Baseline deficit ~6% GDP
+    initial_debt_gdp: float = 0.99            # Initial debt / GDP (~99%, CBO Feb 2026)
 
     # Simulation
     sim_years: int = 80           # Simulation horizon (years from 2025)
@@ -180,6 +181,11 @@ class SimpleOLGModel:
         initial_capital = p.initial_gdp * p.initial_capital_gdp_ratio  # $B
         initial_l = labor_force  # millions
 
+        # Calibrate initial TFP so Y_0 = A_0 * K_0^alpha * L_0^(1-alpha) = initial_gdp
+        tfp_0 = p.initial_gdp / (
+            (initial_capital ** p.alpha) * (initial_l ** (1 - p.alpha))
+        )
+
         # Build phase-in ramp
         ramp = np.ones(T)
         if phase_in_years > 0:
@@ -189,11 +195,11 @@ class SimpleOLGModel:
         # Policy paths (applied with ramp)
         debt_shock = debt_shock_pct_gdp * ramp
         tau_l = p.baseline_labor_tax_rate + labor_tax_change * ramp
-        _tau_k = p.baseline_capital_tax_rate + capital_tax_change * ramp
+        tau_k = np.clip(p.baseline_capital_tax_rate + capital_tax_change * ramp, 0.0, 0.85)
         ss_repl = p.baseline_ss_replacement + ss_replacement_change * ramp
 
         # --- Simulate production + capital ---
-        tfp = (1 + p.tfp_growth) ** np.arange(T)       # TFP index (base=1 in year 0)
+        tfp = tfp_0 * (1 + p.tfp_growth) ** np.arange(T)
         labor = initial_l * (1 + p.n_growth) ** np.arange(T)  # labor force path
 
         gdp = np.zeros(T)
@@ -209,13 +215,13 @@ class SimpleOLGModel:
             gdp[t] = tfp[t] * (capital[t] ** p.alpha) * (labor[t] ** (1 - p.alpha))
 
             # Factor prices (marginal products)
-            wage[t] = (1 - p.alpha) * gdp[t] / labor[t]  # $ per worker
-            r_gross = p.alpha * gdp[t] / capital[t]        # gross rate of return
-            interest[t] = r_gross - p.delta                 # net interest rate
+            wage[t] = (1 - p.alpha) * gdp[t] / labor[t]  # $K per worker ($B / M workers)
+            r_gross = p.alpha * gdp[t] / capital[t]      # gross rate of return
+            interest[t] = float(np.clip(r_gross - p.delta, -0.05, 0.25))  # net real interest rate
 
             # Debt accumulation
             if t == 0:
-                debt[0] = 0.20 * gdp[0]  # initial debt ~20% GDP (simplified)
+                debt[0] = p.initial_debt_gdp * gdp[0]
             else:
                 baseline_deficit = p.baseline_deficit_gdp * gdp[t]
                 policy_deficit = debt_shock[t] * gdp[t]
@@ -223,7 +229,9 @@ class SimpleOLGModel:
 
             # Capital law of motion (for next period)
             if t < T - 1:
-                gross_investment = p.savings_rate * gdp[t]
+                after_tax_ratio = (1.0 - tau_k[t]) / max(1.0 - p.baseline_capital_tax_rate, 1e-6)
+                effective_savings = p.savings_rate * (after_tax_ratio ** 0.35)
+                gross_investment = effective_savings * gdp[t]
                 # Crowding out: government debt displaces private capital
                 # CBO methodology: each $1 of debt → ~$0.33 less capital (partial crowding out)
                 crowding_out = (p.baseline_deficit_gdp + debt_shock[t]) * gdp[t] * 0.33
@@ -232,7 +240,6 @@ class SimpleOLGModel:
 
         # --- Compute generational accounts ---
         # Track cohorts born from (base_year - working_years) to (base_year + T - 1)
-        # For simplicity, track cohorts born from base_year-40 to base_year+T-1
         birth_start = p.base_year - p.working_years
         birth_end = p.base_year + T - 1
         birth_years = np.arange(birth_start, birth_end + 1)
@@ -242,29 +249,35 @@ class SimpleOLGModel:
         pv_transfers = np.zeros(n_cohorts)
         pv_wages = np.zeros(n_cohorts)
 
-        for i, by in enumerate(birth_years):
-            _pv_t = 0.0   # present value of taxes paid (discounted to birth year)
-            _pv_tr = 0.0  # present value of SS/transfers received
-            _pv_w = 0.0   # present value of wages earned
+        k_per_worker = capital / labor
 
+        for i, by in enumerate(birth_years):
             # Working life: ages 0..working_years-1  →  years by..by+working_years-1
             for age in range(p.working_years):
                 cal_year = by + age
                 if cal_year < p.base_year:
-                    # Pre-simulation: extrapolate backward with constant parameters
                     yr_idx = 0
-                    w_t = wage[0] * (1 + p.tfp_growth) ** (cal_year - p.base_year)
+                    growth_adj = (1 + p.tfp_growth) ** (cal_year - p.base_year)
+                    w_t = wage[0] * growth_adj
+                    k_t = k_per_worker[0] * growth_adj
                 elif cal_year >= p.base_year + T:
                     yr_idx = T - 1
-                    w_t = wage[T - 1] * (1 + p.tfp_growth) ** (cal_year - (p.base_year + T - 1))
+                    growth_adj = (1 + p.tfp_growth) ** (cal_year - (p.base_year + T - 1))
+                    w_t = wage[T - 1] * growth_adj
+                    k_t = k_per_worker[T - 1] * growth_adj
                 else:
                     yr_idx = cal_year - p.base_year
                     w_t = wage[yr_idx]
+                    k_t = k_per_worker[yr_idx]
 
                 tl_t = tau_l[min(yr_idx, T - 1)]
+                tk_t = tau_k[min(yr_idx, T - 1)]
+                r_t = max(interest[min(yr_idx, T - 1)], 0.0)
                 disc = (1 + p.discount_rate) ** (-age)
 
-                pv_taxes[i] += tl_t * w_t * disc
+                k_share = age / max(p.working_years, 1)
+                cap_tax = tk_t * r_t * (k_t * k_share)
+                pv_taxes[i] += (tl_t * w_t + cap_tax) * disc
                 pv_wages[i] += w_t * disc
 
             # Retirement: ages working_years..working_years+retirement_years-1
@@ -273,16 +286,21 @@ class SimpleOLGModel:
                 cal_year = by + retire_age_start + age
                 if cal_year < p.base_year:
                     yr_idx = 0
-                    _w_ref = wage[0] * (1 + p.tfp_growth) ** (cal_year - p.base_year)
+                    k_t = k_per_worker[0] * (1 + p.tfp_growth) ** (cal_year - p.base_year)
                 elif cal_year >= p.base_year + T:
                     yr_idx = T - 1
-                    _w_ref = wage[T - 1] * (1 + p.tfp_growth) ** (cal_year - (p.base_year + T - 1))
+                    k_t = k_per_worker[T - 1] * (1 + p.tfp_growth) ** (cal_year - (p.base_year + T - 1))
                 else:
                     yr_idx = cal_year - p.base_year
-                    _w_ref = wage[yr_idx]
+                    k_t = k_per_worker[yr_idx]
 
                 ss_t = ss_repl[min(yr_idx, T - 1)]
+                tk_t = tau_k[min(yr_idx, T - 1)]
+                r_t = max(interest[min(yr_idx, T - 1)], 0.0)
                 disc = (1 + p.discount_rate) ** (-(retire_age_start + age))
+
+                k_share = max(0.0, 1.0 - age / max(p.retirement_years, 1))
+                pv_taxes[i] += tk_t * r_t * (k_t * k_share) * disc
 
                 # SS benefit = replacement rate * average wage at retirement
                 retire_year_idx = min(max(by + retire_age_start - p.base_year, 0), T - 1)

@@ -23,9 +23,14 @@ const newsreader = Newsreader({
 });
 const franklin = Libre_Franklin({ subsets: ["latin"], variable: "--font-franklin", display: "swap" });
 
+const THEME_INIT = `try{var t=localStorage.getItem("theme");if(t==="dark"||t==="light")document.documentElement.dataset.theme=t;}catch(e){}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${newsreader.variable} ${franklin.variable}`}>
+    <html lang="en" className={`${newsreader.variable} ${franklin.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT }} />
+      </head>
       <body>
         <SiteChrome>{children}</SiteChrome>
         {/* The analytics script is served only by Vercel; off Vercel (CI, local) it would 404. */}

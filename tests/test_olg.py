@@ -787,3 +787,34 @@ def test_every_generations_slider_corner_finds_a_steady_state():
         assert view["long_run"]["gdp_pct"] > -50, (tau_k, tau_ss, rep)
     # A capital-tax cut raises long-run output.
     assert olg_view(0.05, 0.124, 0.4)["long_run"]["gdp_pct"] > 0
+
+
+def test_simple_olg_calibrated_gdp_interest_debt_and_tau_k():
+    """SimpleOLGModel calibrates TFP to $29T GDP, positive real r, ~99% debt/GDP, and applies tau_k."""
+    from fiscal_model.models.olg.simple import SimpleOLGModel
+
+    model = SimpleOLGModel()
+    assert model.params.initial_debt_gdp == pytest.approx(0.99, abs=0.05)
+
+    base = model.run()
+    assert base.gdp_path[0] == pytest.approx(model.params.initial_gdp, rel=1e-4)
+    assert base.interest_path[0] > 0.0
+
+    tax_hike = model.run(capital_tax_change=0.10)
+    assert tax_hike.capital_path[-1] < base.capital_path[-1]
+    assert tax_hike.gdp_path[-1] < base.gdp_path[-1]
+    assert np.nanmean(tax_hike.net_tax_rate) > np.nanmean(base.net_tax_rate)
+
+
+def test_olg_view_generational_accounts_in_pct_lifetime_earnings():
+    """olg_view exposes generational burden changes in % of baseline lifetime earnings."""
+    from fiscal_model.result_views import olg_view
+
+    view = olg_view(0.35, 0.124, 0.4)
+    accounts = view["accounts"]
+    assert accounts is not None
+    assert accounts["newborn_burden_change_pct"] is not None
+    assert accounts["weighted_burden_change_pct"] is not None
+    assert accounts["shift_to_young_pct"] is not None
+    assert all("change_pct" in row and row["change_pct"] is not None for row in accounts["by_age"])
+

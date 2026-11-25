@@ -254,9 +254,15 @@ jobs:
       # chosen. The corporate factor is CALIBRATED to Tax Foundation and PWBM;
       # without it the tier reads 15.1% and 36 within 25%, and cold_holdout.py
       # prints both.
+      # Replacing the flat 0.5*ETI behavioral offset with bracket-specific
+      # Saez-Slemrod-Giertz (2012) weights (tau/(1-tau) * a(z*)) took the same
+      # 44 rows from 12.2% to 11.7% (33/44 within 15%, 39/44 within 25%):
+      #   ceiling  ceil(11.7 x 1.25) = 15 -> nearest 5 = 15. Lowered 20 -> 15.
+      #   floor    39 - 1 = 38. Unchanged.
+      # Forced by test_no_gate_is_looser_than_the_workflow_rule_derives.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 38
+          python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 38
 
       # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
       # The pooled gate above cannot see one policy class regressing while the
@@ -410,10 +416,16 @@ jobs:
       # PWBM, whose mean share sits 0.7pp from JCT's own, so this class is now a
       # cross-house transfer test rather than an independent one. The pooled
       # floor moved with it (35 -> 38, above).
+      # Replacing flat 0.5*ETI with bracket-specific Saez-Slemrod-Giertz (2012)
+      # weights moved ordinary_rate_change 15.0% -> 13.1% and
+      # agi_inclusive_surtax 7.2% -> 6.2%:
+      #   agi_inclusive_surtax  ceil(6.2 x 1.25) = 8, lowered 9 -> 8.
+      #   ordinary_rate_change  ceil(13.1 x 1.25) = 17, lowered 19 -> 17.
+      # Forced by the downward-only invariant; the other six classes did not move.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
-            agi_inclusive_surtax=9 ordinary_rate_change=19 \
+            agi_inclusive_surtax=8 ordinary_rate_change=17 \
             capital_gains=18 corporate=11 \
             enacted_law_spending=10 discretionary_spending=6 \
             payroll=24 tax_expenditure=9

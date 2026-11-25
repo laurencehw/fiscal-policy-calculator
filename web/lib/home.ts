@@ -14,7 +14,7 @@ import { money } from "./format";
  */
 export const WORKED_POLICY_IDS = [
   "cbo_opt45_all_rates_1pp",
-  "cbo2021_opt1_all_rates_1pp",
+  "cbo2019_opt1_top4_brackets_1pp",
   "cbo2021_opt1_top4_brackets_1pp",
 ] as const;
 

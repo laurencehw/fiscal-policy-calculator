@@ -663,7 +663,7 @@
     {
       "id": "tariff-universal-10pct",
       "name": "🏭 Trump Universal 10% Tariff (-$2.17T)",
-      "description": "A 10% tariff on all imports. Published estimate: raises about \\$2.17T over ten years, conventional (Tax Foundation, FF861).",
+      "description": "A 10% tariff on non-USMCA goods imports (72.0% of U.S. goods imports, excluding Canada and Mexico; ~\\$2,349B base). Published benchmark: Tax Foundation (FF861) scores a 100% universal base (including Canada and Mexico) at about \\$2.17T over ten years, conventional.",
       "cbo_score": -2171.1,
       "cbo_source": "Tax Foundation (FF861)",
       "cbo_date": "2025-04",

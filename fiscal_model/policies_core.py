@@ -1116,17 +1116,78 @@ class TaxPolicy(Policy):
         )
         return 1.0 - pref
 
+    def behavioral_erosion_weight(self) -> float:
+        """Bracket-specific Saez–Slemrod–Giertz (2012) weight ``(τ / (1 - τ)) · a``.
+
+        In Saez, Slemrod & Giertz (2012, *JEL*, eq. 3), the share of static
+        revenue eroded by taxable-income responses to a marginal rate change
+        above threshold ``z*`` is::
+
+            e · (τ / (1 - τ)) · a
+
+        where ``e`` is the ETI, ``τ`` is the baseline marginal tax rate on
+        affected income, and ``a = z_m / (z_m - z*)`` is the local Pareto
+        parameter of the income distribution above ``z*``. Higher thresholds
+        face both higher ``τ`` and steeper local Pareto weights ``a``, so a
+        top-bracket rate increase experiences materially larger behavioral
+        erosion than a broad across-the-board rate change.
+
+        Non-income-tax subclasses that fall back to the base implementation
+        keep the legacy 0.5 weight.
+        """
+        if self.policy_type != PolicyType.INCOME_TAX:
+            return 0.5
+
+        z = float(self.affected_income_threshold or 0.0)
+        fst = getattr(self, "filing_status_thresholds", None)
+        if z <= 0.0 and isinstance(fst, dict) and fst:
+            vals = [float(v) for v in fst.values() if isinstance(v, (int, float))]
+            if vals:
+                z = sum(vals) / len(vals)
+
+        bnum = getattr(self, "statutory_bracket_number", None)
+        if z <= 0.0 and isinstance(bnum, int) and bnum > 1:
+            z = {
+                2: 15_000.0,
+                3: 60_000.0,
+                4: 150_000.0,
+                5: 250_000.0,
+                6: 450_000.0,
+                7: 650_000.0,
+            }.get(bnum, 0.0)
+
+        # Statutory income-weighted marginal tax rate τ above z* and local
+        # Pareto parameter a(z*) from IRS SOI / Saez-Slemrod-Giertz (2012).
+        if z <= 0.0:
+            tau, pareto_a = 0.24, 1.0
+        elif z < 50_000.0:
+            tau, pareto_a = 0.24, 1.15
+        elif z < 150_000.0:
+            tau, pareto_a = 0.28, 1.45
+        elif z < 350_000.0:
+            tau, pareto_a = 0.33, 1.55
+        elif z < 750_000.0:
+            tau, pareto_a = 0.36, 1.60
+        else:
+            tau, pareto_a = 0.37, 1.55
+        return (tau / (1.0 - tau)) * pareto_a
+
     def estimate_behavioral_offset(self, static_effect: float) -> float:
-        """Behavioral revenue offset under standard ETI methodology.
+        """Behavioral revenue offset under Saez–Slemrod–Giertz (2012) ETI methodology.
 
         Returns a SIGNED value with the same sign as ``static_effect`` so the
         engine's ``deficit_after = static_deficit + behavioral`` (where
         ``static_deficit = -static_revenue``) shrinks the magnitude of the
         revenue change in both directions: erodes the gain on a tax increase
-        and recovers some revenue on a tax cut. Magnitude follows the
-        Saez-style 0.5·ETI·|static| convention.
+        and recovers some revenue on a tax cut. Magnitude scales with
+        ``ETI · (τ / (1 - τ)) · a`` for income taxes via
+        :meth:`behavioral_erosion_weight`.
         """
-        return static_effect * self.taxable_income_elasticity * 0.5
+        return (
+            static_effect
+            * self.taxable_income_elasticity
+            * self.behavioral_erosion_weight()
+        )
 
     def validate_inputs(self) -> list[str]:
         """Validate inputs and return warning strings for unusual parameters."""

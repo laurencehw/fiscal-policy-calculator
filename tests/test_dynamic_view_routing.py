@@ -249,13 +249,22 @@ def test_economic_model_is_never_consulted_by_the_api_or_ask(monkeypatch):
 
 
 def test_no_preset_is_an_outlay_impulse_so_every_path_agrees_on_the_scenario():
-    """The app's preset path hard-codes ``is_spending: False``; the shared rule
-    reads the policy. They agree on every preset, and this fails if a preset
-    ever builds a ``SpendingPolicy`` and the two would diverge."""
+    """Refundable outlay presets (ACA PTCs, CTC/EITC, drug pricing) route as
+    outlays rather than tax receipts, while pure tax presets route as receipts."""
+    outlay_classes = {"PremiumTaxCreditPolicy", "TaxCreditPolicy", "DrugPricingPolicy"}
+    seen_outlay = 0
+    seen_receipt = 0
     for label, data in PRESET_POLICIES.items():
         policy = create_policy_from_preset(data)
         if policy is not None:
-            assert not policy_is_spending(policy), label
+            expected = type(policy).__name__ in outlay_classes
+            assert policy_is_spending(policy) is expected, label
+            if expected:
+                seen_outlay += 1
+            else:
+                seen_receipt += 1
+    assert seen_outlay >= 5
+    assert seen_receipt >= 30
     assert policy_is_spending(
         SpendingPolicy(
             name="x",

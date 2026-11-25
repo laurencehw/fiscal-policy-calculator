@@ -351,9 +351,9 @@ def test_the_millionaire_surtax_says_its_base_is_a_design_choice():
 #: projection multiplies the finished annual and the ordinary-income share
 #: multiplies the base, so the two commute.
 CAPTION_MOVES = {
-    "Warren Ultra-Millionaire Surtax": (-193.622374, -407.734150),
-    "High-Earner Medicare Surcharge 2pp": (-238.264570, -450.261209),
-    "Progressive Millionaire Tax": (-507.517626, -927.466560),
+    "Warren Ultra-Millionaire Surtax": (-170.9, -359.9),
+    "High-Earner Medicare Surcharge 2pp": (-211.0, -398.802785),
+    "Progressive Millionaire Tax": (-448.0, -818.736353),
 }
 
 #: What each of them actually scores now. It equals ``CAPTION_MOVES[...][1]``
@@ -368,9 +368,9 @@ CAPTION_MOVES = {
 #: total this tree produces. The alternative, each caption claiming the whole
 #: gap, would print two different "used to print" numbers for one preset.
 SCORED_TOTALS = {
-    "Warren Ultra-Millionaire Surtax": -483.738053,
-    "High-Earner Medicare Surcharge 2pp": -450.261209,
-    "Progressive Millionaire Tax": -927.466560,
+    "Warren Ultra-Millionaire Surtax": -427.027719,
+    "High-Earner Medicare Surcharge 2pp": -398.802785,
+    "Progressive Millionaire Tax": -818.736353,
 }
 
 

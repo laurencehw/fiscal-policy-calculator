@@ -108,3 +108,22 @@ export function checkedSentence(cred: Credibility, point: number, window: string
     `The figure above is scored on ${window} against this site's baseline, so it sits ${pct(shown)} from the published number.`
   );
 }
+
+/**
+ * Non-redundant explanation from ``own_row_caption``.
+ *
+ * ``checkedSentence`` already prints the published score, percentage gap, and
+ * tier label, while ``EstimateTag`` prints the publisher. Appending the full
+ * ``own_row_caption`` repeated all three back-to-back. Keep only the
+ * methodological qualifier after the em-dash (plus any provenance or published
+ * range sentences that follow it).
+ */
+export function checkedExtraNote(cred: Credibility): string {
+  if (cred.own_row_official_billions === null || !cred.own_row_caption) return "";
+  const raw = cred.own_row_caption.trim();
+  const dash = raw.indexOf("—");
+  const tail = dash >= 0 ? raw.slice(dash + 1).trim() : "";
+  if (!tail) return "";
+  return tail[0].toUpperCase() + tail.slice(1);
+}
+

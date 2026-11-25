@@ -171,11 +171,13 @@ def calculate_tax_policy_result(
         scorer = fiscal_policy_scorer_cls(start_year=start_year, use_real_data=False)
         result = scorer.score_policy(policy, dynamic=dynamic_scoring)
 
+        from fiscal_model.dynamic_view import policy_is_spending
+
         return {
             "policy": policy,
             "result": result,
             "scorer": scorer,
-            "is_spending": False,
+            "is_spending": policy_is_spending(policy),
             "policy_name": preset_choice,
             **preset_data,
         }

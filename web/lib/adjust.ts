@@ -6,10 +6,10 @@ import { toQuery, type TailorInput } from "./tailor";
 export type TailorShape = TailorInput & { tenYear: number };
 
 export const TAILOR_SHAPES: Record<string, TailorShape> = {
-  "top-rate-39-6": { kind: "income", rate: 2.6, who: 400_000, duration: 10, dynamic: false, tenYear: -309.76 },
-  "middle-class-rate-cut-2pp": { kind: "income", rate: -2, who: 50_000, duration: 10, dynamic: false, tenYear: 1473.2 },
-  "across-the-board-rate-cut-5pp": { kind: "income", rate: -5, who: 0, duration: 10, dynamic: false, tenYear: 6585.02 },
-  "top-rate-45": { kind: "income", rate: 8, who: 609_350, duration: 10, dynamic: false, tenYear: -1036.66 },
+  "top-rate-39-6": { kind: "income", rate: 2.6, who: 400_000, duration: 10, dynamic: false, tenYear: -274.36 },
+  "middle-class-rate-cut-2pp": { kind: "income", rate: -2, who: 50_000, duration: 10, dynamic: false, tenYear: 1446.31 },
+  "across-the-board-rate-cut-5pp": { kind: "income", rate: -5, who: 0, duration: 10, dynamic: false, tenYear: 6931.6 },
+  "top-rate-45": { kind: "income", rate: 8, who: 609_350, duration: 10, dynamic: false, tenYear: -918.18 },
   "corporate-28pct": { kind: "corporate", rate: 7, who: 0, duration: 10, dynamic: false, tenYear: -968.82 },
 };
 

@@ -65,6 +65,11 @@ class MacroScenario:
     initial_debt_gdp: float = 1.0  # Starting debt-to-GDP ratio
     target_debt_gdp: float | None = None  # Long-run target
 
+    # Optional reduced-form supply-side GDP level path (% change from baseline)
+    # for corporate capital-cost and tariff efficiency shocks that persist
+    # beyond short-run demand multipliers.
+    supply_gdp_pct: np.ndarray | None = None
+
     def __post_init__(self):
         if self.receipts_change is None:
             self.receipts_change = np.zeros(self.horizon_years)

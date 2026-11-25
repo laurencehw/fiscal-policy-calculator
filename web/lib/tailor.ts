@@ -14,11 +14,16 @@ export type TailorInput = {
   /** Years the change lasts, 1 to 10. */
   duration: number;
   dynamic: boolean;
+  /** Elasticity of taxable income (individual income tax only); defaults to 0.25. */
+  eti?: number;
 };
 
 export const RATE_MIN = -10;
 export const RATE_MAX = 10;
 export const WHO_MAX = 10_000_000;
+export const ETI_MIN = 0;
+export const ETI_MAX = 0.8;
+export const DEFAULT_ETI = 0.25;
 
 export const WHO_CHOICES: { token: string; dollars: number; label: string }[] = [
   { token: "all", dollars: 0, label: "Everyone" },
@@ -58,7 +63,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 
 /** Read a /tailor query. Each parameter decodes on its own; a bad one keeps the default. */
 export function fromQuery(params: URLSearchParams): { input: TailorInput; run: boolean } {
-  const input = { ...DEFAULT_INPUT };
+  const input: TailorInput = { ...DEFAULT_INPUT };
   const type = params.get("type")?.trim().toLowerCase();
   if (type === "income" || type === "corporate") input.kind = type;
   const rate = number(params.get("rate"));
@@ -69,7 +74,15 @@ export function fromQuery(params: URLSearchParams): { input: TailorInput; run: b
   if (duration !== null) input.duration = clamp(Math.trunc(duration), 1, 10);
   const dyn = params.get("dynamic");
   if (dyn !== null) input.dynamic = ["1", "true", "yes", "on"].includes(dyn.trim().toLowerCase());
-  if (input.kind === "corporate") input.who = 0;
+  const eti = number(params.get("eti"));
+  if (eti !== null && input.kind === "income") {
+    const clamped = Math.round(clamp(eti, ETI_MIN, ETI_MAX) * 100) / 100;
+    if (Math.abs(clamped - DEFAULT_ETI) > 1e-6) input.eti = clamped;
+  }
+  if (input.kind === "corporate") {
+    input.who = 0;
+    delete input.eti;
+  }
   const run = ["1", "true", "yes", "on"].includes((params.get("run") ?? "").trim().toLowerCase());
   return { input, run };
 }
@@ -79,6 +92,9 @@ export function toQuery(input: TailorInput): string {
   const parts = [`type=${input.kind}`, `rate=${input.rate}`];
   if (input.kind === "income") {
     parts.push(`who=${WHO_CHOICES.find((c) => c.dollars === input.who)?.token ?? String(input.who)}`);
+    if (input.eti !== undefined && Math.abs(input.eti - DEFAULT_ETI) > 1e-6) {
+      parts.push(`eti=${input.eti}`);
+    }
   }
   parts.push(`duration=${input.duration}`, `dynamic=${input.dynamic ? 1 : 0}`, "run=1");
   return parts.join("&");
@@ -101,7 +117,15 @@ export function validate(body: unknown): TailorInput | string {
   if (who < 0 || who > WHO_MAX) return "who must be between 0 and 10,000,000.";
   if (b.kind === "corporate" && who !== 0) return "A corporate rate change has no income threshold.";
   if (!Number.isInteger(duration) || duration < 1 || duration > 10) return "duration must be 1 to 10 years.";
-  return { kind: b.kind, rate, who, duration, dynamic: b.dynamic === true };
+  const out: TailorInput = { kind: b.kind, rate, who, duration, dynamic: b.dynamic === true };
+  if (b.eti !== undefined) {
+    if (typeof b.eti !== "number" || !Number.isFinite(b.eti)) return "eti must be a number.";
+    if (b.eti < ETI_MIN || b.eti > ETI_MAX) return `eti must be between ${ETI_MIN} and ${ETI_MAX}.`;
+    if (b.kind === "income" && Math.abs(b.eti - DEFAULT_ETI) > 1e-6) {
+      out.eti = Math.round(b.eti * 100) / 100;
+    }
+  }
+  return out;
 }
 
 /** A short name for the run, used as the engine's policy name and the page heading. */
@@ -121,6 +145,7 @@ export function engineRequest(input: TailorInput): Record<string, unknown> {
     description: `${describe(input)}, for ${input.duration} year${input.duration === 1 ? "" : "s"}.`,
     rate_change: Math.round(input.rate * 1e6) / 1e8,
     income_threshold: input.kind === "corporate" ? 0 : input.who,
+    elasticity: input.kind === "income" ? (input.eti ?? DEFAULT_ETI) : DEFAULT_ETI,
     duration_years: input.duration,
     dynamic: true,
     policy_type: input.kind === "corporate" ? "corporate_tax" : "income_tax",

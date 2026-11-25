@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { NAV_GROUPS, NAV_ITEMS } from "@/lib/nav";
 import { NavLink } from "./NavLink";
+import { ThemeToggle } from "./ThemeToggle";
 
 /** The phone menu: a disclosure that closes itself after a link is followed. */
 export function MobileMenu() {
@@ -30,6 +31,10 @@ export function MobileMenu() {
             ))}
           </div>
         ))}
+        <div className="menugroup">
+          <span className="eyebrow">Appearance</span>
+          <ThemeToggle />
+        </div>
       </div>
     </details>
   );

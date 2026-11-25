@@ -2239,7 +2239,7 @@ commit that lands *before* the commit that first scores it.
 | Corporate rate +1pp | −$136B | −$145B | 7% | CBO Options 2025–2034 #64 (a **JCT** estimate) |
 | CBO Option 46 alternative 1 (AGI surtax +1pp, $20K) | −$1,440B | −$723B | 50% | CBO Options 2025–2034 #46 |
 
-**44 pre-registered cases, mean absolute error 12.2% (median 10.3%); 30 of 44
+**44 pre-registered cases, mean absolute error 11.7% (median 10.3%); 33 of 44
 within 15%, 39 of 44 within 25%** (`scripts/cold_holdout.py`; full table in
 [VALIDATION.md](VALIDATION.md)). The same 44 rows read 18.0% and 35 of 44
 until PR #173 priced the three pre-2024 corporate rows on the CBO Outlook

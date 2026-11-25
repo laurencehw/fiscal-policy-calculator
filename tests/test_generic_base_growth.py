@@ -440,14 +440,13 @@ def test_the_two_captions_are_a_2x2_and_it_closes():
     ordinary_projected = agi_projected * (1.0 - pref)
     ordinary_flat = ordinary_projected * (agi_flat / agi_projected)
 
-    # The projected corners moved +3.02% in lane B2a (the base is aged on CBO's
-    # own AGI path, planning/lanes/B2a_cbo_income_path.md); the flat corners do
-    # not depend on the projection and did not move.
-    assert shipped == pytest.approx(-483.7381, abs=5e-4)
-    assert agi_projected == pytest.approx(-407.74600, abs=5e-4)
-    assert agi_flat == pytest.approx(-283.4695, abs=5e-4)
-    assert ordinary_projected == pytest.approx(-193.62837, abs=5e-4)
-    assert ordinary_flat == pytest.approx(-134.6126, abs=5e-4)
+    # The projected corners moved +3.02% in lane B2a and all five corners scaled
+    # uniformly with the bracket-specific Saez-Slemrod-Giertz behavioral weight.
+    assert shipped == pytest.approx(-427.0277, abs=5e-4)
+    assert agi_projected == pytest.approx(-359.9445, abs=5e-4)
+    assert agi_flat == pytest.approx(-250.2374, abs=5e-4)
+    assert ordinary_projected == pytest.approx(-170.9287, abs=5e-4)
+    assert ordinary_flat == pytest.approx(-118.8315, abs=5e-4)
 
     # The flat/projected ratio is exactly this lane's window-mean index inverted.
     assert agi_projected / agi_flat == pytest.approx(float(factors.mean()), rel=1e-9)

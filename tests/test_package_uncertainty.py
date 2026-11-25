@@ -84,7 +84,8 @@ def test_the_reproduction_total_is_the_one_route_to_9_reported(scorer) -> None:
     package = scorer.score_package(
         PolicyPackage("mixed", "", [_income_tax(), _discretionary()])
     )
-    assert float(np.sum(package.final_deficit_effect)) == pytest.approx(-1038.83, abs=0.01)
+    # -1038.83 under flat 0.5*ETI; -1122.32 under bracket-specific SSG weights.
+    assert float(np.sum(package.final_deficit_effect)) == pytest.approx(-1122.32, abs=0.01)
 
 
 def test_the_package_band_is_the_sum_of_its_components_bands(scorer) -> None:

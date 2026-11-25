@@ -135,15 +135,9 @@
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
-        "Credit eligibility and refundability are modeled with synthetic tax units rather than CPS ASEC microdata.",
-        "Interactions with SALT, AMT, and filing-status heterogeneity remain approximated in the current household tax module.",
-        "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for this benchmark is -$160.0B, the carried $1,600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
-        "The $1,600B is a rounded secondhand figure attributed to 'CBO/JCT 2021' with no transcribed table row behind it, so the residual on the derived side is measured against a target of unknown precision.",
         "The current credit module extrapolates from bracket-level aggregates rather than return-level household data.",
-        "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for this benchmark is -$60.0B, the carried $600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
-        "Examined and deliberately not moved in Wave 4 (target_revisions.EXAMINED_NOT_REVISED). Two published figures score a child-credit extension and neither replaces $600B. JCT's JCX-35-25 scores P.L. 119-21's child credit at +$816.8B over FY2025-2034, but that is a $2,200 indexed credit against this benchmark's $2,000 flat one and it is already carried here as the `pl119_21_child_tax_credit` benchmark, so adopting it would score one JCT row as two benchmarks. CRS R48286 Table 1, transcribing CBO, prints $735.3B for 'Increase and Modification of Child and Dependent Credit', which CRS itself says includes the credit for other dependents that this module does not score. Both sit *above* the module's design rather than bracketing it, so a range would assert a containment neither publisher supports.",
-        "NO LONGER A TAUTOLOGICAL FITTED ROW. The module's annual for this benchmark is -$17.8B, which is the *superseded* $178B target divided by exactly ten; the target is now Treasury's published $162.6B, so the reported error is a real 9.5% rather than the by-construction 0.0% it used to be, and no constant was retuned to close it. The leave-one-out row is still the better read: run_loo.py derives this case per unit from the CPS microdata and never touches the annual.",
-        "The derived side under-predicts this row for two reasons in the survey file rather than the rules: CPS ASEC carries no self-employment earnings, which the EITC counts, and the tax-unit builder folds 19-to-23-year-olds with a parent pointer into the parent's unit - which is most of the population an age expansion from 25 to 19 is about."
+        "The module's annual for this benchmark is -$60.0B, the carried $600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
+        "Two published figures score a child-credit extension and neither replaces $600B. JCT's JCX-35-25 scores P.L. 119-21's child credit at +$816.8B over FY2025-2034, but that is a $2,200 indexed credit against this benchmark's $2,000 flat one and it is already carried here as the `pl119_21_child_tax_credit` benchmark, so adopting it would score one JCT row as two benchmarks. CRS R48286 Table 1, transcribing CBO, prints $735.3B for 'Increase and Modification of Child and Dependent Credit', which CRS itself says includes the credit for other dependents that this module does not score. Both sit *above* the module's design rather than bracketing it, so a range would assert a containment neither publisher supports."
       ],
       "caption": "No out-of-sample band: no pre-registered row scores a refundable credit. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
     },
@@ -158,102 +152,102 @@
     "static_revenue_effect": -600.0,
     "behavioral_offset": 0.0,
     "final_static_effect": -600.0,
-    "gdp_effect": 0.7877603523527971,
-    "employment_effect": 50.41666255057901,
-    "revenue_feedback": 55.14322466469579,
+    "gdp_effect": 1.5755207047055941,
+    "employment_effect": 100.83332510115802,
+    "revenue_feedback": 110.28644932939159,
     "debt_service": 132.0,
-    "dynamic_adjusted_impact": 676.8567753353042,
+    "dynamic_adjusted_impact": 621.7135506706084,
     "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
     "year_by_year": [
       {
         "year": 2026,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 10.4055,
+        "dynamic_feedback": 20.811,
         "final_effect": 60.0,
         "debt_service": 2.4,
-        "dynamic_effect": 51.994499999999995
+        "dynamic_effect": 41.589
       },
       {
         "year": 2027,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 11.728762499999998,
+        "dynamic_feedback": 23.457524999999997,
         "final_effect": 60.0,
         "debt_service": 4.8,
-        "dynamic_effect": 53.071237499999995
+        "dynamic_effect": 41.342475
       },
       {
         "year": 2028,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 9.981839765625,
+        "dynamic_feedback": 19.96367953125,
         "final_effect": 60.0,
         "debt_service": 7.2,
-        "dynamic_effect": 57.218160234375006
+        "dynamic_effect": 47.23632046875
       },
       {
         "year": 2029,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 7.60089052734375,
+        "dynamic_feedback": 15.2017810546875,
         "final_effect": 60.0,
         "debt_service": 9.6,
-        "dynamic_effect": 61.99910947265625
+        "dynamic_effect": 54.3982189453125
       },
       {
         "year": 2030,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 5.460811251892091,
+        "dynamic_feedback": 10.921622503784182,
         "final_effect": 60.0,
         "debt_service": 12.0,
-        "dynamic_effect": 66.5391887481079
+        "dynamic_effect": 61.07837749621582
       },
       {
         "year": 2031,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 3.7895738810495,
+        "dynamic_feedback": 7.579147762099,
         "final_effect": 60.0,
         "debt_service": 14.4,
-        "dynamic_effect": 70.6104261189505
+        "dynamic_effect": 66.82085223790101
       },
       {
         "year": 2032,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 2.571850171048205,
+        "dynamic_feedback": 5.14370034209641,
         "final_effect": 60.0,
         "debt_service": 16.8,
-        "dynamic_effect": 74.2281498289518
+        "dynamic_effect": 71.65629965790359
       },
       {
         "year": 2033,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 1.7194073624844939,
+        "dynamic_feedback": 3.4388147249689878,
         "final_effect": 60.0,
         "debt_service": 19.2,
-        "dynamic_effect": 77.4805926375155
+        "dynamic_effect": 75.76118527503101
       },
       {
         "year": 2034,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 1.137558199036184,
+        "dynamic_feedback": 2.275116398072368,
         "final_effect": 60.0,
         "debt_service": 21.6,
-        "dynamic_effect": 80.46244180096382
+        "dynamic_effect": 79.32488360192764
       },
       {
         "year": 2035,
         "revenue_effect": -60.0,
         "behavioral_offset": 0.0,
-        "dynamic_feedback": 0.747031006216564,
+        "dynamic_feedback": 1.494062012433128,
         "final_effect": 60.0,
         "debt_service": 24.0,
-        "dynamic_effect": 83.25296899378344
+        "dynamic_effect": 82.50593798756688
       }
     ],
     "dynamic_scoring_enabled": true,
@@ -284,15 +278,9 @@
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
-        "Credit eligibility and refundability are modeled with synthetic tax units rather than CPS ASEC microdata.",
-        "Interactions with SALT, AMT, and filing-status heterogeneity remain approximated in the current household tax module.",
-        "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for this benchmark is -$160.0B, the carried $1,600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
-        "The $1,600B is a rounded secondhand figure attributed to 'CBO/JCT 2021' with no transcribed table row behind it, so the residual on the derived side is measured against a target of unknown precision.",
         "The current credit module extrapolates from bracket-level aggregates rather than return-level household data.",
-        "TAUTOLOGICAL FITTED ROW (owner Decision 5). The module's annual for this benchmark is -$60.0B, the carried $600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
-        "Examined and deliberately not moved in Wave 4 (target_revisions.EXAMINED_NOT_REVISED). Two published figures score a child-credit extension and neither replaces $600B. JCT's JCX-35-25 scores P.L. 119-21's child credit at +$816.8B over FY2025-2034, but that is a $2,200 indexed credit against this benchmark's $2,000 flat one and it is already carried here as the `pl119_21_child_tax_credit` benchmark, so adopting it would score one JCT row as two benchmarks. CRS R48286 Table 1, transcribing CBO, prints $735.3B for 'Increase and Modification of Child and Dependent Credit', which CRS itself says includes the credit for other dependents that this module does not score. Both sit *above* the module's design rather than bracketing it, so a range would assert a containment neither publisher supports.",
-        "NO LONGER A TAUTOLOGICAL FITTED ROW. The module's annual for this benchmark is -$17.8B, which is the *superseded* $178B target divided by exactly ten; the target is now Treasury's published $162.6B, so the reported error is a real 9.5% rather than the by-construction 0.0% it used to be, and no constant was retuned to close it. The leave-one-out row is still the better read: run_loo.py derives this case per unit from the CPS microdata and never touches the annual.",
-        "The derived side under-predicts this row for two reasons in the survey file rather than the rules: CPS ASEC carries no self-employment earnings, which the EITC counts, and the tax-unit builder folds 19-to-23-year-olds with a parent pointer into the parent's unit - which is most of the population an age expansion from 25 to 19 is about."
+        "The module's annual for this benchmark is -$60.0B, the carried $600B target divided by exactly ten, so the by-construction error tests x/10 x 10 == x and nothing else. Read the leave-one-out row instead: run_loo.py derives this case per unit from the CPS microdata and never touches the annual. The row is kept rather than deleted so the tautology stays visible - deleting a benchmark to improve a tier mean is the failure mode pre-registration exists to forbid.",
+        "Two published figures score a child-credit extension and neither replaces $600B. JCT's JCX-35-25 scores P.L. 119-21's child credit at +$816.8B over FY2025-2034, but that is a $2,200 indexed credit against this benchmark's $2,000 flat one and it is already carried here as the `pl119_21_child_tax_credit` benchmark, so adopting it would score one JCT row as two benchmarks. CRS R48286 Table 1, transcribing CBO, prints $735.3B for 'Increase and Modification of Child and Dependent Credit', which CRS itself says includes the credit for other dependents that this module does not score. Both sit *above* the module's design rather than bracketing it, so a range would assert a containment neither publisher supports."
       ],
       "caption": "No out-of-sample band: no pre-registered row scores a refundable credit. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
     },

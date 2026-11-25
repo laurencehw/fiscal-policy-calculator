@@ -409,6 +409,14 @@ class FRBUSAdapterLite(MacroModelAdapter):
             # the Fed responds and the output gap closes.
             gdp_change[t] *= self.monetary_offset ** t
 
+        # Persistent reduced-form supply-side GDP effect (e.g. corporate
+        # user-cost-of-capital or tariff productivity/input-cost wedge), which
+        # shifts potential GDP and is not decayed away by monetary policy.
+        if scenario.supply_gdp_pct is not None:
+            supply_pct = np.asarray(scenario.supply_gdp_pct, dtype=float)
+            if len(supply_pct) == n_years:
+                gdp_change = gdp_change + (supply_pct / 100.0) * self.baseline_gdp
+
         # Convert to percent
         gdp_level_pct = gdp_change / self.baseline_gdp * 100
 

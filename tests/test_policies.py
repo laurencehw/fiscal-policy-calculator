@@ -325,13 +325,23 @@ class TestTaxPolicyBehavioralOffset:
         assert offset_high / offset_low == pytest.approx(5.0)
 
     def test_formula_value(self):
-        """offset = static * ETI * 0.5 (signed)."""
-        policy = TaxPolicy(
-            name="T", description="", policy_type=PolicyType.INCOME_TAX,
+        """offset = static * ETI * behavioral_erosion_weight() (signed)."""
+        broad = TaxPolicy(
+            name="Broad", description="", policy_type=PolicyType.INCOME_TAX,
             taxable_income_elasticity=0.25,
+            affected_income_threshold=0.0,
         )
-        assert policy.estimate_behavioral_offset(-50.0) == pytest.approx(-50.0 * 0.25 * 0.5)
-        assert policy.estimate_behavioral_offset(50.0) == pytest.approx(50.0 * 0.25 * 0.5)
+        top = TaxPolicy(
+            name="Top400k", description="", policy_type=PolicyType.INCOME_TAX,
+            taxable_income_elasticity=0.25,
+            affected_income_threshold=400_000.0,
+        )
+        w_broad = broad.behavioral_erosion_weight()
+        w_top = top.behavioral_erosion_weight()
+        assert w_top > w_broad > 0.0
+        assert broad.estimate_behavioral_offset(-50.0) == pytest.approx(-50.0 * 0.25 * w_broad)
+        assert broad.estimate_behavioral_offset(50.0) == pytest.approx(50.0 * 0.25 * w_broad)
+        assert top.estimate_behavioral_offset(50.0) == pytest.approx(50.0 * 0.25 * w_top)
 
 
 # =============================================================================
