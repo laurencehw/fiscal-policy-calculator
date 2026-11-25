@@ -52,6 +52,6 @@ test("the Who pays note names both first-year figures", () => {
   const first = yearRows(top45.conventional, top45.dynamic)[0];
   const text = whoPaysReconciliation(first, 2026, 63.99);
   assert.match(text, /\+\$98\.6B before the behavioural response/);
-  assert.match(text, /\+\$86\.3B after it/);
+  assert.match(text, /\+\$73\.4B after it/);
   assert.match(text, /totals \+\$64\.0B/);
 });

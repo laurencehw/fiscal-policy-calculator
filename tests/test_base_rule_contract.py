@@ -350,10 +350,15 @@ def test_the_millionaire_surtax_says_its_base_is_a_design_choice():
 #: halves - the only thing this caption is about - is untouched by either: the
 #: projection multiplies the finished annual and the ordinary-income share
 #: multiplies the base, so the two commute.
+#:
+#: Lane SSG (``planning/lanes/SSG_bracket_behavioural_offset.md``) then gave
+#: the behavioural offset a bracket-specific weight, ``tau/(1-tau) x a``, in
+#: place of a flat 0.5. That multiplies each total by ``(1 - 0.25w)/0.875`` and
+#: leaves the ratio between the halves alone, as the projection did.
 CAPTION_MOVES = {
-    "Warren Ultra-Millionaire Surtax": (-193.622374, -407.734150),
-    "High-Earner Medicare Surcharge 2pp": (-238.264570, -450.261209),
-    "Progressive Millionaire Tax": (-507.517626, -927.466560),
+    "Warren Ultra-Millionaire Surtax": (-174.450809, -367.361568),
+    "High-Earner Medicare Surcharge 2pp": (-178.034356, -336.421780),
+    "Progressive Millionaire Tax": (-448.910772, -820.380553),
 }
 
 #: What each of them actually scores now. It equals ``CAPTION_MOVES[...][1]``
@@ -368,9 +373,9 @@ CAPTION_MOVES = {
 #: total this tree produces. The alternative, each caption claiming the whole
 #: gap, would print two different "used to print" numbers for one preset.
 SCORED_TOTALS = {
-    "Warren Ultra-Millionaire Surtax": -483.738053,
-    "High-Earner Medicare Surcharge 2pp": -450.261209,
-    "Progressive Millionaire Tax": -927.466560,
+    "Warren Ultra-Millionaire Surtax": -435.827127,
+    "High-Earner Medicare Surcharge 2pp": -336.421780,
+    "Progressive Millionaire Tax": -820.380553,
 }
 
 

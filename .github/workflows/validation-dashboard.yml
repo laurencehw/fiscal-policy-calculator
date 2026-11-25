@@ -254,9 +254,15 @@ jobs:
       # chosen. The corporate factor is CALIBRATED to Tax Foundation and PWBM;
       # without it the tier reads 15.1% and 36 within 25%, and cold_holdout.py
       # prints both.
+      # Lane SSG (planning/lanes/SSG_bracket_behavioural_offset.md) gave the
+      # income-tax behavioural offset a bracket-specific weight and took the
+      # same 44 rows to 10.6% and 40 within 25%:
+      #   ceiling  ceil(10.6 x 1.25) = 14 -> nearest 5 = 15. Lowered 20 -> 15.
+      #   floor    40 - 1 = 39. Raised 38 -> 39.
+      # Forced by test_no_gate_is_looser_than_the_workflow_rule_derives.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 20 --min-within-25pct 38
+          python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 39
 
       # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
       # The pooled gate above cannot see one policy class regressing while the
@@ -410,10 +416,15 @@ jobs:
       # PWBM, whose mean share sits 0.7pp from JCT's own, so this class is now a
       # cross-house transfer test rather than an independent one. The pooled
       # floor moved with it (35 -> 38, above).
+      # Lane SSG moved ordinary_rate_change 15.0% -> 9.0% and
+      # agi_inclusive_surtax 7.2% -> 5.5%:
+      #   ordinary_rate_change  ceil(9.0 x 1.25) = 12, lowered 19 -> 12.
+      #   agi_inclusive_surtax  ceil(5.5 x 1.25) = 7, lowered 9 -> 7.
+      # The other six classes did not move.
       - name: Cold-holdout per-class floor (out-of-sample tier)
         run: |
           python scripts/cold_holdout.py --max-class-mean-error \
-            agi_inclusive_surtax=9 ordinary_rate_change=19 \
+            agi_inclusive_surtax=7 ordinary_rate_change=12 \
             capital_gains=18 corporate=11 \
             enacted_law_spending=10 discretionary_spending=6 \
             payroll=24 tax_expenditure=9

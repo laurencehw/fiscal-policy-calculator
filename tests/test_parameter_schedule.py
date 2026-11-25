@@ -440,9 +440,11 @@ def _score(policy_id: str) -> float:
         # what the fixed-threshold path returned. Pinned to the cent, because
         # "about the same" would not catch the failure this test exists for.
         # Re-pinned by lane B2a (base aged on CBO's taxable-income path):
-        # -1201.24 -> -1132.00 and -1235.67 -> -1264.50.
-        ("cbo_opt45_all_rates_1pp", -1132.00),
-        ("illustrative_1pp_all", -1264.50),
+        # -1201.24 -> -1132.00 and -1235.67 -> -1264.50. Re-pinned by lane SSG
+        # (bracket-specific behavioural weight, 0.345 at a $0 floor):
+        # -1132.00 -> -1182.15 and -1264.50 -> -1320.52.
+        ("cbo_opt45_all_rates_1pp", -1182.15),
+        ("illustrative_1pp_all", -1320.52),
     ],
 )
 def test_bracket_one_scores_to_the_cent(policy_id, expected):
@@ -453,20 +455,23 @@ def test_the_top_four_brackets_row_landed_on_its_pre_registration():
     """R4 section 3.1: -671.2 +/- 0.5, a registered regression.
 
     Moved to -614.6 by lane B2a (planning/lanes/B2a_cbo_income_path.md, within
-    its registered band).
+    its registered band), and to -521.0 by lane SSG
+    (planning/lanes/SSG_bracket_behavioural_offset.md section 3.1, w = 1.033).
     """
-    assert _score("cbo_opt45_top4_brackets_2pp") == pytest.approx(-614.63, abs=0.5)
+    assert _score("cbo_opt45_top4_brackets_2pp") == pytest.approx(-521.01, abs=0.5)
 
 
 def test_the_unmoved_generic_rows_are_unmoved():
     """Predicted byte-identical in R4 section 3.2 (they read no schedule).
 
     Re-pinned after lane B2a moved their base path (AGI path for the two
-    surtaxes, taxable income for the Green Book row).
+    surtaxes, taxable income for the Green Book row), and again after lane
+    SSG's bracket-specific behavioural weight (planning/lanes/
+    SSG_bracket_behavioural_offset.md section 3.1).
     """
-    assert _score("cbo_opt46_agi_surtax_1pp_20k") == pytest.approx(-1322.31, abs=0.01)
-    assert _score("cbo_opt46_agi_surtax_2pp_100k") == pytest.approx(-1072.60, abs=0.01)
-    assert _score("biden_high_income_tax") == pytest.approx(-306.84, abs=0.01)
+    assert _score("cbo_opt46_agi_surtax_1pp_20k") == pytest.approx(-1338.94, abs=0.01)
+    assert _score("cbo_opt46_agi_surtax_2pp_100k") == pytest.approx(-961.37, abs=0.01)
+    assert _score("biden_high_income_tax") == pytest.approx(-242.70, abs=0.01)
 
 
 def test_a_uniform_schedule_threshold_equals_the_fixed_one():

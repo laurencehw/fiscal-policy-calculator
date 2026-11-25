@@ -10,12 +10,15 @@ import { money } from "./format";
  * None of the three has a preset page, so each links to its row on Methods.
  * The third used to be ``cbo_opt64_corporate_rate_1pp`` (44.5%); the
  * credit-factor lane took that row to 6.8%, so the miss is now the
- * worst remaining held-out row.
+ * worst remaining held-out row. Lane SSG (the bracket-specific behavioural
+ * offset) then moved the ordinary-rate rows: the class mean fell to 9.0%,
+ * the 2021 all-rates row rose to 18.2% and the 2021 top-four row fell to
+ * 14.4%, so the middle and last examples were re-picked by the same rule.
  */
 export const WORKED_POLICY_IDS = [
   "cbo_opt45_all_rates_1pp",
-  "cbo2021_opt1_all_rates_1pp",
-  "cbo2021_opt1_top4_brackets_1pp",
+  "cbo_opt45_top4_brackets_2pp",
+  "cbo_opt51_gains_at_death",
 ] as const;
 
 export type WorkedRow = {

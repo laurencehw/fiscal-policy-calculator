@@ -149,4 +149,74 @@ ETI means changes with this lane.
 
 ## Outturn
 
-*(appended after implementation)*
+Appended 2026-11-25, after implementation. Nothing above the line was edited.
+
+### O.1 Rows
+
+All 15 rows in section 3.1 landed on their predicted figure to the first
+decimal, the five registered regressions included. No other row moved: the
+capital gains, corporate, payroll, tax expenditure, discretionary and
+enacted-law classes are byte-identical to `main`, so the first falsification
+test in section 4 did not fire.
+
+### O.2 Pooled and by class
+
+| | `main` (without the lane) | Predicted | Outturn |
+|---|--:|--:|--:|
+| Mean, 44 rows | 12.2% | 10.6% ± 0.3 | **10.6%** |
+| Median | 10.3% | 8.3% | **8.3%** |
+| Within 15% | 30 | 34 | **34** |
+| Within 25% | 39 | 40 | **40** |
+| Error mass | 538.8 | | **465.6** |
+| Ordinary rate change (11) | 15.0% | 9.0% ± 0.5 | **9.0%** |
+| AGI-inclusive surtax (4) | 7.2% | 5.5% ± 0.5 | **5.5%** |
+
+As section 2 said in advance, the 44 rows are not a clean test of this lane:
+the direction was already visible in #280. The weights were computed before
+any row was scored and nothing was tuned, but the pooled 10.6% should be
+quoted beside the 12.2% it replaces, not on its own.
+
+Both calibrated tiers and `run_loo.py --donor-matrix` are unchanged.
+
+### O.3 Presets
+
+| Preset | Predicted | Outturn |
+|---|--:|--:|
+| Top Rate to 39.6% | about −$231B | **−$231.4B** |
+| High-Earner Medicare Surcharge 2pp | about −$336B | **−$336.4B** |
+| Top Rate to 45% | about −$882B | **−$881.9B** |
+| Progressive Millionaire Tax | about −$821B | **−$820.4B** |
+| Warren Ultra-Millionaire Surtax | about −$436B | **−$435.8B** |
+| Middle Class Tax Cut | about +$1,402B | **+$1,401.6B** |
+| Across-the-board / flat | about +$6,877B | **+$6,876.7B** |
+
+Each carries the Decision 6 caption `results_summary.behavioural_weight_caption`,
+which computes the 0.5 figure from the run rather than storing it.
+
+### O.4 Gates
+
+By the workflow's rule, downward only: pooled `--max-mean-error 20 → 15`
+(`ceil(10.6 × 1.25) = 14`, rounded up to 5), `--min-within-25pct 38 → 39`
+(40 − 1); `ordinary_rate_change 19 → 12`, `agi_inclusive_surtax 9 → 7`. No
+gate was loosened.
+
+### O.5 Not predicted
+
+1. **The 39.6% preset now diverges 4.6% from its own scorecard row.** The
+   row uses the Green Book's per-status floors ($450,000 joint, $225,000
+   separate); the preset uses $400,000 for everyone. That base gap was 0.8%.
+   The weight widens it, because `a` is measured from the floors: w = 1.385
+   for the uniform floor and 1.232 for the per-status one. It is declared in
+   `HEADLINE_ROW_DIVERGENCE` as `runner_shape` rather than closed, because
+   giving the preset the Green Book's floors is a separate preset decision.
+2. **The AGI-column caption had to learn the weight.** `a` reads `z_m` in the
+   policy's own income column, so the Warren surtax's weight is 0.847 on AGI
+   and 0.895 on taxable income. The caption that reconstructs "what this
+   preset printed on the taxable column" now applies that factor
+   (`_column_erosion_factor`); without it the caption printed −$365.5B for a
+   figure the taxable-column policy scores at −$359.9B.
+3. **Two reference figures elsewhere moved and are re-pinned**: the R9
+   supply-weighting reference policy (+2.6pp above $400K, dynamic) −$213.0B →
+   −$145.3B, and the ROUTE_TO_9 package reproduction −$1,038.83B →
+   −$1,109.10B. The home page's worked examples were re-picked by their own
+   rule (close, class mean, worst held-out miss) because the class mean moved.

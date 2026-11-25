@@ -27,9 +27,10 @@ test("supported set: the measured overlap is applied and nothing is left out", (
   assert.ok(o.share < 0, "less revenue together than apart");
   assert.ok(o.billions > 0, "so the deficit is higher");
   assert.equal(t.value, calculator["top-rate-39-6"] + calculator["salt-cap-repeal"] + o.billions);
-  // The pre-registered figures: list-price sum +$923.1B, calculator total +$481.2B.
+  // The pre-registered figures: list-price sum +$923.1B, calculator total +$481.2B,
+  // and +$546.7B since lane SSG moved the 39.6% preset's calculator score.
   assert.equal(Math.round(total(rows, s) * 10) / 10, 923.1);
-  assert.equal(Math.round(t.value * 10) / 10, 481.2);
+  assert.equal(Math.round(t.value * 10) / 10, 546.7);
   const notes = interactionNotes(rows, s, joint);
   assert.equal(notes.length, 1);
   assert.match(notes[0], /about 16% of what .* raises alone/);
@@ -42,7 +43,7 @@ test("all three microsim rows: the triple adds the childless EITC with no furthe
   assert.ok(t);
   assert.equal(t.overlaps.length, 1);
   assert.equal(Math.round(total(rows, s) * 10) / 10, 1085.7);
-  assert.equal(Math.round(t.value * 10) / 10, 659.2);
+  assert.equal(Math.round(t.value * 10) / 10, 724.7);
   const text = interactionNotes(rows, s, joint).join(" ");
   // Rate x credit is additive by construction, never "no interaction".
   assert.match(text, /add by construction in this model/);

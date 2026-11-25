@@ -304,8 +304,9 @@ def test_the_ordinary_rate_ceiling_stays_where_lane_r2_put_it():
     # the one case the rule re-derives upward -- "headroom for a new hard case"
     # -- and 15 no longer passes: ceil(15.3 x 1.25) = 20. Lane B2a then moved
     # the class to 15.0% on the same battery, which re-derives downward to
-    # ceil(15.05 x 1.25) = 19, and the gate followed.
-    assert _per_class_ceilings(workflow)["ordinary_rate_change"] == 19
+    # ceil(15.05 x 1.25) = 19, and the gate followed. Lane SSG then took the
+    # class to 9.0% on the same battery: ceil(9.0 x 1.25) = 12.
+    assert _per_class_ceilings(workflow)["ordinary_rate_change"] == 12
 
 
 def test_the_workflow_records_every_gate_re_derivation_including_the_null_ones():
@@ -427,7 +428,10 @@ def test_the_pooled_gate_records_the_battery_that_shrank():
     # The corporate credit-factor lane (BET2) then took within-25 36 -> 39 on
     # the same 44 rows, by moving the four corporate rows only:
     #   floor    39 - 1 = 38. Raised 35 -> 38.
-    assert "--max-mean-error 20 --min-within-25pct 38" in workflow
+    # Lane SSG then took the same 44 rows to 10.6% and 40 within 25%:
+    #   ceiling  ceil(10.6 x 1.25) = 14 -> nearest 5 = 15. Lowered 20 -> 15.
+    #   floor    40 - 1 = 39. Raised 38 -> 39.
+    assert "--max-mean-error 15 --min-within-25pct 39" in workflow
     assert "86.4%" in workflow, "the within-25 share must be recorded beside the count"
     assert "shrinking battery" in workflow
 

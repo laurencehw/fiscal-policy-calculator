@@ -80,11 +80,15 @@ def test_reversing_a_package_changes_neither_its_total_nor_its_band(scorer, dyna
 
 
 def test_the_reproduction_total_is_the_one_route_to_9_reported(scorer) -> None:
-    """Pins the configuration, so the test above is testing the defect it names."""
+    """Pins the configuration, so the test above is testing the defect it names.
+
+    -1038.83 until lane SSG gave the income-tax leg a bracket-specific
+    behavioural weight (planning/lanes/SSG_bracket_behavioural_offset.md).
+    """
     package = scorer.score_package(
         PolicyPackage("mixed", "", [_income_tax(), _discretionary()])
     )
-    assert float(np.sum(package.final_deficit_effect)) == pytest.approx(-1038.83, abs=0.01)
+    assert float(np.sum(package.final_deficit_effect)) == pytest.approx(-1109.10, abs=0.01)
 
 
 def test_the_package_band_is_the_sum_of_its_components_bands(scorer) -> None:
