@@ -36,7 +36,7 @@ test("a fitted row is never presented without the word fitted", () => {
   assert.ok(rows[0].gapPct < 5, `close example is ${rows[0].gapPct}`);
   assert.ok(Math.abs(rows[1].gapPct - ordinary.mean_abs_error) < 2, `class-mean example is ${rows[1].gapPct}`);
   assert.ok(rows[2].gapPct > 30, `miss example is ${rows[2].gapPct}`);
-  assert.equal(rows[2].id, "cbo2021_opt1_top4_brackets_1pp");
+  assert.equal(rows[2].id, "cbo_opt51_gains_at_death");
 });
 
 test("the homepage does not hardcode a dollar figure", () => {

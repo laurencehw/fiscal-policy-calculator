@@ -35,8 +35,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.034765359749534964,
-            "new_etr": 0.034765359749534964
+            "baseline_etr": 0.03476535974953495,
+            "new_etr": 0.03476535974953495
           },
           {
             "name": "Middle Quintile",
@@ -61,8 +61,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.09863288962190417,
-            "new_etr": 0.09863288962190417
+            "baseline_etr": 0.09863288962190418,
+            "new_etr": 0.09863288962190418
           },
           {
             "name": "Top Quintile",
@@ -83,20 +83,20 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": -15.42134571719994,
+        "total_tax_change_billions": -15.421345717199943,
         "pct_with_increase": 0.0,
-        "pct_with_decrease": 13.23546067939623,
+        "pct_with_decrease": 13.235460679396233,
         "groups": [
           {
             "name": "1st Decile",
             "floor": 0.0,
             "ceiling": 15000.0,
             "returns_millions": 26.601819,
-            "avg_tax_change": -422.4019205639155,
+            "avg_tax_change": -422.40192056391555,
             "pct_of_income": -5.567893814625033,
-            "share_of_total": 0.7286432483245937,
+            "share_of_total": 0.7286432483245936,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 48.89398055776528,
+            "pct_with_decrease": 48.89398055776529,
             "baseline_etr": -0.057959986690581174,
             "new_etr": -0.11686671171265262
           },
@@ -105,9 +105,9 @@
             "floor": 15000.0,
             "ceiling": 28000.0,
             "returns_millions": 20.019829,
-            "avg_tax_change": -209.0270727612197,
-            "pct_of_income": -0.9596786468448119,
-            "share_of_total": 0.27135675167540635,
+            "avg_tax_change": -209.02707276121973,
+            "pct_of_income": -0.959678646844812,
+            "share_of_total": 0.2713567516754064,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 41.20784505867223,
             "baseline_etr": -0.042529328076624504,
@@ -123,8 +123,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.0005939159222174335,
-            "new_etr": 0.0005939159222174335
+            "baseline_etr": 0.0005939159222174334,
+            "new_etr": 0.0005939159222174334
           },
           {
             "name": "4th Decile",
@@ -223,9 +223,9 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": -15.421345717199943,
+        "total_tax_change_billions": -15.421345717199939,
         "pct_with_increase": 0.0,
-        "pct_with_decrease": 13.235460382872697,
+        "pct_with_decrease": 13.235460382872693,
         "groups": [
           {
             "name": "Less than $10K",
@@ -234,7 +234,7 @@
             "returns_millions": 17.615814,
             "avg_tax_change": -279.7177397921635,
             "pct_of_income": -6.015674620790981,
-            "share_of_total": 0.31952176983526825,
+            "share_of_total": 0.3195217698352683,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 39.120484631978854,
             "baseline_etr": -0.044751329228895985,
@@ -245,11 +245,11 @@
             "floor": 10000.0,
             "ceiling": 20000.0,
             "returns_millions": 17.688099,
-            "avg_tax_change": -555.5918502905736,
-            "pct_of_income": -3.492349268729806,
-            "share_of_total": 0.6372572039197271,
+            "avg_tax_change": -555.5918502905735,
+            "pct_of_income": -3.4923492687298054,
+            "share_of_total": 0.6372572039197272,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 67.82165823642914,
+            "pct_with_decrease": 67.82165823642913,
             "baseline_etr": -0.06516225267787312,
             "new_etr": -0.10236143882005473
           },
@@ -260,11 +260,11 @@
             "returns_millions": 15.520156,
             "avg_tax_change": -42.945856209401754,
             "pct_of_income": -0.1677533656779532,
-            "share_of_total": 0.04322102624500456,
+            "share_of_total": 0.043221026245004575,
             "pct_with_increase": 0.0,
-            "pct_with_decrease": 15.261924670275242,
-            "baseline_etr": -0.02689196814042297,
-            "new_etr": -0.0286146139788551
+            "pct_with_decrease": 15.261924670275246,
+            "baseline_etr": -0.026891968140422964,
+            "new_etr": -0.028614613978855098
           },
           {
             "name": "$30K-$40K",
@@ -276,8 +276,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.001454175630983771,
-            "new_etr": 0.001454175630983771
+            "baseline_etr": 0.00145417563098377,
+            "new_etr": 0.00145417563098377
           },
           {
             "name": "$40K-$50K",
@@ -289,8 +289,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.030809883358346574,
-            "new_etr": 0.030809883358346574
+            "baseline_etr": 0.030809883358346567,
+            "new_etr": 0.030809883358346567
           },
           {
             "name": "$50K-$75K",
@@ -328,8 +328,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.10296852608261947,
-            "new_etr": 0.10296852608261947
+            "baseline_etr": 0.10296852608261944,
+            "new_etr": 0.10296852608261944
           },
           {
             "name": "$200K-$500K",

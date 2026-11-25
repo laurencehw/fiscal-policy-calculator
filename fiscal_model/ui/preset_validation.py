@@ -186,6 +186,20 @@ HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
     # FY2026-2035 and the runner on the validation window. It is the *window*
     # term of that 3.1% that shrank, not the runner's policy build, which is
     # untouched.
+    "top-rate-39-6": (
+        "runner_shape",
+        "app -231.4 vs row -242.7 (4.6%), measured 2026-11-25 when lane SSG "
+        "gave the behavioural offset a bracket-specific weight "
+        "tau/(1-tau) x a. The row is built from the Green Book's own "
+        "per-filing-status floors ($400,000 single, $450,000 joint, $425,000 "
+        "head of household, $225,000 separate); the preset applies one "
+        "$400,000 floor to every status. The base gap between the two was "
+        "0.8% and stays that size. The weight is what widens it: a(z*) is "
+        "measured from the floors, so the uniform floor gives w = 1.385 and "
+        "the per-status one w = 1.232. The row stays on its document's "
+        "floors; the preset is a separate design choice. See "
+        "planning/lanes/SSG_bracket_behavioural_offset.md.",
+    ),
     "corporate-28pct": (
         "runner_shape",
         "app vs row on the FY2026-2035 vs FY2025-2034 windows: the whole of "
