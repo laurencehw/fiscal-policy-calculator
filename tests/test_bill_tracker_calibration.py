@@ -44,14 +44,14 @@ def test_dominant_handles_unranked_confidence():
     assert _dominant_provision_policy_type(auto_score) == "estate_tax"
 
 
-def test_render_bill_calibration_band_emits_caption_for_known_type():
-    """The band is the Tier 1 corporate class, not a category mean.
+def test_render_bill_calibration_band_is_silent_even_for_a_type_with_a_class():
+    """A tracker reading carries no band, whatever its provision type.
 
-    Lane R3 took that class from one row to four — CBO prices an identical
-    21%-to-22% increase in all four *Options* volumes — so the band is now the
-    mean and worst of four pre-registered rows, with the count said out loud. The
-    assertion that matters is unchanged: the band names its own sample size, so
-    a reader can see how thin it is.
+    The corporate class has four pre-registered rows, and the tracker used to
+    print their error on a bill's figure. The rows measure the scoring engine on
+    a reform a person specified; a tracker figure is the engine applied to an
+    automated reading of bill text, and nothing measures the reading (outside
+    review, 23 Nov 2026).
     """
     reset_confidence_cache()
     st = MagicMock()
@@ -62,14 +62,7 @@ def test_render_bill_calibration_band_emits_caption_for_known_type():
     }
     _render_bill_calibration_band(st, auto_score, total_billions=-1347.0)
 
-    assert st.caption.called
-    caption_text = st.caption.call_args[0][0]
-    assert "Out-of-sample band" in caption_text
-    assert "corporate" in caption_text
-    assert "4 pre-registered corporate rows" in caption_text
-    assert "demo-grade" in caption_text
-    # The claim that H4 removed must not come back by another route.
-    assert "calibrated run" not in caption_text
+    assert not st.caption.called
 
 
 def test_render_bill_calibration_band_is_silent_for_a_type_with_no_tier1_row():

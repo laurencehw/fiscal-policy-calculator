@@ -628,7 +628,7 @@ def _render_bill_calibration_band(
     available — never breaks the bill card.
     """
     try:
-        from fiscal_model.ui.confidence_band import band_for_policy_type
+        from fiscal_model.validation.credibility import band_for_bill_reading
     except Exception:
         return
 
@@ -638,7 +638,7 @@ def _render_bill_calibration_band(
         # back to the whole tier would attach a 26-row mean to a bill nobody
         # has classified. Skip silently.
         return
-    band = band_for_policy_type(policy_type)
+    band = band_for_bill_reading(policy_type)
     if band is None:
         return
 

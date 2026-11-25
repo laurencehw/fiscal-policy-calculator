@@ -200,6 +200,8 @@ export type Evidence = {
     corporate_credit_factor?: number;
     /** Reform designs behind the rows: one CBO option across editions, or at 1 and 2 points, counts once. */
     distinct_designs?: number;
+    /** The tier with one weight per reform design; `n` is the number of designs. */
+    by_design?: EvidenceSummary;
     /** Rows that are tax cuts. */
     tax_cuts?: number;
   };
