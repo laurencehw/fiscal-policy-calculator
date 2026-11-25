@@ -537,6 +537,8 @@ class RelativeValidator:
 
     def _run_spending(self, params: dict, target_field: str) -> float:
         from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+        from fiscal_model.dynamic_view import run_dynamic_view
+        from fiscal_model.models.macro_adapter_frbus import FRBUSAdapterLite
         from fiscal_model.policies import PolicyType, SpendingPolicy
         from fiscal_model.scoring import FiscalPolicyScorer
 
@@ -551,6 +553,19 @@ class RelativeValidator:
             start_year=APP_DEFAULT_START_YEAR, use_real_data=True
         )
         result = scorer.score_policy(policy, dynamic=False)
+        if target_field in ("dynamic_10_year_cost_ex_interest", "dynamic_10_year_cost"):
+            mult = float(params.get("multiplier", 1.4))
+            dv, _ = run_dynamic_view(
+                policy,
+                result,
+                is_spending=True,
+                frbus_adapter_lite_cls=lambda: FRBUSAdapterLite(spending_multiplier=mult),
+            )
+            if dv is None:
+                return float(result.total_10_year_cost)
+            if target_field == "dynamic_10_year_cost_ex_interest":
+                return float(dv.conventional - dv.feedback)
+            return float(dv.dynamic_total)
         return float(getattr(result, target_field))
 
     def _run_trade(self, params: dict, target_field: str) -> float:

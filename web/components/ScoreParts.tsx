@@ -2,7 +2,7 @@
 import { EstimateTag } from "@/components/EstimateTag";
 import { money } from "@/lib/format";
 import type { EstimateIdentity } from "@/lib/identity";
-import { checkedSentence, hasOther, yearRows } from "@/lib/scoreparts";
+import { checkedExtraNote, checkedSentence, hasOther, yearRows } from "@/lib/scoreparts";
 import type { Credibility, ScoreResult } from "@/lib/types";
 
 export function Checked({
@@ -17,13 +17,14 @@ export function Checked({
   published?: EstimateIdentity | null;
 }) {
   if (!cred) return null;
+  const extra = checkedExtraNote(cred);
   return (
     <section className="checked" aria-label="Checked against">
       <span className="tag">Checked against</span>
       {published ? <EstimateTag identity={published} /> : null}
       <p>
         {checkedSentence(cred, point, window)}
-        {cred.own_row_official_billions === null || !cred.own_row_caption ? "" : ` ${cred.own_row_caption}`}
+        {extra ? ` ${extra}` : ""}
       </p>
       {cred.uncertainty_low !== null && cred.uncertainty_high !== null ? (
         <p>

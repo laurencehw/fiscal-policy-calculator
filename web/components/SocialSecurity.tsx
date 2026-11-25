@@ -88,14 +88,14 @@ export function SocialSecurityMenu({ data }: { data: SSData }) {
       <div className="ssgrid">
         <div className="ssmenu">
           <span className="eyebrow">Options</span>
-          {Object.entries(data.categories).map(([category, heading]) => {
+          {Object.entries(data.categories).map(([category, heading], index) => {
             const members = data.provisions.filter((p) => p.category === category);
             if (!members.length) return null;
             const groups = [...new Set(members.filter((p) => p.exclusive_group).map((p) => p.exclusive_group))];
             const singles = members.filter((p) => !p.exclusive_group);
             const count = members.filter((p) => selected.includes(p.provision_id)).length;
             return (
-              <details key={category} open={count > 0 || undefined}>
+              <details key={category} open={index === 0 || count > 0 || undefined}>
                 <summary>
                   {heading}
                   {count ? ` (${count})` : ""}

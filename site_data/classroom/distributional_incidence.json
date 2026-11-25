@@ -152,7 +152,7 @@
       "title": "Lifetime vs. Annual Incidence",
       "type": "open_analysis",
       "level": "advanced",
-      "prompt": "Annual incidence analysis can be misleading because a person's income in any given year may not reflect their lifetime economic position.\nDesign a comparison between: 1. Annual incidence of a payroll tax cap removal ($250K+ subject to SS tax) 2. Lifetime incidence of the same policy (using permanent income rather than\n   annual income to rank households)\n\nResearch and write a 500-word memo addressing: - Why annual and lifetime incidence measures can diverge - How the OLG framework in this model captures lifetime accounts - Which measure is more appropriate for evaluating SS reform - How CBO and JCT handle this distinction\nUse the model's OLG module to compute lifetime net tax rates for the payroll tax cap removal scenario.",
+      "prompt": "Annual incidence analysis can be misleading because a person's income in any given year may not reflect their lifetime economic position.\nDesign a comparison between:\n\n  1. Annual incidence of a payroll tax cap removal ($250K+ subject to SS tax)\n  2. Lifetime incidence of the same policy (using permanent income rather than annual income to rank households)\n\nResearch and write a 500-word memo addressing:\n\n  - Why annual and lifetime incidence measures can diverge\n  - How the OLG framework in this model captures lifetime accounts\n  - Which measure is more appropriate for evaluating SS reform\n  - How CBO and JCT handle this distinction\n\nUse the model's OLG module to compute lifetime net tax rates for the payroll tax cap removal scenario.",
       "parameters": [
         {
           "name": "rate_change",

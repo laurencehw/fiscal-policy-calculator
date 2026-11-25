@@ -136,17 +136,19 @@ exercises:
       bracketed system with a 22% flat tax (same revenue, broader base).
 
       Under current law, effective rates (after deductions) range from:
-      - Bottom quintile: ~2% effective rate
-      - Second quintile: ~7%
-      - Middle: ~11%
-      - Fourth: ~15%
-      - Top quintile: ~22%
-      - Top 1%: ~28%
+
+        - Bottom quintile: ~2% effective rate
+        - Second quintile: ~7%
+        - Middle: ~11%
+        - Fourth: ~15%
+        - Top quintile: ~22%
+        - Top 1%: ~28%
 
       A 22% flat tax is:
-      - Revenue-neutral for top quintile filers (small impact on them)
-      - A large tax increase for all below-median filers
-      - A large tax cut for top 1% (from 28% to 22%)
+
+        - Revenue-neutral for top quintile filers (small impact on them)
+        - A large tax increase for all below-median filers
+        - A large tax cut for top 1% (from 28% to 22%)
 
       Estimate: what is the annual average tax change for the bottom quintile
       and the top 1% under a revenue-neutral 22% flat tax? Express in $/household.

@@ -33,9 +33,10 @@ exercises:
       increases, and (c) retaliation against US exports.
 
       Pass-through assumptions:
-      - 60% of tariff is passed to consumers as higher prices
-      - Import price elasticity = −0.50 (a 10% price rise reduces imports 5%)
-      - Only 70% of imports are effectively covered (exemptions, existing tariffs)
+
+        - 60% of tariff is passed to consumers as higher prices
+        - Import price elasticity = −0.50 (a 10% price rise reduces imports 5%)
+        - Only 70% of imports are effectively covered (exemptions, existing tariffs)
 
       Using these assumptions, estimate the annual tariff revenue.
       Formula: Revenue = Tariff Rate × Import Base × Coverage × (1 − Volume Reduction)
@@ -100,11 +101,12 @@ exercises:
       traded goods, the per-household cost as a share of income is regressive.
 
       Estimated per-household annual cost by quintile:
-      - Bottom: ~$900/year (8% of $11K income)
-      - Second: ~$1,200/year (4.7% of $26K)
-      - Middle: ~$1,500/year (3.2% of $47K)
-      - Fourth: ~$1,700/year (2.2% of $79K)
-      - Top: ~$2,200/year (1.2% of $183K)
+
+        - Bottom: ~$900/year (8% of $11K income)
+        - Second: ~$1,200/year (4.7% of $26K)
+        - Middle: ~$1,500/year (3.2% of $47K)
+        - Fourth: ~$1,700/year (2.2% of $79K)
+        - Top: ~$2,200/year (1.2% of $183K)
 
       The US has ~130 million households. The total annual consumer cost is:
       (900 + 1200 + 1500 + 1700 + 2200)/5 × 130M = ?
@@ -153,10 +155,11 @@ exercises:
       on US exports.
 
       Model the net fiscal effect:
-      (a) US tariff revenue from China goods (at 145%, with substitution)
-      (b) Loss of US export revenue from Chinese retaliation (~$150B/yr exports)
-      (c) Consumer price increases for China-specific goods (electronics, etc.)
-      (d) Net 10-year fiscal position
+
+        (a) US tariff revenue from China goods (at 145%, with substitution)
+        (b) Loss of US export revenue from Chinese retaliation (~$150B/yr exports)
+        (c) Consumer price increases for China-specific goods (electronics, etc.)
+        (d) Net 10-year fiscal position
 
       Key: at very high tariff rates (>30%), substitution accelerates —
       businesses rapidly find non-China suppliers. Use the high_tariff_elasticity_multiplier
@@ -216,18 +219,14 @@ exercises:
     prompt: >
       Conduct a research-level analysis of the 2025 tariff package:
 
-      1. Model the 2025 package: universal 10%, China 145%, autos 25%,
-         steel/aluminum 25%. Use the model's preset scoring for each component.
-      2. Compare to the Yale Budget Lab and Tax Foundation estimates.
-      3. Analyze the partial vs. general equilibrium distinction:
-         - Partial eq: takes prices/wages as fixed
-         - General eq: allows endogenous exchange rate, wage, and price adjustment
-         The real exchange rate appreciation partially offsets tariff revenue
-         by making US exports more expensive. Estimate the exchange rate offset.
-      4. Evaluate the 2025 tariff package as a fiscal instrument:
-         revenue efficiency (revenue/GDP cost), distributional effect, and
-         macroeconomic stability impact.
-      5. Write a 500-word policy brief for a congressional staffer.
+        1. Model the 2025 package: universal 10%, China 145%, autos 25%, steel/aluminum 25%. Use the model's preset scoring for each component.
+        2. Compare to the Yale Budget Lab and Tax Foundation estimates.
+        3. Analyze the partial vs. general equilibrium distinction:
+           - Partial eq: takes prices/wages as fixed
+           - General eq: allows endogenous exchange rate, wage, and price adjustment
+           The real exchange rate appreciation partially offsets tariff revenue by making US exports more expensive. Estimate the exchange rate offset.
+        4. Evaluate the 2025 tariff package as a fiscal instrument: revenue efficiency (revenue/GDP cost), distributional effect, and macroeconomic stability impact.
+        5. Write a 500-word policy brief for a congressional staffer.
     parameters:
       - name: tariff_rate
         label: "Universal tariff rate (decimal)"
