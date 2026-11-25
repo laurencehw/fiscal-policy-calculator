@@ -2320,7 +2320,12 @@ def ask_stream(
             )
 
         try:
+            seen_resets = assistant._stream_reset_count
             for chunk in stream:
+                if assistant._stream_reset_count != seen_resets:
+                    seen_resets = assistant._stream_reset_count
+                    accumulated.clear()
+                    yield _sse("reset", "")
                 accumulated.append(chunk)
                 # SSE clients render tokens as they arrive. Empty chunks
                 # would still be valid frames; skip them to reduce noise.

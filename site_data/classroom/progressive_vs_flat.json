@@ -93,7 +93,7 @@
       "title": "Distributional Effects of Switching to a Flat Tax",
       "type": "comparison",
       "level": "graduate",
-      "prompt": "Analyze the distributional consequences of replacing the current bracketed system with a 22% flat tax (same revenue, broader base).\nUnder current law, effective rates (after deductions) range from: - Bottom quintile: ~2% effective rate - Second quintile: ~7% - Middle: ~11% - Fourth: ~15% - Top quintile: ~22% - Top 1%: ~28%\nA 22% flat tax is: - Revenue-neutral for top quintile filers (small impact on them) - A large tax increase for all below-median filers - A large tax cut for top 1% (from 28% to 22%)\nEstimate: what is the annual average tax change for the bottom quintile and the top 1% under a revenue-neutral 22% flat tax? Express in $/household.\nUse distributional model results or your own calculations.",
+      "prompt": "Analyze the distributional consequences of replacing the current bracketed system with a 22% flat tax (same revenue, broader base).\nUnder current law, effective rates (after deductions) range from:\n\n  - Bottom quintile: ~2% effective rate\n  - Second quintile: ~7%\n  - Middle: ~11%\n  - Fourth: ~15%\n  - Top quintile: ~22%\n  - Top 1%: ~28%\n\nA 22% flat tax is:\n\n  - Revenue-neutral for top quintile filers (small impact on them)\n  - A large tax increase for all below-median filers\n  - A large tax cut for top 1% (from 28% to 22%)\n\nEstimate: what is the annual average tax change for the bottom quintile and the top 1% under a revenue-neutral 22% flat tax? Express in $/household.\nUse distributional model results or your own calculations.",
       "parameters": [
         {
           "name": "flat_rate_pct",

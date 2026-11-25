@@ -197,15 +197,16 @@ exercises:
       in any given year may not reflect their lifetime economic position.
 
       Design a comparison between:
-      1. Annual incidence of a payroll tax cap removal ($250K+ subject to SS tax)
-      2. Lifetime incidence of the same policy (using permanent income rather than
-         annual income to rank households)
+
+        1. Annual incidence of a payroll tax cap removal ($250K+ subject to SS tax)
+        2. Lifetime incidence of the same policy (using permanent income rather than annual income to rank households)
 
       Research and write a 500-word memo addressing:
-      - Why annual and lifetime incidence measures can diverge
-      - How the OLG framework in this model captures lifetime accounts
-      - Which measure is more appropriate for evaluating SS reform
-      - How CBO and JCT handle this distinction
+
+        - Why annual and lifetime incidence measures can diverge
+        - How the OLG framework in this model captures lifetime accounts
+        - Which measure is more appropriate for evaluating SS reform
+        - How CBO and JCT handle this distinction
 
       Use the model's OLG module to compute lifetime net tax rates for
       the payroll tax cap removal scenario.

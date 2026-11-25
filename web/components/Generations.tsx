@@ -276,52 +276,79 @@ function Welfare({ rows, start }: { rows: { born: number; pct: number }[]; start
 }
 
 function Accounts({ a }: { a: NonNullable<OlgResult["accounts"]> }) {
+  const usePct =
+    a.newborn_burden_change_pct != null &&
+    a.weighted_burden_change_pct != null &&
+    a.by_age.every((r) => r.change_pct !== undefined);
+  const rows = a.by_age.map((r) => ({
+    age: r.age,
+    baseline: usePct ? r.baseline_pct! : r.baseline,
+    reform: usePct ? r.reform_pct! : r.reform,
+    value: usePct ? r.change_pct! : r.change,
+  }));
+  const newbornVal = usePct ? a.newborn_burden_change_pct! : a.newborn_burden_change;
+  const weightedVal = usePct ? a.weighted_burden_change_pct! : a.weighted_burden_change;
+  const shiftVal = usePct && a.shift_to_young_pct != null ? a.shift_to_young_pct : a.generational_imbalance;
+  const fmt = (v: number) => (usePct ? `${signed(v, 2)}%` : signed(v, 3));
+  const fmtShift = (v: number) => (usePct ? `${signed(v, 2)} pp` : signed(v, 3));
+
   return (
     <section className="chart">
       <div className="head">
         <h2>Who carries it</h2>
-        <span className="tag">lifetime net taxes by age today</span>
+        <span className="tag">{usePct ? "lifetime net taxes, % of a new worker's lifetime earnings" : "lifetime net taxes by age today"}</span>
       </div>
       <div className="cycle three">
         <div className="stage">
           <span className="q">Youngest workers (age 21)</span>
-          <span className="v">{signed(a.newborn_burden_change, 3)}</span>
+          <span className="v">{fmt(newbornVal)}</span>
+          {usePct ? <span className="q">of a new worker's baseline lifetime earnings</span> : null}
         </div>
         <div className="stage">
           <span className="q">Average across living ages</span>
-          <span className="v">{signed(a.weighted_burden_change, 3)}</span>
+          <span className="v">{fmt(weightedVal)}</span>
           <span className="q">weighted by population</span>
         </div>
         <div className="stage">
           <span className="q">Shift to the young</span>
-          <span className="v">{signed(a.generational_imbalance, 3)}</span>
-          <span className="q">{a.generational_imbalance > 0 ? "more burden on the young" : "less burden on the young"}</span>
+          <span className="v">{fmtShift(shiftVal)}</span>
+          <span className="q">{shiftVal > 0 ? "more burden on the young" : "less burden on the young"}</span>
         </div>
       </div>
       <div className="plot" role="img" aria-label="Change in remaining lifetime net taxes by current age">
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart accessibilityLayer={false} data={a.by_age} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+          <BarChart accessibilityLayer={false} data={rows} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
             <CartesianGrid stroke="var(--grid)" vertical={false} />
             <XAxis dataKey="age" tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={{ stroke: "var(--rule)" }} minTickGap={16} />
-            <YAxis tick={{ fill: "var(--muted)", fontSize: 12 }} tickLine={false} axisLine={false} width={56} tickFormatter={(v: number) => v.toFixed(2)} />
+            <YAxis
+              tick={{ fill: "var(--muted)", fontSize: 12 }}
+              tickLine={false}
+              axisLine={false}
+              width={56}
+              tickFormatter={(v: number) => (usePct ? `${v.toFixed(1)}%` : v.toFixed(2))}
+            />
             <ReferenceLine y={0} stroke="var(--ink)" />
             <Tooltip
               cursor={{ fill: "var(--grid)" }}
               content={({ active, payload }) =>
                 active && payload?.length ? (
                   <div className="tip">
-                    Age {(payload[0].payload as { age: number }).age}: {signed(Number(payload[0].value ?? 0), 3)}
+                    Age {(payload[0].payload as { age: number }).age}: {fmt(Number(payload[0].value ?? 0))}
+                    {usePct ? " of a new worker's lifetime earnings" : ""}
                   </div>
                 ) : null
               }
             />
             <Bar
-              dataKey="change"
+              dataKey="value"
               isAnimationActive={false}
-              shape={(props: { x?: number; y?: number; width?: number; height?: number; payload?: { change: number } }) => {
+              shape={(props: { x?: number; y?: number; width?: number; height?: number; payload?: { value: number } }) => {
                 const { x = 0, y = 0, width = 0, height = 0, payload } = props;
-                // More lifetime tax shrinks the deficit, so it takes the "reduces" colour, as on Who pays.
-                const fill = (payload?.change ?? 0) > 0 ? "var(--reduces)" : "var(--adds)";
+                // Same polarity as "Who gains and who loses" above: paying more
+                // lifetime net tax is a loss for that cohort (rust), paying less a
+                // gain. Before this, positive bars were drawn in the other colour,
+                // which contradicted the note under the chart.
+                const fill = (payload?.value ?? 0) > 0 ? "var(--adds)" : "var(--reduces)";
                 return <rect x={x} y={height < 0 ? y + height : y} width={width} height={Math.abs(height)} fill={fill} />;
               }}
             />
@@ -335,18 +362,18 @@ function Accounts({ a }: { a: NonNullable<OlgResult["accounts"]> }) {
             <thead>
               <tr>
                 <th>Age today</th>
-                <th>Baseline</th>
-                <th>Reform</th>
-                <th>Change</th>
+                <th>{usePct ? "Baseline (%)" : "Baseline"}</th>
+                <th>{usePct ? "Reform (%)" : "Reform"}</th>
+                <th>{usePct ? "Change (%)" : "Change"}</th>
               </tr>
             </thead>
             <tbody>
-              {a.by_age.map((row) => (
+              {rows.map((row) => (
                 <tr key={row.age}>
                   <td>{row.age}</td>
-                  <td>{row.baseline.toFixed(3)}</td>
-                  <td>{row.reform.toFixed(3)}</td>
-                  <td>{signed(row.change, 3)}</td>
+                  <td>{usePct ? `${row.baseline.toFixed(2)}%` : row.baseline.toFixed(3)}</td>
+                  <td>{usePct ? `${row.reform.toFixed(2)}%` : row.reform.toFixed(3)}</td>
+                  <td>{fmt(row.value)}</td>
                 </tr>
               ))}
             </tbody>
@@ -354,8 +381,9 @@ function Accounts({ a }: { a: NonNullable<OlgResult["accounts"]> }) {
         </div>
       </details>
       <p className="note">
-        The present value of each cohort&rsquo;s remaining lifetime net taxes, in the model&rsquo;s own units, for each age alive at the start. A
-        positive change means that cohort pays more over the rest of its life.
+        {usePct
+          ? "Present value of each cohort's remaining lifetime net taxes, expressed as a percentage of a new worker's baseline full-career lifetime earnings. Positive bars (rust) mean that cohort pays more net tax over the rest of its life; negative bars (teal) mean it pays less — matching the gain/loss polarity of the welfare chart above."
+          : "The present value of each cohort's remaining lifetime net taxes, in the model's own units, for each age alive at the start. Positive bars (rust) mean that cohort pays more over the rest of its life; negative bars (teal) mean it pays less."}
       </p>
     </section>
   );

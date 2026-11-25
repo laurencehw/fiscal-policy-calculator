@@ -739,3 +739,77 @@ class TestTruncationNoteSurvivesDisplay:
         assert ">" not in body
         assert len(source_lines) == 1
         assert "JCT (2024)" in source_lines[0]
+
+
+class TestPresetRagAndNarrationSuppression:
+    """Flagship preset queries hit the primary RAG store and tool narration is suppressed."""
+
+    def test_aca_ptc_query_ranks_extend_enhanced_first(self) -> None:
+        from pathlib import Path
+
+        from fiscal_model.assistant.knowledge_search import KnowledgeSearcher
+
+        ks = KnowledgeSearcher(Path("fiscal_model/assistant/knowledge"))
+        hits = ks.search(
+            "What does extending the enhanced ACA premium tax credits cost over 10 years?",
+            k=3,
+        )
+        assert hits, "Expected preset RAG hit for flagship ACA PTC query"
+        assert hits[0]["file"] == "aca-ptc-extend-enhanced.json"
+        assert "/explore/aca-ptc-extend-enhanced" in (hits[0].get("source_url") or "")
+        assert "335" in hits[0]["excerpt"] or "ACA" in hits[0]["excerpt"]
+
+    def test_extract_final_answer_drops_pre_tool_text_and_spaces_blocks(self) -> None:
+        from fiscal_model.assistant.assistant import (
+            _extract_final_answer_text,
+            _join_answer_parts,
+        )
+
+        msg = SimpleNamespace(
+            content=[
+                SimpleNamespace(type="text", text="Let me search the web first."),
+                SimpleNamespace(type="server_tool_use", name="web_search", input={}),
+                SimpleNamespace(type="text", text="CBO estimates $335B."),
+                SimpleNamespace(type="text", text="Here is the breakdown."),
+            ]
+        )
+        final_text = _extract_final_answer_text(msg, [])
+        assert "Let me search" not in final_text
+        assert final_text == "CBO estimates $335B.\n\nHere is the breakdown."
+        assert _join_answer_parts("estimate.", "Here") == "estimate.\n\nHere"
+
+    def test_stream_resets_discard_tool_turn_planning_narration(
+        self,
+        scorer: FiscalPolicyScorer,
+    ) -> None:
+        round1 = _make_final_message(
+            text="The knowledge base didn't return a direct hit. Let me search.",
+            tool_uses=[{"id": "toolu_1", "name": "get_cbo_baseline", "input": {}}],
+            stop_reason="tool_use",
+        )
+        round2 = _make_final_message(
+            text="Baseline 10-year deficit is $23.1T[^1].",
+            stop_reason="end_turn",
+        )
+        fake = _FakeClient(
+            scripted=[
+                (["The knowledge base didn't return a direct hit. Let me search."], round1),
+                (["Baseline 10-year deficit is $23.1T[^1]."], round2),
+            ]
+        )
+        assistant = FiscalAssistant(
+            scorer=scorer,
+            baseline=scorer.baseline,
+            cbo_score_map=CBO_SCORE_MAP,
+            presets=PRESET_POLICIES,
+            policy_types=PolicyType,
+            tax_policy_cls=TaxPolicy,
+            spending_policy_cls=SpendingPolicy,
+            anthropic_client=fake,
+            enable_web_search=False,
+        )
+        list(assistant.stream_response("What is the baseline deficit?", history=[]))
+        assert assistant._stream_reset_count >= 1
+        assert "didn't return a direct hit" not in assistant.last_display_text
+        assert "Baseline 10-year deficit" in assistant.last_display_text
+

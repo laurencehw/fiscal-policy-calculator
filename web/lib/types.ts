@@ -351,7 +351,15 @@ export type StatesData = {
   states: StateProfile[];
 };
 
-export type OlgCohort = { age: number; baseline: number; reform: number; change: number };
+export type OlgCohort = {
+  age: number;
+  baseline: number;
+  reform: number;
+  change: number;
+  baseline_pct?: number;
+  reform_pct?: number;
+  change_pct?: number;
+};
 
 export type OlgResult = {
   baseline_rates: { capital_tax_rate: number; payroll_tax_rate: number; replacement_rate: number };
@@ -384,6 +392,9 @@ export type OlgResult = {
     newborn_burden_change: number;
     weighted_burden_change: number;
     generational_imbalance: number;
+    newborn_burden_change_pct?: number | null;
+    weighted_burden_change_pct?: number | null;
+    shift_to_young_pct?: number | null;
     by_age: OlgCohort[];
   } | null;
 };

@@ -136,7 +136,7 @@
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
         "Poor against the corrected target by construction, and the gap is the point of correcting it: the fitted annual scores $450.5B against a published $1,357.1B (-66.8%). Retuning the constant to close that is forbidden — it would re-fit the module to the number it is being tested on.",
-        "The module's structural (derived) path scores $855.3B, -37.0% against the same row, so the unfitted machinery is about 1.8x closer to the document than the fitted constant. See planning/lanes/PROVENANCE_amt_insulin.md.",
+        "The module's structural (derived) path scores $855.3B, -37.0% against the same row, so the unfitted machinery is about 1.8x closer to the document than the fitted constant.",
         "Definitional gap, not split: CRS/CBO score the AMT provision inside a full TCJA-extension package, where extended rate cuts push more filers into AMT than a standalone AMT extension would. TPC's T25-0049 reconstructs the standalone counterfactual and implies roughly $855B; both are published and they answer different questions."
       ],
       "caption": "No out-of-sample band: no pre-registered row scores an AMT reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."
@@ -279,7 +279,7 @@
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
         "No pre-registered out-of-sample row scores a policy of this class, so this model's accuracy on one has not been measured.",
         "Poor against the corrected target by construction, and the gap is the point of correcting it: the fitted annual scores $450.5B against a published $1,357.1B (-66.8%). Retuning the constant to close that is forbidden — it would re-fit the module to the number it is being tested on.",
-        "The module's structural (derived) path scores $855.3B, -37.0% against the same row, so the unfitted machinery is about 1.8x closer to the document than the fitted constant. See planning/lanes/PROVENANCE_amt_insulin.md.",
+        "The module's structural (derived) path scores $855.3B, -37.0% against the same row, so the unfitted machinery is about 1.8x closer to the document than the fitted constant.",
         "Definitional gap, not split: CRS/CBO score the AMT provision inside a full TCJA-extension package, where extended rate cuts push more filers into AMT than a standalone AMT extension would. TPC's T25-0049 reconstructs the standalone counterfactual and implies roughly $855B; both are published and they answer different questions."
       ],
       "caption": "No out-of-sample band: no pre-registered row scores an AMT reform. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a policy of this kind."

@@ -8,14 +8,21 @@ const PERMISSIONS_POLICY = [
   "geolocation=()",
   "payment=()",
   "usb=()",
-  "interest-cohort=()",
-  "browsing-topics=()",
 ].join(", ");
 
 // Pages read ../site_data (written nightly by scripts/export_static.py) at build
 // time, so the repository root must be in the tracing root.
 const config: NextConfig = {
   outputFileTracingRoot: path.join(__dirname, ".."),
+  async redirects() {
+    return [
+      {
+        source: "/methodology",
+        destination: "/methods",
+        permanent: true,
+      },
+    ];
+  },
   // "/" and "/compare" are pre-rendered (site review quick win 11). Their query
   // strings still work, with or without JavaScript: these rewrites send
   // "/?vs=<id>" and "/compare?ids=<a,b>" to routes that are built ahead or

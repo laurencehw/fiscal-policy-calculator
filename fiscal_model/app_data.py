@@ -553,7 +553,7 @@ CBO_SCORE_MAP = {
         "official_score": -2171.1,
         "source": "Tax Foundation (FF861)",
         "source_date": "2025-04",
-        "notes": "10% tariff on all imports, ~\\$1,700/household cost",
+        "notes": "10% tariff on goods imports outside the USMCA carve-out (~72% of goods imports), ~\\$1,700/household cost",
     },
     "🏭 Trump 60% China Tariff (-$650B)": {
         # H9 target revision (trump_china_60.v2). The credited publisher
@@ -1179,7 +1179,11 @@ PRESET_POLICIES = {
     "🏭 Trump Universal 10% Tariff (-$2.17T)": {
         "rate_change": 0.0,
         "threshold": 0,
-        "description": "A 10% tariff on all imports. Published estimate: raises about \\$2.17T over ten years, conventional (Tax Foundation, FF861).",
+        "description": (
+            "A 10% tariff on goods imports outside the USMCA carve-out (Canada and "
+            "Mexico excluded, about 72% of goods imports, a ~\\$2,349B base). Published "
+            "estimate: raises about \\$2.17T over ten years, conventional (Tax Foundation, FF861)."
+        ),
         "is_tcja": False,
         "is_trade": True,
         "trade_type": "universal_10",
