@@ -24,9 +24,9 @@ export default function StatesPage() {
       <StateExplorer data={data} />
       <p className="note">
         These figures are approximations built from state tax parameters (Tax Foundation, 2025) and Census ACS 2023 incomes. I do
-        not model local income, property or sales taxes. For the SALT figures I give each state the national IRS distribution of
-        SALT deductions (tax year 2023), scaled to the state&apos;s average deduction, so itemizer shares and averages by state are
-        rough.
+        not model local income, property or sales taxes in the income-tax curves. The SALT figures use each state&apos;s own IRS
+        distribution of state and local tax deductions (Statistics of Income, tax year 2022), by income class, at tax-year-2022
+        amounts.
       </p>
     </>
   );
