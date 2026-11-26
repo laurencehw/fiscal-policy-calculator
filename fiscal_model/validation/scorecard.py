@@ -414,6 +414,51 @@ def _category_summary(entries: list[ScorecardEntry]) -> dict:
     }
 
 
+#: The evidence tiers, in the order every surface reports them. They answer
+#: different questions and are never pooled into one accuracy figure.
+TIER_OUT_OF_SAMPLE = "out_of_sample"
+TIER_FITTED = "fitted"
+TIER_RECONSTRUCTION = "reconstruction"
+TIER_RETIRED = "retired"
+TIERS: tuple[str, ...] = (
+    TIER_OUT_OF_SAMPLE,
+    TIER_FITTED,
+    TIER_RECONSTRUCTION,
+    TIER_RETIRED,
+)
+
+
+def tier_of(entry: ScorecardEntry) -> str:
+    """Which evidence tier a scorecard row belongs to.
+
+    The same partition ``scripts/cold_holdout.build_report`` prints: the
+    Generic runner's rows are out-of-sample predictions; a specialized row is
+    fitted when its module carries a constant fitted to the target, retired
+    when the target was withdrawn, and a reconstruction otherwise.
+    """
+    if entry.category == GENERIC_CATEGORY:
+        return TIER_OUT_OF_SAMPLE
+    if getattr(entry, "calibrated_to_target", True):
+        return TIER_FITTED
+    if getattr(entry, "target_retired", False):
+        return TIER_RETIRED
+    return TIER_RECONSTRUCTION
+
+
+def tier_summaries(entries: list[ScorecardEntry]) -> dict[str, dict]:
+    """Per-tier roll-up, every tier present even when empty."""
+    out: dict[str, dict] = {}
+    for tier in TIERS:
+        diffs = [e.abs_percent_difference for e in entries if tier_of(e) == tier]
+        out[tier] = {
+            "n": len(diffs),
+            "mean_abs_percent_difference": (sum(diffs) / len(diffs)) if diffs else 0.0,
+            "median_abs_percent_difference": _percentile(diffs, 50.0),
+            "within_15pct": sum(1 for d in diffs if d <= 15.0),
+        }
+    return out
+
+
 def compute_scorecard(
     runners: dict[str, Callable[..., list[ValidationResult]]] | None = None,
 ) -> ScorecardSummary:

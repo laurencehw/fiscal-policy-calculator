@@ -6,8 +6,32 @@
   "within_20pct": 64,
   "direction_match": 99,
   "poor": 35,
-  "mean_abs_percent_difference": 27.783843500277392,
-  "median_abs_percent_difference": 11.365118239348519,
+  "by_tier": {
+    "out_of_sample": {
+      "n": 44,
+      "mean_abs_percent_difference": 10.580843924070702,
+      "median_abs_percent_difference": 8.2930152103744,
+      "within_15pct": 34
+    },
+    "fitted": {
+      "n": 14,
+      "mean_abs_percent_difference": 1.4406827762329095,
+      "median_abs_percent_difference": 0.024200631872286927,
+      "within_15pct": 14
+    },
+    "reconstruction": {
+      "n": 39,
+      "mean_abs_percent_difference": 37.70579477675205,
+      "median_abs_percent_difference": 28.397925218701808,
+      "within_15pct": 12
+    },
+    "retired": {
+      "n": 2,
+      "mean_abs_percent_difference": 397.17390935387994,
+      "median_abs_percent_difference": 397.17390935387994,
+      "within_15pct": 0
+    }
+  },
   "calibrated_entries": 55,
   "generic_entries": 44,
   "holdout_entries": 10,

@@ -154,6 +154,28 @@ def test_cold_holdout_gate_thresholds_match_the_live_battery():
     assert max_mean <= summary["mean_abs_error"] * 2
 
 
+def test_the_design_weighted_gate_is_derived_from_the_live_battery():
+    """One weight per reform design: CBO reprices an option across editions and
+    at 1 and 2 points, so the row-weighted mean counts a design several times."""
+    import math
+    import re
+
+    from scripts.cold_holdout import build_report
+
+    workflow = VALIDATION_DASHBOARD_WORKFLOW_PATH.read_text(encoding="utf-8")
+    gate, _ = _cold_holdout_gate_lines(workflow)
+    ceiling = float(re.search(r"--max-design-mean-error\s+([\d.]+)", gate).group(1))
+
+    oos = build_report()["out_of_sample"]
+    by_design = oos["by_design"]
+    assert by_design["n"] < oos["summary"]["n"]
+    assert sum(d["rows"] for d in by_design["designs"].values()) == oos["summary"]["n"]
+    assert by_design["mean_abs_error"] <= ceiling
+    # The workflow's own rule: ceil(mean x 1.25), rounded up to the nearest 5.
+    derived = math.ceil(math.ceil(by_design["mean_abs_error"] * 1.25) / 5) * 5
+    assert ceiling <= derived
+
+
 def test_the_per_class_floor_gates_every_class_the_battery_contains():
     """``HIGH_STAKES_ACCURACY.md`` section 3, process rule 4.
 

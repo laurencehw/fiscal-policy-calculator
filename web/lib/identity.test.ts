@@ -7,7 +7,7 @@ import type { Credibility, PresetFile } from "./types";
 const corp = JSON.parse(readFileSync(new URL("../../site_data/presets/corporate-28pct.json", import.meta.url), "utf8")) as PresetFile;
 const tcja = JSON.parse(readFileSync(new URL("../../site_data/presets/tcja-full-extension.json", import.meta.url), "utf8")) as PresetFile;
 const noRow = JSON.parse(
-  readFileSync(new URL("../../site_data/presets/ultra-millionaire-surtax-3pp.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../../site_data/presets/medicare-surcharge-2pp.json", import.meta.url), "utf8"),
 ) as PresetFile;
 
 test("a fitted row's tag says calibrated and never out of sample", () => {

@@ -190,6 +190,13 @@ export default function Methods() {
               <b>{oos.n} rows are {oos.distinct_designs} distinct reforms.</b> CBO prices several of the same options in
               each edition of <em>Options</em>, and many options come in a 1-point and a 2-point version, which miss by
               about the same share. Rows of one design are not independent tests.
+              {oos.by_design ? (
+                <>
+                  {" "}
+                  Counting each reform once, the average miss is {oos.by_design.mean_abs_error}% (
+                  {share(oos.by_design, "within_25pct")} within 25%).
+                </>
+              ) : null}
             </li>
           ) : null}
           {oos.tax_cuts === 0 ? (
