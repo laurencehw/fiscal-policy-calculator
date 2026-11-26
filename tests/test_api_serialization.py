@@ -35,12 +35,12 @@ def test_sum_float_and_value_at_handle_empty_inputs():
     assert _value_at(np.array([1.5]), 3) == 1.5
 
 
-def _score_simple_tax_increase(*, dynamic: bool):
+def _score_simple_tax_increase(*, dynamic: bool, rate_change: float = 0.05):
     policy = TaxPolicy(
         name="QA top rate",
-        description="+5pp at $400K",
+        description=f"+{rate_change * 100:g}pp at $400K",
         policy_type=PolicyType.INCOME_TAX,
-        rate_change=0.05,
+        rate_change=rate_change,
         affected_income_threshold=400_000,
         taxable_income_elasticity=0.25,
     )
@@ -212,7 +212,9 @@ def test_final_static_effect_matches_year_by_year_sum():
 
 
 def test_serialized_result_includes_credibility_metadata():
-    policy, result = _score_simple_tax_increase(dynamic=False)
+    # +2pp, inside the rate changes the ordinary-rate rows test (up to 2.6pp).
+    # The helper's default +5pp is outside them and carries no band.
+    policy, result = _score_simple_tax_increase(dynamic=False, rate_change=0.02)
     payload = serialize_scoring_result(
         result,
         policy_name=policy.name,
@@ -236,3 +238,17 @@ def test_serialized_result_includes_credibility_metadata():
     assert credibility["outer_low"] <= credibility["uncertainty_low"]
     assert credibility["outer_high"] >= credibility["uncertainty_high"]
     assert any("holdout" in item for item in credibility["limitations"])
+
+
+def test_a_rate_change_larger_than_any_tested_row_carries_no_band():
+    policy, result = _score_simple_tax_increase(dynamic=False)
+    payload = serialize_scoring_result(
+        result,
+        policy_name=policy.name,
+        policy_description=policy.description,
+        dynamic_scoring_enabled=False,
+    )
+    credibility = payload["credibility"]
+    assert credibility["evidence_type"] == "no_out_of_sample_benchmark"
+    assert credibility["uncertainty_low"] is None
+    assert "5 points" in credibility["no_band_reason"]

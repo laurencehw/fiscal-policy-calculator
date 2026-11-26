@@ -202,9 +202,8 @@ def tier1_class_bands() -> dict[str, EmpiricalBand]:
     :func:`~fiscal_model.validation.policy_classes.classify_policy`.
     """
     from fiscal_model.validation import cached_default_scorecard
-    from fiscal_model.validation.scorecard import GENERIC_CATEGORY
-
     from fiscal_model.validation.cbo_scores import KNOWN_SCORES
+    from fiscal_model.validation.scorecard import GENERIC_CATEGORY
 
     summary = cached_default_scorecard()
     buckets: dict[str, list[tuple[float, str]]] = {}
@@ -372,6 +371,7 @@ def format_band_caption(
     *,
     point_estimate: float | None = None,
     reason: str = "",
+    outside_range: bool = False,
 ) -> str:
     """One or two sentences: what the band is, and what it is not.
 
@@ -382,6 +382,13 @@ def format_band_caption(
         base = "No out-of-sample band"
         if reason:
             base += f": {reason}"
+        if outside_range:
+            return (
+                base
+                + ". The 44 pre-registered Tier 1 rows are the only tier that "
+                "measures this model's accuracy, and none of them scores a "
+                "reform of this size and direction."
+            )
         return (
             base
             + ". The 44 pre-registered Tier 1 rows are the only tier that "
@@ -832,7 +839,12 @@ def get_credibility_for_result(
         own_row_window=None if own is None else own.window,
         holdout_status=_category_holdout_status(category),
         limitations=limitations,
-        caption=format_band_caption(band, point_estimate=point_estimate, reason=reason),
+        caption=format_band_caption(
+            band,
+            point_estimate=point_estimate,
+            reason=reason,
+            outside_range=outside_range,
+        ),
     )
 
 
@@ -858,8 +870,8 @@ __all__ = [
     "credibility_to_dict",
     "format_band_caption",
     "get_credibility_for_result",
+    "outside_tested_range_reason",
     "own_row_for",
     "reset_confidence_cache",
-    "outside_tested_range_reason",
     "tier1_class_bands",
 ]

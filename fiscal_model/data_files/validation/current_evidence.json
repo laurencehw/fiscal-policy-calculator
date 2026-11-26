@@ -52,10 +52,10 @@
   },
   "generated_by": "scripts/build_current_evidence.py",
   "leave_one_out": {
-    "mean_abs_error": 36.3,
-    "median_abs_error": 30.8,
-    "n": 18,
-    "not_cross_validatable": 4,
+    "mean_abs_error": 35.3,
+    "median_abs_error": 28.4,
+    "n": 19,
+    "not_cross_validatable": 3,
     "within_15pct": 6
   },
   "out_of_sample": {

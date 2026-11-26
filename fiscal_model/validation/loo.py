@@ -602,10 +602,12 @@ def run_payroll_loo() -> LOOReport:
 # Estate — kind (a): exemption / rate machinery
 # ---------------------------------------------------------------------------
 
-#: The one estate benchmark whose target is a model estimate rather than a
-#: published score, and which the module therefore never folds into the
-#: aggregate however well it derives.
-ESTATE_UNPUBLISHED_TARGET_CASES = ("eliminate_estate_tax",)
+#: Estate benchmarks whose target is a model estimate rather than a published
+#: score, which the module never folds into the aggregate however well they
+#: derive. Empty since lane REVIEW-6: ``eliminate_estate_tax`` was the one
+#: member until its target became Tax Foundation's published +$407.2B
+#: (``target_revisions.eliminate_estate_tax.v2``).
+ESTATE_UNPUBLISHED_TARGET_CASES: tuple[str, ...] = ()
 
 
 def _estate_derived_runner(case_id: str, verbose: bool = False) -> ValidationResult:
@@ -676,12 +678,8 @@ def run_estate_loo() -> LOOReport:
                     derivation=DERIVATION_NONE,
                     calibration_set=(),
                     notes=(
-                        "The machinery now reproduces revenue levels as well as "
-                        "differences — its 2026 baseline is ~$47.6B against CBO's ~$50B "
-                        "projection, where the old two-point blend implied ~$196B — so "
-                        "full repeal is derivable. It stays out of the aggregate for the "
-                        "other reason: the $350B target is sourced 'Model estimate', not "
-                        "a published score."
+                        "Out of the aggregate because the target is this "
+                        "repository's own estimate, not a published score."
                     ),
                     exclusion_reason="target is not a published official score",
                 )

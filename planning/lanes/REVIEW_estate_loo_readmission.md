@@ -60,4 +60,16 @@ cross-validatable.
 
 ## Outturn
 
-(appended after the code commit)
+Run 2026-11-25 with `python scripts/run_loo.py --donor-matrix --json`, before and
+after the edit, on the same tree.
+
+| Prediction | Outturn |
+|---|---|
+| 19 cases, 3 not cross-validatable | 19 and 3 |
+| Derived repeal is a cost of $350-600B | +$471.3B (window average $47.1B a year) |
+| Error under 50%, more likely over | 15.7%, an over-statement against +$407.2B |
+| Suite mean moves by less than 2 points | 36.3% -> 35.3% (median 30.8% -> 28.4%; 6 of 19 within 15%, the new row at 15.7% just outside) |
+| Other 18 cases byte-identical | identical, compared case by case |
+
+None of the falsification conditions fired. The CI ceiling (75) is untouched.
+

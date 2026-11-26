@@ -45,10 +45,10 @@
       },
       {
         "year": 2029,
-        "revenue_effect": -55.63978855548195,
-        "behavioral_offset": 2.7819894277740977,
+        "revenue_effect": -55.63978855548194,
+        "behavioral_offset": 2.7819894277740973,
         "dynamic_feedback": 0.0,
-        "final_effect": 58.42177798325605,
+        "final_effect": 58.42177798325604,
         "debt_service": null,
         "dynamic_effect": null
       },
@@ -150,9 +150,9 @@
     "static_revenue_effect": -705.0564408515253,
     "behavioral_offset": 35.25282204257626,
     "final_static_effect": -740.3092628941015,
-    "gdp_effect": 0.7669661345897812,
+    "gdp_effect": 0.7669661345897811,
     "employment_effect": 49.08583261374599,
-    "revenue_feedback": 53.68762942128468,
+    "revenue_feedback": 53.687629421284676,
     "debt_service": 145.16958387436134,
     "dynamic_adjusted_impact": 831.7912173471782,
     "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
@@ -186,12 +186,12 @@
       },
       {
         "year": 2029,
-        "revenue_effect": -55.63978855548195,
-        "behavioral_offset": 2.7819894277740977,
-        "dynamic_feedback": 7.111767889597787,
-        "final_effect": 58.42177798325605,
+        "revenue_effect": -55.63978855548194,
+        "behavioral_offset": 2.7819894277740973,
+        "dynamic_feedback": 7.111767889597786,
+        "final_effect": 58.42177798325604,
         "debt_service": 8.837142587418796,
-        "dynamic_effect": 60.14715268107706
+        "dynamic_effect": 60.14715268107705
       },
       {
         "year": 2030,
@@ -215,7 +215,7 @@
         "year": 2032,
         "revenue_effect": -80.78446219075774,
         "behavioral_offset": 4.039223109537887,
-        "dynamic_feedback": 3.130017747769656,
+        "dynamic_feedback": 3.1300177477696556,
         "final_effect": 84.82368530029562,
         "debt_service": 18.649171647416356,
         "dynamic_effect": 100.34283919994232

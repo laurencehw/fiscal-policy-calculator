@@ -110,19 +110,19 @@
     "dynamic_scoring_enabled": false,
     "credibility": {
       "category": "Generic",
-      "evidence_type": "out_of_sample_class_distribution",
-      "policy_class": "agi_inclusive_surtax",
-      "class_label": "AGI-inclusive surtax",
-      "n_tier1_rows": 4,
-      "mean_abs_pct_error": 5.5,
-      "median_abs_pct_error": 5.4,
-      "max_abs_pct_error": 8.5,
-      "rows_inside_mean_band": 2,
-      "uncertainty_low": -865.5014832693491,
-      "uncertainty_high": -775.2596224545355,
-      "outer_low": -890.1128998552074,
-      "outer_high": -750.6482058686772,
-      "no_band_reason": "",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "the 4 pre-registered AGI-inclusive surtax rows test changes of up to 2 points; this one is 5 points, outside the range their error describes",
       "own_row_policy_id": null,
       "own_row_tier": null,
       "own_row_tier_label": null,
@@ -134,10 +134,11 @@
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
-        "Applies to IRS SOI AGI above the stated threshold; unindexed nominal thresholds grow implicitly with the projected base.",
-        "Behavioral response uses a static Elasticity of Taxable Income (ETI) formula without multi-year timing lags."
+        "The pre-registered out-of-sample rows of this class test smaller changes or changes of the other sign, so this model's accuracy on a reform of this size has not been measured.",
+        "Thresholds are statutory taxable-income boundaries applied to IRS SOI AGI size classes; real bracket creep is not modelled.",
+        "Behavioral response uses a static Elasticity of Taxable Income (ETI) formula without income-shifting or multi-year timing lags."
       ],
-      "caption": "Out-of-sample accuracy, AGI-inclusive surtax: 4 pre-registered rows miss their published scores by 5.5% on average (median 5.4%), worst 8.5% — 2 of the 4 fall inside the average. On this figure that is -$865.5B to -$775.3B typical, -$890.1B to -$750.6B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
+      "caption": "No out-of-sample band: the 4 pre-registered AGI-inclusive surtax rows test changes of up to 2 points; this one is 5 points, outside the range their error describes. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a reform of this size and direction."
     },
     "error_message": null
   },
@@ -251,19 +252,19 @@
     "dynamic_scoring_enabled": true,
     "credibility": {
       "category": "Generic",
-      "evidence_type": "out_of_sample_class_distribution",
-      "policy_class": "agi_inclusive_surtax",
-      "class_label": "AGI-inclusive surtax",
-      "n_tier1_rows": 4,
-      "mean_abs_pct_error": 5.5,
-      "median_abs_pct_error": 5.4,
-      "max_abs_pct_error": 8.5,
-      "rows_inside_mean_band": 2,
-      "uncertainty_low": -865.5014832693491,
-      "uncertainty_high": -775.2596224545355,
-      "outer_low": -890.1128998552074,
-      "outer_high": -750.6482058686772,
-      "no_band_reason": "",
+      "evidence_type": "no_out_of_sample_benchmark",
+      "policy_class": null,
+      "class_label": null,
+      "n_tier1_rows": 0,
+      "mean_abs_pct_error": null,
+      "median_abs_pct_error": null,
+      "max_abs_pct_error": null,
+      "rows_inside_mean_band": null,
+      "uncertainty_low": null,
+      "uncertainty_high": null,
+      "outer_low": null,
+      "outer_high": null,
+      "no_band_reason": "the 4 pre-registered AGI-inclusive surtax rows test changes of up to 2 points; this one is 5 points, outside the range their error describes",
       "own_row_policy_id": null,
       "own_row_tier": null,
       "own_row_tier_label": null,
@@ -275,10 +276,11 @@
       "holdout_status": "not_applicable_generic",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
-        "Applies to IRS SOI AGI above the stated threshold; unindexed nominal thresholds grow implicitly with the projected base.",
-        "Behavioral response uses a static Elasticity of Taxable Income (ETI) formula without multi-year timing lags."
+        "The pre-registered out-of-sample rows of this class test smaller changes or changes of the other sign, so this model's accuracy on a reform of this size has not been measured.",
+        "Thresholds are statutory taxable-income boundaries applied to IRS SOI AGI size classes; real bracket creep is not modelled.",
+        "Behavioral response uses a static Elasticity of Taxable Income (ETI) formula without income-shifting or multi-year timing lags."
       ],
-      "caption": "Out-of-sample accuracy, AGI-inclusive surtax: 4 pre-registered rows miss their published scores by 5.5% on average (median 5.4%), worst 8.5% — 2 of the 4 fall inside the average. On this figure that is -$865.5B to -$775.3B typical, -$890.1B to -$750.6B at the worst row. Read off the out-of-sample tier only — not the calibrated tiers, whose agreement is by construction. It is the observed spread of this model against published scores for this class of policy, not a confidence interval."
+      "caption": "No out-of-sample band: the 4 pre-registered AGI-inclusive surtax rows test changes of up to 2 points; this one is 5 points, outside the range their error describes. The 44 pre-registered Tier 1 rows are the only tier that measures this model's accuracy, and none of them scores a reform of this size and direction."
     },
     "error_message": null
   }

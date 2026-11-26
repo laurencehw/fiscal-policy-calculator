@@ -8,12 +8,15 @@ export const MAX_COMPARE = 3;
 
 /**
  * The pair the home page opens on (U6). Both read off the out-of-sample tier:
- * the 39.6% top rate has its own pre-registered row, and the 45% top rate sits
- * in the same eleven-row class. The corporate presets are not used: the 28%
- * row is an unfitted reconstruction (rate-only identity vs a rate-plus-GILTI
- * target) and the 15% row is a bundled reconstruction.
+ * the 39.6% top rate has its own pre-registered row, and the 2-point Medicare
+ * surcharge sits in the four-row AGI-inclusive surtax class, whose rows test
+ * changes of 1 and 2 points. The 45% top rate used to be the second: it is an
+ * 8-point rise, and the ordinary-rate rows test at most 2.6 points, so since the
+ * tested-range rule it carries no band. The corporate presets are not used: the
+ * 28% row is an unfitted reconstruction (rate-only identity vs a
+ * rate-plus-GILTI target) and the 15% row is a bundled reconstruction.
  */
-export const DEFAULT_PAIR = ["top-rate-39-6", "top-rate-45"] as const;
+export const DEFAULT_PAIR = ["top-rate-39-6", "medicare-surcharge-2pp"] as const;
 
 export type CompareYear = { year: number; value: number };
 

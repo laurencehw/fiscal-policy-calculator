@@ -539,6 +539,8 @@ def test_a_reform_outside_the_tested_range_says_so_on_the_result():
     assert credibility.evidence_type == "no_out_of_sample_benchmark"
     assert credibility.uncertainty_low is None and credibility.outer_high is None
     assert "no row tests a rate cut" in credibility.no_band_reason
+    assert "reform of this size and direction" in credibility.caption
+    assert "a policy of this kind" not in credibility.caption
     assert any("has not been measured" in text for text in credibility.limitations)
     assert not any(
         "No pre-registered out-of-sample row scores a policy of this class" in text

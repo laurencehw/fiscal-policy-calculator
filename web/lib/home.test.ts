@@ -91,6 +91,8 @@ test("the home compare never shows a fitted row or an unfitted reconstruction", 
   assert.deepEqual(homePair("corporate-28pct"), [...DEFAULT_PAIR]);
   assert.deepEqual(homePair("nope"), [...DEFAULT_PAIR]);
   assert.deepEqual(homePair("medicare-surcharge-2pp"), [DEFAULT_PAIR[0], "medicare-surcharge-2pp"]);
+  // A reform larger than any row of its class tests carries no band and is not offered.
+  assert.deepEqual(homePair("top-rate-45"), [...DEFAULT_PAIR]);
 });
 
 test("the trust strip's count is the export's held-out count", () => {
