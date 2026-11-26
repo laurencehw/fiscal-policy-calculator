@@ -431,7 +431,9 @@ def test_the_pooled_gate_records_the_battery_that_shrank():
     # Lane SSG then took the same 44 rows to 10.6% and 40 within 25%:
     #   ceiling  ceil(10.6 x 1.25) = 14 -> nearest 5 = 15. Lowered 20 -> 15.
     #   floor    40 - 1 = 39. Raised 38 -> 39.
-    assert "--max-mean-error 15 --min-within-25pct 39" in workflow
+    # Lane REVIEW-CG-scope then took within-25 40 -> 41:
+    #   floor    41 - 1 = 40. Raised 39 -> 40.
+    assert "--max-mean-error 15 --min-within-25pct 40" in workflow
     assert "86.4%" in workflow, "the within-25 share must be recorded beside the count"
     assert "shrinking battery" in workflow
 

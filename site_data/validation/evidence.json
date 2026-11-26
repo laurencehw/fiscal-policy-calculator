@@ -61,19 +61,19 @@
   "out_of_sample": {
     "corporate_credit_factor": 0.739,
     "distinct_designs": 22,
-    "error_mass": 465.6,
-    "mean_abs_error": 10.6,
-    "median_abs_error": 8.3,
+    "error_mass": 463.1,
+    "mean_abs_error": 10.5,
+    "median_abs_error": 8.5,
     "n": 44,
     "tax_cuts": 0,
     "within_15pct": 34,
-    "within_25pct": 40,
+    "within_25pct": 41,
     "without_corporate_credit_factor": {
-      "mean_abs_error": 13.5,
-      "median_abs_error": 9.2,
+      "mean_abs_error": 13.4,
+      "median_abs_error": 9.7,
       "n": 44,
       "within_15pct": 30,
-      "within_25pct": 37
+      "within_25pct": 38
     }
   },
   "out_of_sample_classes": {
@@ -87,13 +87,13 @@
       "within_25pct": 4
     },
     "capital_gains": {
-      "error_mass": 101.1,
+      "error_mass": 98.6,
       "label": "capital gains",
-      "mean_abs_error": 14.4,
+      "mean_abs_error": 14.1,
       "median_abs_error": 10.5,
       "n": 7,
       "within_15pct": 4,
-      "within_25pct": 5
+      "within_25pct": 6
     },
     "corporate": {
       "error_mass": 34.9,
@@ -153,8 +153,8 @@
   "out_of_sample_rows": [
     {
       "class": "capital_gains",
-      "error": 27.0,
-      "model": -366.4,
+      "error": 16.7,
+      "model": -336.7,
       "policy_id": "biden_capital_gains_39",
       "published": -288.6
     },
@@ -454,8 +454,8 @@
     },
     {
       "class": "capital_gains",
-      "error": 1.8,
-      "model": -316.1,
+      "error": 9.6,
+      "model": -291.0,
       "policy_id": "treasury_capgains_39_plus_stepup_elim",
       "published": -322.0
     }

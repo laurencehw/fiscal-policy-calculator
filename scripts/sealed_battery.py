@@ -24,7 +24,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from fiscal_model.validation.core import validate_policy  # noqa: E402
-from fiscal_model.validation.sealed import LOCK_DATE, sealed_cases  # noqa: E402
+from fiscal_model.validation.sealed import (  # noqa: E402
+    LOCK_DATE,
+    RETIRED,
+    SEALED_CASES,
+    sealed_cases,
+)
 
 
 def build_report() -> dict:
@@ -50,6 +55,22 @@ def build_report() -> dict:
                 row["abs_percent_error"] = round(abs(result.percent_difference), 1)
                 row["direction_match"] = bool(result.direction_match)
         rows.append(row)
+    # Rule 3: a retired row left the battery, but its result is still shown,
+    # beside the reason and outside the battery's own mean.
+    retired = []
+    for case in SEALED_CASES:
+        if case.case_id not in RETIRED:
+            continue
+        entry = {
+            "case_id": case.case_id,
+            "published_10yr_billions": case.score.ten_year_cost,
+            "reason": RETIRED[case.case_id],
+        }
+        result = validate_policy(case.score)
+        if result is not None and result.accuracy_rating != "Error":
+            entry["model_10yr_billions"] = round(result.model_10yr, 1)
+            entry["abs_percent_error"] = round(abs(result.percent_difference), 1)
+        retired.append(entry)
     scored = [r for r in rows if "abs_percent_error" in r]
     summary = {
         "lock_date": LOCK_DATE,
@@ -62,7 +83,7 @@ def build_report() -> dict:
             else None
         ),
     }
-    return {"summary": summary, "rows": rows}
+    return {"summary": summary, "rows": rows, "retired": retired}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -93,6 +114,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {r['case_id']:<28}{r['published_10yr_billions']:>+9.1f}  {tail}")
     if s["mean_abs_error"] is not None:
         print(f"  Mean abs error over {s['scored']} sealed rows: {s['mean_abs_error']}%")
+    for r in report["retired"]:
+        model = (
+            f"model {r['model_10yr_billions']:+.1f}  err {r['abs_percent_error']:.1f}%"
+            if "model_10yr_billions" in r
+            else "model error"
+        )
+        print(f"  RETIRED {r['case_id']:<20}{r['published_10yr_billions']:>+9.1f}  {model}")
+        print(f"          {r['reason']}")
     return 0
 
 

@@ -1403,6 +1403,27 @@ class CapitalGainsPolicy(TaxPolicy):
             self._baseline_cache = CapitalGainsBaseline()
         return self._baseline_cache
 
+    def _threshold_statutory_rate(self) -> float:
+        """Lowest statutory preferential rate reached by ``affected_income_threshold``.
+
+        Under 26 U.S.C. 1(h) (thresholds in ``LTCG_RATE_BRACKETS`` from
+        Rev. Proc. 2024-40), preferential capital gains and qualified dividends
+        stack on top of ordinary taxable income through the 0%, 15%, and 20%
+        brackets. IRS SOI Table 3.5 classifies returns by AGI, so high-AGI
+        classes still carry gains taxed in the 0% and 15% brackets below the
+        top-bracket floor. A rate change scoped above
+        ``affected_income_threshold`` reaches only the statutory brackets at or
+        above the bracket that threshold sits in.
+        """
+        from fiscal_model.data.capital_gains import LTCG_RATE_BRACKETS
+
+        threshold = float(self.affected_income_threshold)
+        floor_rate = 0.0
+        for bracket_floor, statutory_rate in LTCG_RATE_BRACKETS:
+            if threshold >= bracket_floor:
+                floor_rate = statutory_rate
+        return floor_rate
+
     def get_brackets(self, use_real_data: bool = True) -> list:
         """Realizations facing this policy, grouped by the rate they face.
 
@@ -1439,6 +1460,14 @@ class CapitalGainsPolicy(TaxPolicy):
         brackets = source.get_brackets_above_threshold(
             year=year, threshold=float(self.affected_income_threshold)
         )
+        # Scope to statutory preferential brackets at or above the threshold
+        # (26 U.S.C. 1(h); Rev. Proc. 2024-40 via LTCG_RATE_BRACKETS).
+        # SOI Table 3.5 groups returns by AGI, so high-AGI rows still contain
+        # 0% and 15% bracket gains that a top-rate change does not reach.
+        floor_rate = self._threshold_statutory_rate()
+        brackets = [
+            bracket for bracket in brackets if bracket.statutory_rate >= floor_rate
+        ]
         if not brackets:
             raise ValueError(
                 "No capital gains realizations above threshold "

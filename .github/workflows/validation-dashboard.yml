@@ -259,10 +259,15 @@ jobs:
       # same 44 rows to 10.6% and 40 within 25%:
       #   ceiling  ceil(10.6 x 1.25) = 14 -> nearest 5 = 15. Lowered 20 -> 15.
       #   floor    40 - 1 = 39. Raised 38 -> 39.
+      # Lane REVIEW-CG-scope (planning/lanes/REVIEW_cg_top_bracket_scope.md)
+      # scoped thresholded capital-gains rate changes to the statutory brackets
+      # they reach and took the same 44 rows to 10.5% and 41 within 25%:
+      #   ceiling  ceil(10.5 x 1.25) = 14 -> nearest 5 = 15. Unchanged.
+      #   floor    41 - 1 = 40. Raised 39 -> 40.
       # Forced by test_no_gate_is_looser_than_the_workflow_rule_derives.
       - name: Cold-holdout gate (out-of-sample tier)
         run: |
-          python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 39
+          python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 40
 
       # The sealed battery (fiscal_model/validation/sealed.py): published scores
       # the model had never been run against when they were entered, tax cuts

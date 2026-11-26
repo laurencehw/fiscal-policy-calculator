@@ -1,6 +1,6 @@
 # Lane `REVIEW_cg_top_bracket_scope` — Scope thresholded capital-gains rate changes to statutory brackets at or above the threshold
 
-**Status:** Pre-registered; awaiting execution and outturn.
+**Status:** Pre-registered; outturn appended below.
 **Opened:** 2026-11-26
 **Found on:** Sealed battery row `tf3_opt7_cg_top_rate_15` (`planning/lanes/REVIEW_sealed_battery.md`), which is retired to `RETIRED` in `fiscal_model/validation/sealed.py` under rule 3.
 **Files touched by the fix:** `fiscal_model/policies_core.py`, `fiscal_model/validation/sealed.py`, `tests/test_capital_gains_bracket_scope.py`.
@@ -104,4 +104,24 @@ Every prediction below is derived from the SOI TY2023 bracket table (`soi_capita
 
 ## Outturn
 
-*(Left empty by pre-registration; to be filled after running the test suite, scorecard, and `scripts/sealed_battery.py`.)*
+Run 2026-11-26 by Claude, before and after the code commit on the same tree,
+with `cold_holdout.py --json`, `run_loo.py --donor-matrix --json`,
+`sealed_battery.py --json` and a probe of all 53 presets.
+
+| Prediction | Outturn |
+|---|---|
+| 1. `tf3_opt7_cg_top_rate_15` scores +$150B to +$165B | **+$153.6B** (10.0% from Tax Foundation's +$170.7B) **held** |
+| 2. `tf3_opt8_cg_top_rate_30` -$20B to -$35B | **-$24.8B** (93.2%) **held** |
+| 3. `biden_capital_gains_39` -$335B to -$342B | **-$336.7B** (27.0% → 16.7%) **held** |
+| 4. `treasury_capgains_39_plus_stepup_elim` -$290B to -$297B | **-$291.0B** (1.8% → 9.6%) **held**, a registered regression |
+| 5-7. $0-threshold rows, gains at death, caller-supplied scenarios unchanged | unchanged; `run_loo.py --donor-matrix --json` byte-identical **held** |
+| 8. Every other scorecard row and all 53 presets unchanged | only the two rows above moved; 53 of 53 presets identical **held** |
+| 9. Class mean 13.8-14.3%; pooled ~10.5%; within-25 41/44 | class **14.4% → 14.1%**, pooled **10.6% → 10.5%** (median 8.3% → 8.5%), within-25 **40 → 41** **held** |
+
+None of the falsification conditions fired.
+
+Surfaces: `current_evidence.json` is regenerated. The live headline sentences in
+README, CLAUDE.md, docs/VALIDATION.md and docs/METHODOLOGY.md, CLAUDE.md's
+class table and error-mass line are updated. The CI floor is re-derived by the
+workflow's own rule, 41 - 1 = 40.
+
