@@ -90,10 +90,16 @@ preset on the same tree, plus `cold_holdout.py --json` and
 | Non-AMT, non-PTC presets identical | **held**, 49 of 53 identical |
 | AMT presets under 1% | individual relief and repeal +0.08% **held**; `amt-repeal-corporate` 220.1 → 217.0, **-1.39%: failed**. That preset starts in 2026 while its row starts in 2025, and a growth path, unlike a flat rate, sums differently from different starts. It is declared in `HEADLINE_ROW_DIVERGENCE` |
 
-Three predictions held as stated, and the failures are all of one kind. A flat
-rate gives the same sum from any start year and the GDP path does not, and the
-predictions were computed as if it did. No figure moved in a direction the lane
-did not expect, and no fitted row left its band.
+The failures are of two kinds.
+- **Start years.** The PTC and corporate-AMT-preset misses come from start
+  years: a flat rate gives the same sum from any start year, the GDP path does
+  not, and the predictions were computed as if it did.
+- **What the files contain.** The `cold_holdout` and `run_loo` misses are
+  about the files, not the model. Both files report the fitted tier beside
+  the held-out figures, and the prediction forgot that.
+
+No held-out figure moved, no figure moved in a direction the lane did not
+expect, and no fitted row left its band.
 
 Surfaces: `README.md` and `CLAUDE.md` quote the fitted tier at 1.5%. The pinned
 tests that fixed -39.3, 220.1 and 366.1863 are updated, with the lane named
