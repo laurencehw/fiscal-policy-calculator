@@ -65,6 +65,9 @@ class ScoreSource(Enum):
     OMB = "Office of Management and Budget"
     TPC = "Tax Policy Center"
     PWBM = "Penn Wharton Budget Model"
+    #: Used only by the sealed battery (``validation/sealed.py``); no
+    #: ``KNOWN_SCORES`` row carries it.
+    TAX_FOUNDATION = "Tax Foundation"
 
 
 @dataclass

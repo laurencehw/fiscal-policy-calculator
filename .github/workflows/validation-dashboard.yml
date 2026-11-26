@@ -264,6 +264,14 @@ jobs:
         run: |
           python scripts/cold_holdout.py --max-mean-error 15 --min-within-25pct 39
 
+      # The sealed battery (fiscal_model/validation/sealed.py): published scores
+      # the model had never been run against when they were entered, tax cuts
+      # included. Reported, never pooled with the tier above and never gated:
+      # a gate would invite tuning to it, which rule 3 of that module forbids.
+      - name: Sealed battery (report only)
+        run: |
+          python scripts/sealed_battery.py
+
       # --- Per-class floor (HIGH_STAKES_ACCURACY.md section 3, rule 4) -------
       # The pooled gate above cannot see one policy class regressing while the
       # others carry the mean -- which is what happened to
