@@ -599,12 +599,55 @@ class FiscalPolicyScorer:
                 # (12.2%) residual.
                 growth_rate = 0.0
 
-            growth_factor = (1 + growth_rate) ** years_since_start
+            if self._grows_on_baseline_path(policy, growth_rate):
+                growth_factor = self._baseline_growth_factor(policy.start_year, baseline_index)
+            else:
+                growth_factor = (1 + growth_rate) ** years_since_start
             annual_revenue = static_annual * growth_factor * phase
             annual_behavioral = policy.estimate_behavioral_offset(annual_revenue)
             return annual_revenue, annual_behavioral
 
         return None
+
+    @staticmethod
+    def _grows_on_baseline_path(policy: TaxPolicy, growth_rate: float) -> bool:
+        """Whether a module's annual level grows on the vintage's nominal path.
+
+        Lane REVIEW-5 (``planning/lanes/REVIEW_growth_on_baseline_path.md``):
+        an ``AMTPolicy`` in reported mode and a ``PremiumTaxCreditPolicy`` used
+        to compound a typed 3% or 4%. AMT's derived mode keeps the flat rate,
+        because ``AMTPolicy.get_phase_in_factor`` divides exactly that rate
+        back out, so its scored path is the module's own either way. A level
+        already set to no growth (a window average or a year-indexed base) is
+        left alone.
+        """
+        if not growth_rate:
+            return False
+        if isinstance(policy, PremiumTaxCreditPolicy):
+            return True
+        if isinstance(policy, AMTPolicy):
+            from .amt import AMT_MODE_DERIVED, AMTType
+
+            return not (
+                getattr(policy, "mode", None) == AMT_MODE_DERIVED
+                and getattr(policy, "amt_type", None) == AMTType.INDIVIDUAL
+            )
+        return False
+
+    def _baseline_growth_factor(self, start_year: int, baseline_index: int) -> float:
+        """Nominal GDP in the scored year over nominal GDP in ``start_year``.
+
+        Read off the scored baseline, so the growth is that vintage's. A start
+        year before the window is bridged back at the window's first-year
+        growth rate.
+        """
+        gdp = np.asarray(self.baseline.nominal_gdp, dtype=float)
+        years = [int(y) for y in self.baseline.years]
+        if start_year in years:
+            return float(gdp[baseline_index] / gdp[years.index(start_year)])
+        first_growth = float(gdp[1] / gdp[0]) if len(gdp) > 1 else 1.0
+        bridge = first_growth ** (years[0] - start_year)
+        return float(gdp[baseline_index] / gdp[0] * bridge)
 
     def _get_baseline_revenue_for_tax_policy(self, policy: TaxPolicy, baseline_index: int) -> float:
         if policy.policy_type == PolicyType.INCOME_TAX:

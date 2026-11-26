@@ -331,7 +331,7 @@ def test_the_extension_benchmark_does_not_move(  # falsification 2
     assert policy.resolved_offset_share() is None
     scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
     result = scorer.score_policy(policy, dynamic=False)
-    assert float(result.total_10_year_cost) == pytest.approx(366.1863, abs=0.001)
+    assert float(result.total_10_year_cost) == pytest.approx(365.7416, abs=0.001)  # lane REVIEW-5: CBO's GDP path, not a flat 4%
 
 
 def test_the_june_2024_demonstration_is_unmoved_by_this_lane():  # falsification 1

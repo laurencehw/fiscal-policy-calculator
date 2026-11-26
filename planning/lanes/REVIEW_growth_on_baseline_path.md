@@ -74,4 +74,28 @@ year (February 2026), so 3% is below it in every year.
 
 ## Outturn
 
-(appended after the code commit)
+Run 2026-11-26 with a before-and-after probe of every scorecard row and every
+preset on the same tree, plus `cold_holdout.py --json` and
+`run_loo.py --donor-matrix --json`.
+
+| Prediction | Outturn |
+|---|---|
+| `repeal_individual_amt` $450.9B ± 0.2 | $450.9B (0.2% error) **held** |
+| `repeal_corporate_amt` $219.5B ± 0.2 | $219.5B (0.2% error) **held** |
+| `extend_tcja_amt` $450.9B, error 66.8% | $450.9B, 66.8% **held** |
+| AMT first year about -4%, last year about +5% | individual: $39.3B → $37.6B in year 1 (-4.3%), $51.3B → $53.1B in year 10 (+3.5%) **held in direction**; the last-year rise is smaller than predicted |
+| `extend_enhanced_ptc` under 0.1% | 366.2 → 365.7, **-0.12%: failed narrowly**. The 4% and the GDP path do not average out over the PTC row's 2026 start as closely as the ratio computed from 2025 suggested |
+| `cold_holdout.py --json` byte-identical | **failed**: the out-of-sample tier and the reconstructions are identical, but the fitted tier's mean moved from 1.4% to 1.5% (median 0.0% → 0.1%), because the refit rows land 0.2% off rather than 0.0-0.1%. The prediction forgot that the fitted tier is in that file |
+| `run_loo.py` byte-identical | **failed in the same way**: every held-out (derived) figure is identical, and only the `calibrated_*` reference columns for the three AMT cases moved |
+| Non-AMT, non-PTC presets identical | **held**, 49 of 53 identical |
+| AMT presets under 1% | individual relief and repeal +0.08% **held**; `amt-repeal-corporate` 220.1 → 217.0, **-1.39%: failed**. That preset starts in 2026 while its row starts in 2025, and a growth path, unlike a flat rate, sums differently from different starts. It is declared in `HEADLINE_ROW_DIVERGENCE` |
+
+Three predictions held as stated, and the failures are all of one kind. A flat
+rate gives the same sum from any start year and the GDP path does not, and the
+predictions were computed as if it did. No figure moved in a direction the lane
+did not expect, and no fitted row left its band.
+
+Surfaces: `README.md` and `CLAUDE.md` quote the fitted tier at 1.5%. The pinned
+tests that fixed -39.3, 220.1 and 366.1863 are updated, with the lane named
+beside each.
+

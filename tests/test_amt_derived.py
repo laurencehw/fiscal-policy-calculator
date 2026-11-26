@@ -260,7 +260,8 @@ def test_derived_ten_year_total_equals_the_paths_own_sum():
 
 def test_derived_mode_ignores_the_fitted_annual():
     policy = create_extend_tcja_amt_relief(mode=AMT_MODE_DERIVED)
-    assert policy.annual_revenue_change_billions == -39.3
+    # -37.6 since lane REVIEW-5 refit it to CBO's GDP path (-39.3 at a flat 3%).
+    assert policy.annual_revenue_change_billions == -37.6
     before = _score(policy).total_10_year_cost
     policy.annual_revenue_change_billions = -1.0
     assert _score(policy).total_10_year_cost == pytest.approx(before)
@@ -303,9 +304,10 @@ def test_app_default_is_reported():
 @pytest.mark.parametrize(
     ("factory", "kwargs", "expected"),
     [
-        (create_extend_tcja_amt_relief, {}, 450.5),
-        (create_repeal_individual_amt, {"start_year": 2026}, 450.5),
-        (create_repeal_corporate_amt, {}, 220.1),
+        # Lane REVIEW-5 refit the two constants to CBO's GDP path.
+        (create_extend_tcja_amt_relief, {}, 450.9),
+        (create_repeal_individual_amt, {"start_year": 2026}, 450.9),
+        (create_repeal_corporate_amt, {}, 219.5),
     ],
 )
 def test_reported_mode_scores_are_unchanged(factory, kwargs, expected):

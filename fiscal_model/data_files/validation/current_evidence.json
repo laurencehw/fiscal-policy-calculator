@@ -2,8 +2,8 @@
   "_note": "Generated file - do not hand-edit. These are the validation figures the app, the Ask assistant and the docs quote; they move whenever a model number that moves a tier moves. Regenerate with: python scripts/build_current_evidence.py",
   "calibrated": {
     "fitted": {
-      "mean_abs_error": 1.4,
-      "median_abs_error": 0.0,
+      "mean_abs_error": 1.5,
+      "median_abs_error": 0.1,
       "n": 14,
       "within_15pct": 14,
       "within_25pct": 14
@@ -510,8 +510,8 @@
       "tier": "out_of_sample"
     },
     "repeal_corporate_amt": {
-      "abs_percent_error": 0.0,
-      "model_10yr_billions": 220.1,
+      "abs_percent_error": 0.2,
+      "model_10yr_billions": 219.5,
       "official_10yr_billions": 220.0,
       "tier": "fitted"
     },

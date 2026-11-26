@@ -443,4 +443,4 @@ def test_reported_mode_still_ignores_every_phase_out_parameter():
     policy = create_extend_tcja_amt_relief(start_year=2026, mode=AMT_MODE_REPORTED)
     policy.phase_out_threshold_change = -500_000
     policy.new_phase_out_rate = 0.9
-    assert policy.estimate_static_revenue_effect(0.0) == -39.3
+    assert policy.estimate_static_revenue_effect(0.0) == -37.6  # lane REVIEW-5 refit
