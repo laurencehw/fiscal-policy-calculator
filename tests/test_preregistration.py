@@ -333,10 +333,14 @@ def test_a_named_window_is_the_decade_the_case_is_actually_scored_on():
     ).score_policy(later, dynamic=False)
 
     assert abs(on_source.total_10_year_cost) < abs(on_default.total_10_year_cost)
-    official = score.ten_year_cost
-    assert abs(on_source.total_10_year_cost - official) < abs(
-        on_default.total_10_year_cost - official
-    )
+    # This test also asserted that the source's own decade lands nearer the
+    # Treasury target than the later one. That was an accuracy claim, not a
+    # property of the window, and lane REVIEW-CG-scope ended it: once a rate
+    # change above $1M reaches only the 20% bracket, the FY2022 decade scores
+    # -$291.0B (31.0 off -$322.0B) and the later one -$346.1B (24.1 off). The
+    # move is the registered regression in
+    # planning/lanes/REVIEW_cg_top_bracket_scope.md; the window rule stands,
+    # because it is a statement about which years the source priced.
 
 
 def test_a_record_without_a_window_keeps_the_runners_own():
