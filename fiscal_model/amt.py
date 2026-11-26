@@ -130,10 +130,11 @@ AMT_HELD_OUT_MODE = AMT_MODE_DERIVED
 #: a target that does not exist rather than one nobody had checked.
 AMT_SCORECARD_MODE = AMT_MODE_REPORTED
 
-#: Growth rate ``ScoringEngine`` applies to an ``AMTPolicy``'s annual static
-#: effect (``scoring_engine._growth_tax_policy_handlers``). Derived mode
-#: divides it back out year by year so the module's own path is what gets
-#: scored; ``tests/test_amt_derived.py`` pins the two together.
+#: Growth rate ``ScoringEngine`` applies to an individual ``AMTPolicy``'s
+#: annual static effect in **derived** mode only, which divides it back out
+#: year by year so the module's own path is what gets scored;
+#: ``tests/test_amt_derived.py`` pins the two together. Reported mode grows on
+#: the scored vintage's nominal GDP path since lane REVIEW-5.
 AMT_ENGINE_GROWTH_RATE = 0.03
 
 
@@ -197,7 +198,7 @@ BASELINE_AMT_DATA = {
 CBO_AMT_ESTIMATES = {
     # Cost of extending TCJA AMT relief
     "extend_tcja_10yr": 450.0,  # ~$450B over 10 years (from TCJA component)
-    "extend_tcja_annual": 39.3,  # Average annual (calibrated with 3% growth)
+    "extend_tcja_annual": 37.6,  # First-year level on CBO's GDP path (lane REVIEW-5; 39.3 at a flat 3%)
 
     # Revenue from letting TCJA expire (baseline)
     "tcja_expiration_10yr": 450.0,  # Revenue GAIN if TCJA expires
@@ -1291,7 +1292,7 @@ def create_extend_tcja_amt_relief(
         timing_elasticity=0.0,  # Behavioral already in calibration
         avoidance_elasticity=0.0,
         # Calibrated to ~$450B over 10 years (with 3% annual growth)
-        annual_revenue_change_billions=-39.3,
+        annual_revenue_change_billions=-37.6,  # lane REVIEW-5 refit (39.3 at a flat 3%)
         start_year=start_year,
         duration_years=duration_years,
         mode=mode,
@@ -1317,8 +1318,10 @@ def create_repeal_individual_amt(
         # TCJA still in effect - lower revenue to lose
         annual_cost = -5.0  # ~$5B/year under TCJA
     else:
-        # Post-TCJA - more revenue at stake
-        annual_cost = -39.3  # Growing to ~$75B by 2030
+        # Post-TCJA - more revenue at stake. Refit by lane REVIEW-5 from
+        # -39.3, which was fitted with a flat 3% engine growth, to the same
+        # $450B on the vintage's nominal GDP path (x 11.4639 / 11.9915).
+        annual_cost = -37.6
 
     return AMTPolicy(
         name="Repeal Individual AMT",
@@ -1354,8 +1357,9 @@ def create_repeal_corporate_amt(
         repeal_corporate_amt=True,
         timing_elasticity=0.0,
         avoidance_elasticity=0.0,
-        # Calibrated: ~$220B over 10 years
-        annual_revenue_change_billions=-19.2,
+        # Calibrated: ~$220B over 10 years. Refit by lane REVIEW-5 from -19.2
+        # (flat 3%) to the vintage's nominal GDP path (x 11.4639 / 12.1289).
+        annual_revenue_change_billions=-18.1,
         start_year=start_year,
         duration_years=duration_years,
         mode=mode,
@@ -1383,8 +1387,9 @@ def create_increase_amt_exemption(
     # and revenue by roughly 15%
     reduction_pct = 0.15 * (exemption_increase / 25_000)
 
-    # Baseline post-TCJA revenue ~$39B/year (average)
-    annual_cost = -39.3 * reduction_pct
+    # Baseline post-TCJA first-year level, on the engine's GDP path (lane
+    # REVIEW-5; 39.3 at the old flat 3%)
+    annual_cost = -37.6 * reduction_pct
 
     return AMTPolicy(
         name=f"AMT Exemption +${exemption_increase/1000:.0f}K",
@@ -1494,7 +1499,7 @@ def create_amt_rate_change(
     # Revenue effect proportional to rate change
     # Current combined rate ~27% average, baseline ~$40B/year post-TCJA
     avg_rate = (AMT_RATES["first_tier"] + AMT_RATES["second_tier"]) / 2
-    baseline_revenue = 39.3  # Average annual post-TCJA
+    baseline_revenue = 37.6  # First-year post-TCJA level (lane REVIEW-5; 39.3 at a flat 3%)
     pct_change = rate_change / avg_rate
     annual_change = baseline_revenue * pct_change
 

@@ -170,6 +170,17 @@ LEGACY_CALIBRATED_PRESET_IDS: frozenset[str] = frozenset(
 #: ``results_summary.salt_current_law_caption`` carries the sentence and this
 #: entry carries the measurement. Asserted to persist, like ``runner_shape``.
 HEADLINE_ROW_DIVERGENCE: dict[str, tuple[str, str]] = {
+    "amt-repeal-corporate": (
+        "runner_shape",
+        "app 217.0 vs row 219.5 (1.1%), measured 2026-11-26 when lane REVIEW-5 "
+        "grew the constant on CBO's nominal GDP path instead of a flat 3%. The "
+        "row starts in 2025 and scores FY2025-2034; the app starts in 2026 and "
+        "scores FY2026-2035. The same ten-year growth path sums to 12.13 times "
+        "the first year from 2025 (GDP grows 5.2% into 2026) and 11.99 times "
+        "from 2026. A flat rate sums alike from any start, which is why the two "
+        "agreed before. All of it is the window; none of it is the policy "
+        "build.",
+    ),
     "drug-negotiation-expand": (
         "runner_shape",
         "app -41.8 vs row -33.5 (24.8%): -37.6 on the validation window, so "
