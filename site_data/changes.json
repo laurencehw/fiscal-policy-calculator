@@ -2,6 +2,26 @@
   "threshold": 0.005,
   "items": [
     {
+      "date": "2026-11-26",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-1740-119",
+      "title": "Default Proceed Sale Transparency Act",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/1740"
+    },
+    {
+      "date": "2026-11-26",
+      "category": "data",
+      "kind": "cbo_estimate",
+      "id": "hr-2409-119",
+      "title": "Guidance Clarity Act of 2025",
+      "old": null,
+      "new": 0.0,
+      "href": "https://www.congress.gov/bill/119th-congress/house-bill/2409"
+    },
+    {
       "date": "2026-11-25",
       "category": "score",
       "kind": "preset",

@@ -9,13 +9,13 @@
   "presets": 53,
   "build_catalog_rows": 48,
   "scorecard_entries": 99,
-  "tracker_bills": 12090,
-  "tracker_last_update": "2026-11-25T06:06:13Z",
+  "tracker_bills": 12164,
+  "tracker_last_update": "2026-11-26T06:07:54Z",
   "values_archetypes": 5,
   "social_security_options": 33,
   "states": 10,
   "classroom_assignments": 8,
   "sign_convention": "Billions of dollars over the budget window; positive increases the deficit, negative reduces it.",
-  "scores_fingerprint": "f5bb33edd3ec",
-  "scores_date": "2026-11-25"
+  "scores_fingerprint": "c5826af18fac",
+  "scores_date": "2026-11-26"
 }
