@@ -83,7 +83,7 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 63.985889731441574,
+        "total_tax_change_billions": 63.98588973144157,
         "pct_with_increase": 0.8530504912072048,
         "pct_with_decrease": 0.0,
         "groups": [
@@ -123,8 +123,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.0005939159222174332,
-            "new_etr": 0.0005939159222174332
+            "baseline_etr": 0.0005939159222174335,
+            "new_etr": 0.0005939159222174335
           },
           {
             "name": "4th Decile",
@@ -214,8 +214,8 @@
             "share_of_total": 1.0,
             "pct_with_increase": 12.149845256006522,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.2190487472497876,
-            "new_etr": 0.2290132234042224
+            "baseline_etr": 0.21904874724978754,
+            "new_etr": 0.22901322340422237
           }
         ]
       },
@@ -223,8 +223,8 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 63.98588973144157,
-        "pct_with_increase": 0.8530505438410054,
+        "total_tax_change_billions": 63.98588973144156,
+        "pct_with_increase": 0.8530505438410052,
         "pct_with_decrease": 0.0,
         "groups": [
           {
@@ -315,8 +315,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.07697238877605633,
-            "new_etr": 0.07697238877605633
+            "baseline_etr": 0.07697238877605632,
+            "new_etr": 0.07697238877605632
           },
           {
             "name": "$100K-$200K",
@@ -349,10 +349,10 @@
             "floor": 500000.0,
             "ceiling": 1000000.0,
             "returns_millions": 1.77972,
-            "avg_tax_change": 3835.9451502829434,
-            "pct_of_income": 0.7457590056554582,
-            "share_of_total": 0.10669396536519915,
-            "pct_with_increase": 36.537971448582795,
+            "avg_tax_change": 3835.945150282943,
+            "pct_of_income": 0.7457590056554583,
+            "share_of_total": 0.10669396536519918,
+            "pct_with_increase": 36.53797144858279,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.23390735133763504,
             "new_etr": 0.23962055625669904
@@ -362,13 +362,13 @@
             "floor": 1000000.0,
             "ceiling": null,
             "returns_millions": 0.799094,
-            "avg_tax_change": 71529.73420716496,
-            "pct_of_income": 3.0685944104334992,
+            "avg_tax_change": 71529.73420716495,
+            "pct_of_income": 3.0685944104334983,
             "share_of_total": 0.8933060346348008,
             "pct_with_increase": 90.0699505001165,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.26738292189547,
-            "new_etr": 0.2898639686040669
+            "new_etr": 0.2898639686040668
           }
         ]
       }
@@ -490,18 +490,18 @@
       },
       {
         "model": "TPC-Microsim Pilot",
-        "ten_year_billions": -747.2072197014338,
+        "ten_year_billions": -747.2072197014337,
         "annual_billions": [
-          -74.72072197014339,
-          -74.72072197014339,
-          -74.72072197014339,
-          -74.72072197014339,
-          -74.72072197014339,
-          -74.72072197014339,
-          -74.72072197014339,
-          -74.72072197014339,
-          -74.72072197014339,
-          -74.72072197014339
+          -74.72072197014337,
+          -74.72072197014337,
+          -74.72072197014337,
+          -74.72072197014337,
+          -74.72072197014337,
+          -74.72072197014337,
+          -74.72072197014337,
+          -74.72072197014337,
+          -74.72072197014337,
+          -74.72072197014337
         ],
         "methodology": "Single-year CPS-style microsimulation with flat-horizon annualization and quintile distribution output.",
         "confidence": "pilot",
