@@ -193,7 +193,7 @@ def _sensitivity_band(
     and **neither carried any information about accuracy**: for a plain
     ``TaxPolicy`` the headline is ``0.875 × static`` and the ETI sweep's width
     is ``0.8 × 0.125 × static``, so the band was ``0.1 / 0.875 = 11.43%`` of the
-    headline for *every* policy, rate and threshold — Flat Tax Reform at
+    headline for *every* policy, rate and threshold — the across-the-board 5pp cut at
     +$6,239.4B and the Medicare surcharge at −$426.6B drew the identical ribbon
     — and the engine's fallback was a second fixed fraction, 38.0% for climate
     and pharma, 45.6% for estate, credits and payroll, 46.8–47.1% for TCJA, AMT

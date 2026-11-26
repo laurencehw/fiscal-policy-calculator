@@ -6,7 +6,7 @@ information about accuracy:
 * **The ETI ±0.1 sweep** (``ui/tabs/results_summary._sensitivity_band``). For a
   plain ``TaxPolicy`` the headline is ``0.875 × static`` and the sweep's width is
   ``0.8 × 0.125 × static``, so the band is **0.1 / 0.875 = 11.43% of the
-  headline for every policy, every rate, every threshold** — Flat Tax Reform at
+  headline for every policy, every rate, every threshold** — the across-the-board 5pp cut at
   +$6,239.4B and the Medicare surcharge at −$426.6B were handed the identical
   ribbon. Where a module zeroes the behavioural offset it fell through to the
   engine's own uncertainty path, which is a second fixed fraction (38.0% for
