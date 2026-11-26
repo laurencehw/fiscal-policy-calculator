@@ -893,8 +893,12 @@ TAX_EXPENDITURE_VALIDATION_SCENARIOS_COMPARE = {
         "description": "Cap employer health exclusion at $50K",
         "policy_factory": create_cap_employer_health_exclusion,
         "expected_10yr": -450.0,
-        "source": "CBO",
-        "notes": "Third-largest tax expenditure",
+        "source": "CBO Budget Options (2008), nearest match",
+        "notes": (
+            "Third-largest tax expenditure. No agency has scored a $50,000 cap; "
+            "the figure matches JCT's $452.1B for CBO's December 2008 Option 9, "
+            "a $17,280 family cap on FY2009-2018."
+        ),
     },
     "eliminate_mortgage": {
         "description": "Eliminate mortgage interest deduction",
