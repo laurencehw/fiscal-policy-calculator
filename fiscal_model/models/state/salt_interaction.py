@@ -215,13 +215,14 @@ def compute_salt_lift(
     A representative itemizer cannot see that cap: the state averages here are
     all below $40,000, so ``compute_salt_interaction`` would report no effect
     at all, while the cap binds on the high-SALT tail and on every filer the
-    phasedown reaches. This method keeps the tail. Each state's itemizers take
-    the national SOI Table 2.1 SALT distribution -- its AGI classes, the
-    within-class lognormal dispersion and the class marginal rates -- with
-    claimed amounts and incomes scaled by the state's average SALT relative to
-    the national average. The national distribution is what
-    ``tax_expenditures_core.salt_expenditure_billions`` prices the SALT presets
-    with, so the states and the national score read the same data.
+    phasedown reaches. This method keeps the tail. Each state reads its own
+    SALT distribution from IRS SOI Historic Table 2 for tax year 2022: its
+    claimants, its mean SALT before the limitation and its mean limited amount
+    in ten AGI classes, with the within-class dispersion identified at the
+    observed $10,000 cap exactly as the national distribution is
+    (``load_state_capped_deduction_distribution``). Until lane REVIEW-11 every
+    state took the national shape scaled to its average, which gave Texas and
+    Florida a larger average gain than California and New York.
 
     Returns a :class:`SALTInteractionResult` with ``reform_cap=None`` and
     ``baseline_cap`` set to the limitation amount before any phasedown.
@@ -229,7 +230,7 @@ def compute_salt_lift(
     from fiscal_model.tax_expenditure_distributions import (
         _lognormal_mean_min,
         _normal_cdf,
-        load_capped_deduction_distribution,
+        load_state_capped_deduction_distribution,
     )
     from fiscal_model.tax_expenditures_core import (
         SaltCapBaseline,
@@ -243,22 +244,15 @@ def compute_salt_lift(
         db = StateTaxDatabase(year)
     profile = db.get_state(state)
 
-    distribution = load_capped_deduction_distribution()
-    national_claimants = sum(c.claimants for c in distribution.classes)
-    national_mean = (
-        sum(c.claimants * c.mean_deduction for c in distribution.classes)
-        / national_claimants
-    )
-    scale = profile.avg_salt_deduction_itemizers / national_mean
-    itemizers = _approx_filers_millions(state) * 1e6 * profile.pct_itemizers
+    distribution = load_state_capped_deduction_distribution(state)
 
     claimed = deduction_gain = revenue_cost = affected = 0.0
     for c in distribution.classes:
-        mean = c.mean_deduction * scale
+        mean = c.mean_deduction
         sigma = c.sigma
         for weight, agi in c.agi_slices():
-            filers = itemizers * (c.claimants / national_claimants) * weight
-            cap = salt_cap_at(baseline, year, agi * scale)
+            filers = c.claimants * weight
+            cap = salt_cap_at(baseline, year, agi)
             gain = mean - _lognormal_mean_min(mean, sigma, cap)
             claimed += filers * mean
             deduction_gain += filers * gain

@@ -59,4 +59,38 @@ high-SALT tail. On the live /states page, Texas ($86,814) and Florida
 
 ## Outturn
 
-(appended after the code commit)
+Run 2026-11-26 with `result_views.states_view()`, before and after the edit
+on the same tree. Current-law cap, 2025, per state:
+
+| State | Avg gain above cap, before | after | Federal cost ($B/yr), before | after |
+|---|--:|--:|--:|--:|
+| CA | $81,891 | **$119,046** | -8.75 | **-20.31** |
+| NY | $82,015 | **$182,654** | -7.86 | **-12.60** |
+| TX | $86,814 | **$35,805** | -1.39 | **-1.17** |
+| FL | $87,374 | **$75,075** | -0.84 | **-2.44** |
+| IL | $83,754 | $85,304 | -1.52 | -2.00 |
+| PA | $85,730 | $71,422 | -1.15 | -1.22 |
+| GA | $86,345 | $76,594 | -0.66 | -1.30 |
+| NC | $86,929 | $74,851 | -0.50 | -1.06 |
+| OH | $86,610 | $76,167 | -0.71 | -0.85 |
+| MI | $86,660 | $68,385 | -0.56 | -0.65 |
+
+1. **The inversion goes: held.** California and New York now gain $119k and
+   $183k per affected filer, against Texas's $36k and Florida's $75k.
+2. **California and New York remain the two largest costs: held.**
+3. **Texas's and Florida's costs each fall: failed for Florida.** Texas falls
+   from $1.39B to $1.17B. Florida rises from $0.84B to $2.44B. Florida's own
+   distribution has about 91,000 filers above the cap, against the 26,000 the
+   national shape implied, because its top AGI classes carry large property
+   and sales tax bills. The national shape, scaled down to Florida's low
+   average, had hidden that tail. Recorded rather than adjusted.
+4. **Nothing outside /states moves: held.** The national SALT distribution and
+   its presets are untouched. `states.json` is the only export file that
+   changes.
+
+**Not done: NJ, CT and MA.** The SALT half would work for any state now, since
+the SOI file covers all 50 states and DC. But a state on the page also needs
+2025 brackets, deductions, exemptions and a combined state-and-local rate for
+the income-tax curves. Those need sourcing from each state's revenue
+department, and that is its own job.
+

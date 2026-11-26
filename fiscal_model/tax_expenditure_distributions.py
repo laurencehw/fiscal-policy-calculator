@@ -727,3 +727,69 @@ def load_capped_deduction_distribution(
             )
         )
     return CappedDeductionDistribution(name=column, classes=tuple(classes))
+
+
+#: IRS SOI Historic Table 2, tax year 2022, by state and AGI class: SALT
+#: claimants, the amount before the limitation and the limited amount. See the
+#: provenance file beside it and ``planning/lanes/REVIEW_states_salt.md``.
+STATE_SALT_FILE = (
+    Path(__file__).parent / "data_files" / "state_taxes" / "soi_state_salt_ty2022.csv"
+)
+
+#: The cap the state file's limited column was measured under: $10,000 for
+#: tax year 2022 (IRC 164(b)(6) as enacted by P.L. 115-97).
+STATE_SALT_OBSERVED_CAP = 10_000.0
+
+
+@lru_cache(maxsize=1)
+def _state_salt_rows() -> tuple[dict[str, str], ...]:
+    with STATE_SALT_FILE.open(encoding="utf-8", newline="") as handle:
+        return tuple(csv.DictReader(handle))
+
+
+#: Rows in the SOI file that are not one of the 50 states or DC: the national
+#: total, Puerto Rico, and "other areas" (APO/FPO and abroad).
+_NOT_A_STATE = frozenset({"US", "PR", "OA"})
+
+
+def state_salt_codes() -> tuple[str, ...]:
+    """The 50 states and DC, as the state SALT file codes them."""
+    return tuple(sorted({r["state"] for r in _state_salt_rows()} - _NOT_A_STATE))
+
+
+def load_state_capped_deduction_distribution(state: str) -> CappedDeductionDistribution:
+    """One state's SALT distribution, built as the national one is.
+
+    Each AGI class carries the state's own claimants, its mean SALT before the
+    limitation and its mean limited amount, so the within-class dispersion is
+    identified at the observed $10,000 cap exactly as
+    :func:`load_capped_deduction_distribution` identifies the nation's.
+    Amounts are tax-year-2022 dollars as SOI published them.
+    """
+    code = state.upper()
+    classes = []
+    for row in _state_salt_rows():
+        if row["state"] != code:
+            continue
+        claimants = float(row["salt_returns"])
+        returns = float(row["returns"])
+        if claimants <= 0 or returns <= 0:
+            continue
+        lower = row["agi_lower"].strip()
+        upper = row["agi_upper"].strip()
+        agi_lower = float(lower) if lower else 0.0
+        classes.append(
+            CappedDeductionClass(
+                agi_lower=agi_lower,
+                agi_upper=float(upper) if upper else None,
+                agi_mean=float(row["agi_less_deficit"]) * 1e3 / returns,
+                claimants=claimants,
+                mean_deduction=float(row["salt_amount"]) * 1e3 / claimants,
+                mean_deduction_capped=float(row["salt_limited_amount"]) * 1e3 / claimants,
+                observed_cap=STATE_SALT_OBSERVED_CAP,
+                marginal_rate=statutory_marginal_rate(agi_lower),
+            )
+        )
+    if not classes:
+        raise KeyError(f"no SOI SALT rows for state {state!r}")
+    return CappedDeductionDistribution(name=f"salt_{code}", classes=tuple(classes))
