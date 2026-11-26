@@ -222,8 +222,14 @@ SEALED_CASES: tuple[SealedCase, ...] = (
     ),
 )
 
-#: Rows that left the battery under rule 3, with the reason. Empty at lock.
-RETIRED: dict[str, str] = {}
+#: Rows that left the battery under rule 3, with the reason.
+RETIRED: dict[str, str] = {
+    "tf3_opt7_cg_top_rate_15": (
+        "Retired under rule 3 when planning/lanes/REVIEW_cg_top_bracket_scope.md "
+        "opened to scope thresholded capital-gains rate changes to statutory "
+        "brackets at or above the threshold."
+    ),
+}
 
 
 def sealed_cases(*, enabled_only: bool = False) -> tuple[SealedCase, ...]:
