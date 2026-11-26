@@ -260,7 +260,7 @@ def test_the_extension_benchmark_is_untouched_by_this_lane():
 
     scorer = FiscalPolicyScorer(start_year=2026, use_real_data=False)
     result = scorer.score_policy(policy, dynamic=False)
-    assert float(result.total_10_year_cost) == pytest.approx(366.1863, abs=0.01)
+    assert float(result.total_10_year_cost) == pytest.approx(365.7416, abs=0.01)  # lane REVIEW-5: CBO's GDP path, not a flat 4%
 
 
 # ---------------------------------------------------------------------------

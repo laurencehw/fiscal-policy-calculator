@@ -5,10 +5,10 @@
     "policy_description": "The July 2025 law raised the cap on the state and local tax deduction to \\$40,000, rising 1% a year through 2029 and phased down above \\$500K of income, then drops it back to \\$10,000 in 2030. This keeps the higher cap and its phasedown going after 2029 at the same 1% a year. It costs nothing until 2030. No published score is on file.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
-    "ten_year_deficit_impact": 119.32767522046848,
+    "ten_year_deficit_impact": 119.32767522046846,
     "static_revenue_effect": -113.64540497187474,
-    "behavioral_offset": 5.6822702485937375,
-    "final_static_effect": -119.32767522046848,
+    "behavioral_offset": 5.682270248593736,
+    "final_static_effect": -119.32767522046846,
     "gdp_effect": null,
     "employment_effect": null,
     "revenue_feedback": 0.0,
@@ -54,19 +54,19 @@
       },
       {
         "year": 2030,
-        "revenue_effect": -17.22149031632878,
-        "behavioral_offset": 0.861074515816439,
+        "revenue_effect": -17.221490316328776,
+        "behavioral_offset": 0.8610745158164388,
         "dynamic_feedback": 0.0,
-        "final_effect": 18.08256483214522,
+        "final_effect": 18.082564832145216,
         "debt_service": null,
         "dynamic_effect": null
       },
       {
         "year": 2031,
-        "revenue_effect": -17.86900067844789,
-        "behavioral_offset": 0.8934500339223945,
+        "revenue_effect": -17.869000678447893,
+        "behavioral_offset": 0.8934500339223947,
         "dynamic_feedback": 0.0,
-        "final_effect": 18.762450712370285,
+        "final_effect": 18.76245071237029,
         "debt_service": null,
         "dynamic_effect": null
       },
@@ -81,10 +81,10 @@
       },
       {
         "year": 2033,
-        "revenue_effect": -19.255337835382505,
-        "behavioral_offset": 0.9627668917691253,
+        "revenue_effect": -19.2553378353825,
+        "behavioral_offset": 0.9627668917691251,
         "dynamic_feedback": 0.0,
-        "final_effect": 20.21810472715163,
+        "final_effect": 20.218104727151626,
         "debt_service": null,
         "dynamic_effect": null
       },
@@ -99,10 +99,10 @@
       },
       {
         "year": 2035,
-        "revenue_effect": -20.763314437391955,
-        "behavioral_offset": 1.0381657218695979,
+        "revenue_effect": -20.763314437391948,
+        "behavioral_offset": 1.0381657218695974,
         "dynamic_feedback": 0.0,
-        "final_effect": 21.80148015926155,
+        "final_effect": 21.801480159261544,
         "debt_service": null,
         "dynamic_effect": null
       }
@@ -118,9 +118,9 @@
       "median_abs_pct_error": 7.1,
       "max_abs_pct_error": 12.8,
       "rows_inside_mean_band": 1,
-      "uncertainty_low": 110.85541027981522,
-      "uncertainty_high": 127.79994016112174,
-      "outer_low": 104.05373279224851,
+      "uncertainty_low": 110.8554102798152,
+      "uncertainty_high": 127.79994016112173,
+      "outer_low": 104.0537327922485,
       "outer_high": 134.60161764868843,
       "no_band_reason": "",
       "own_row_policy_id": null,
@@ -152,15 +152,15 @@
     "policy_description": "The July 2025 law raised the cap on the state and local tax deduction to \\$40,000, rising 1% a year through 2029 and phased down above \\$500K of income, then drops it back to \\$10,000 in 2030. This keeps the higher cap and its phasedown going after 2029 at the same 1% a year. It costs nothing until 2030. No published score is on file.",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
-    "ten_year_deficit_impact": 119.32767522046848,
+    "ten_year_deficit_impact": 119.32767522046846,
     "static_revenue_effect": -113.64540497187474,
-    "behavioral_offset": 5.6822702485937375,
-    "final_static_effect": -119.32767522046848,
+    "behavioral_offset": 5.682270248593736,
+    "final_static_effect": -119.32767522046846,
     "gdp_effect": 0.04016033174578231,
-    "employment_effect": 2.5702612317300684,
-    "revenue_feedback": 2.8112232222047617,
+    "employment_effect": 2.5702612317300675,
+    "revenue_feedback": 2.811223222204761,
     "debt_service": 16.185398649714486,
-    "dynamic_adjusted_impact": 132.7018506479782,
+    "dynamic_adjusted_impact": 132.70185064797818,
     "dynamic_model": "FRB/US-Lite (Federal Reserve calibrated)",
     "year_by_year": [
       {
@@ -201,21 +201,21 @@
       },
       {
         "year": 2030,
-        "revenue_effect": -17.22149031632878,
-        "behavioral_offset": 0.861074515816439,
-        "dynamic_feedback": 0.5633417414204278,
-        "final_effect": 18.08256483214522,
-        "debt_service": 0.7233025932858088,
-        "dynamic_effect": 18.2425256840106
+        "revenue_effect": -17.221490316328776,
+        "behavioral_offset": 0.8610745158164388,
+        "dynamic_feedback": 0.5633417414204277,
+        "final_effect": 18.082564832145216,
+        "debt_service": 0.7233025932858087,
+        "dynamic_effect": 18.242525684010598
       },
       {
         "year": 2031,
-        "revenue_effect": -17.86900067844789,
-        "behavioral_offset": 0.8934500339223945,
+        "revenue_effect": -17.869000678447893,
+        "behavioral_offset": 0.8934500339223947,
         "dynamic_feedback": 0.6527217193133881,
-        "final_effect": 18.762450712370285,
+        "final_effect": 18.76245071237029,
         "debt_service": 1.4738006217806203,
-        "dynamic_effect": 19.583529614837516
+        "dynamic_effect": 19.58352961483752
       },
       {
         "year": 2032,
@@ -228,12 +228,12 @@
       },
       {
         "year": 2033,
-        "revenue_effect": -19.255337835382505,
-        "behavioral_offset": 0.9627668917691253,
+        "revenue_effect": -19.2553378353825,
+        "behavioral_offset": 0.9627668917691251,
         "dynamic_feedback": 0.44950482615730786,
-        "final_effect": 20.21810472715163,
+        "final_effect": 20.218104727151626,
         "debt_service": 3.0614324062335543,
-        "dynamic_effect": 22.830032307227874
+        "dynamic_effect": 22.83003230722787
       },
       {
         "year": 2034,
@@ -246,12 +246,12 @@
       },
       {
         "year": 2035,
-        "revenue_effect": -20.763314437391955,
-        "behavioral_offset": 1.0381657218695979,
-        "dynamic_feedback": 0.23978058972719413,
-        "final_effect": 21.80148015926155,
+        "revenue_effect": -20.763314437391948,
+        "behavioral_offset": 1.0381657218695974,
+        "dynamic_feedback": 0.23978058972719404,
+        "final_effect": 21.801480159261544,
         "debt_service": 4.773107008818739,
-        "dynamic_effect": 26.334806578353096
+        "dynamic_effect": 26.33480657835309
       }
     ],
     "dynamic_scoring_enabled": true,
@@ -265,9 +265,9 @@
       "median_abs_pct_error": 7.1,
       "max_abs_pct_error": 12.8,
       "rows_inside_mean_band": 1,
-      "uncertainty_low": 110.85541027981522,
-      "uncertainty_high": 127.79994016112174,
-      "outer_low": 104.05373279224851,
+      "uncertainty_low": 110.8554102798152,
+      "uncertainty_high": 127.79994016112173,
+      "outer_low": 104.0537327922485,
       "outer_high": 134.60161764868843,
       "no_band_reason": "",
       "own_row_policy_id": null,
