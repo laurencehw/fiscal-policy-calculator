@@ -75,7 +75,7 @@
             "pct_with_increase": 15.038923799797333,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.20325767188944574,
-            "new_etr": 0.20635997825869168
+            "new_etr": 0.2063599782586917
           }
         ]
       },
@@ -83,7 +83,7 @@
         "engine": "microsim",
         "unit": "tax_unit",
         "year": 2026,
-        "total_tax_change_billions": 24.11630904869466,
+        "total_tax_change_billions": 24.116309048694657,
         "pct_with_increase": 1.7179368557163164,
         "pct_with_decrease": 0.0,
         "groups": [
@@ -123,8 +123,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.0005939159222174335,
-            "new_etr": 0.0005939159222174335
+            "baseline_etr": 0.0005939159222174332,
+            "new_etr": 0.0005939159222174332
           },
           {
             "name": "4th Decile",
@@ -214,8 +214,8 @@
             "share_of_total": 1.0,
             "pct_with_increase": 24.468266734136037,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.21904874724978754,
-            "new_etr": 0.2228043625496185
+            "baseline_etr": 0.2190487472497876,
+            "new_etr": 0.22280436254961852
           }
         ]
       },
@@ -224,7 +224,7 @@
         "unit": "tax_unit",
         "year": 2026,
         "total_tax_change_billions": 24.11630904869466,
-        "pct_with_increase": 1.717936961617532,
+        "pct_with_increase": 1.7179369616175322,
         "pct_with_decrease": 0.0,
         "groups": [
           {
@@ -315,8 +315,8 @@
             "share_of_total": 0.0,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 0.0,
-            "baseline_etr": 0.07697238877605632,
-            "new_etr": 0.07697238877605632
+            "baseline_etr": 0.07697238877605633,
+            "new_etr": 0.07697238877605633
           },
           {
             "name": "$100K-$200K",
@@ -349,13 +349,13 @@
             "floor": 500000.0,
             "ceiling": 1000000.0,
             "returns_millions": 1.77972,
-            "avg_tax_change": 3706.6318964594984,
-            "pct_of_income": 0.7206187808057023,
+            "avg_tax_change": 3706.6318964595,
+            "pct_of_income": 0.7206187808057024,
             "share_of_total": 0.27353965755925114,
-            "pct_with_increase": 91.79907522811207,
+            "pct_with_increase": 91.79907522811209,
             "pct_with_decrease": 0.0,
             "baseline_etr": 0.23390735133763504,
-            "new_etr": 0.23942795884226786
+            "new_etr": 0.2394279588422679
           },
           {
             "name": "$1M and over",
