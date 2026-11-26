@@ -1,16 +1,16 @@
 {
   "total_entries": 99,
-  "within_5pct": 30,
+  "within_5pct": 29,
   "within_10pct": 45,
   "within_15pct": 60,
-  "within_20pct": 64,
+  "within_20pct": 65,
   "direction_match": 99,
-  "poor": 35,
+  "poor": 34,
   "by_tier": {
     "out_of_sample": {
       "n": 44,
-      "mean_abs_percent_difference": 10.580843924070702,
-      "median_abs_percent_difference": 8.2930152103744,
+      "mean_abs_percent_difference": 10.524004292682115,
+      "median_abs_percent_difference": 8.520889000601024,
       "within_15pct": 34
     },
     "fitted": {
@@ -37,10 +37,10 @@
   "holdout_entries": 10,
   "validation_note": "Scorecard entries are published-score benchmark comparisons. The post-lock holdout protocol revenue-scorecard-post-lock-2026-05-02 was locked on 2026-05-02; holdout labels are future regression checkpoints, not retroactive historical out-of-sample claims.",
   "ratings_breakdown": {
-    "Excellent": 30,
-    "Acceptable": 19,
-    "Poor": 35,
-    "Good": 15
+    "Excellent": 29,
+    "Acceptable": 20,
+    "Poor": 34,
+    "Good": 16
   },
   "provenance_breakdown": {
     "line_item": 80,
@@ -203,13 +203,13 @@
     },
     "Generic": {
       "n": 44,
-      "mean_abs_percent_difference": 10.580843924070702,
+      "mean_abs_percent_difference": 10.524004292682115,
       "within_15pct": 34,
       "ratings": {
-        "Excellent": 14,
-        "Poor": 7,
-        "Good": 11,
-        "Acceptable": 12
+        "Excellent": 13,
+        "Acceptable": 13,
+        "Good": 12,
+        "Poor": 6
       }
     }
   },
@@ -2431,11 +2431,11 @@
       "benchmark_kind": "Published administration estimate",
       "benchmark_date": "2024-03",
       "benchmark_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2025.pdf",
-      "model_10yr_billions": -366.43786020116977,
-      "difference_billions": -77.83786020116975,
-      "percent_difference": -26.970845530550847,
-      "abs_percent_difference": 26.970845530550847,
-      "rating": "Poor",
+      "model_10yr_billions": -336.73479731241474,
+      "difference_billions": -48.13479731241472,
+      "percent_difference": -16.678723947475646,
+      "abs_percent_difference": 16.678723947475646,
+      "rating": "Acceptable",
       "direction_match": true,
       "known_limitations": [
         "The target is Treasury's single combined row - the rate change and the realization-at-death change together - and the model's two channels split it $359.0B of rate against $7.4B of death. The rate channel alone therefore exceeds the whole published figure by 24.4%, which is where this row's residual now lives and is a floor no change to the death channel can get under. It over-predicts by 27%; before Wave 5 projected the realizations base it under-predicted by 17%, on a base two years stale and never grown.",
@@ -2472,11 +2472,11 @@
       "benchmark_kind": "Published administration estimate",
       "benchmark_date": "2021-05",
       "benchmark_url": "https://home.treasury.gov/system/files/131/General-Explanations-FY2022.pdf",
-      "model_10yr_billions": -316.1365858831322,
-      "difference_billions": 5.863414116867773,
-      "percent_difference": 1.82093606113906,
-      "abs_percent_difference": 1.82093606113906,
-      "rating": "Excellent",
+      "model_10yr_billions": -291.04899336076505,
+      "difference_billions": 30.951006639234947,
+      "percent_difference": 9.612113863116443,
+      "abs_percent_difference": 9.612113863116443,
+      "rating": "Good",
       "direction_match": true,
       "known_limitations": [
         "The same shape as biden_capital_gains_39 - +19.6pp above $1M plus realization at death - against a COMBINED FY2022 Green Book row, and since PR #126 scored on the ten fiscal years that document covers (scoring_window_first_year=2022, the treasury_capgains_39_plus_stepup_elim.v2 manifest row; the target is unchanged at -$322.0B and only the shape input moved). On FY2022-2031 the rate channel is $303.1B and the death channel $13.0B under this design's $1M per-donor exclusion. The row read 0.2% before Wave 5 projected the realizations base, and that agreement was already documented as two errors cancelling (planning/lanes/W4_gains_at_death.md section 8.4); one of the two was a tax-year-2023 base priced unchanged in every year of the window.",
@@ -4631,26 +4631,6 @@
           "DESIGN MISMATCH, stated rather than tuned away. P.L. 119-21 raises the SALT cap to $40,000 with a phase-down above $500,000 of income and a reversion to $10,000 after 2029; the module's SALT component represents the flat $10,000 cap, which raises far more revenue. This row is the largest error in the block and the reason is structural, not calibration."
         ],
         "holdout_status": "calibration_reference"
-      }
-    },
-    {
-      "surface": "revenue_scorecard",
-      "severity": "warn",
-      "policy_id": "biden_capital_gains_39",
-      "category": "Generic",
-      "rating": "Poor",
-      "message": "biden_capital_gains_39 has a Poor revenue scorecard rating.",
-      "details": {
-        "reason": "documented_or_generic_poor",
-        "direction_match": true,
-        "abs_percent_difference": 26.970845530550847,
-        "known_limitations": [
-          "The target is Treasury's single combined row - the rate change and the realization-at-death change together - and the model's two channels split it $359.0B of rate against $7.4B of death. The rate channel alone therefore exceeds the whole published figure by 24.4%, which is where this row's residual now lives and is a floor no change to the death channel can get under. It over-predicts by 27%; before Wave 5 projected the realizations base it under-predicted by 17%, on a base two years stale and never grown.",
-          "The death channel is integrated over a fitted size distribution of estates at death rather than five class means (Wave 7), which moved it $20.2B to $24.2B: with dispersion the top of the 99th-99.9th percentile band clears the $5,000,000 per-donor exclusion that its class average of $1.9M after reliefs never did. Wave C then took it $24.2B -> $7.4B by counting decedents at an NCHS life-table rate instead of at a flow of estate dollars, 3.38 million a year against 408,532: the same flow over 8.3 times as many decedents leaves far less of each gain above a $5,000,000 exclusion. That improved this row 32.8% -> 27.0% and worsened cbo_opt51_gains_at_death, which is the trade a level change to this channel makes. Neither move is where the residual lives.",
-          "At +19.6pp the semi-log response is evaluated well up its own curve: eliminating step-up divides the coefficient by the lock-in wedge, so b = 2.27 and the revenue-maximizing rate is 44.1% against a reform rate of 43.4%. Treasury's own estimate implies a much stronger response than the frozen literature value gives at that rate, and owner Decision 3 freezes the value.",
-          "The $1,000,000 threshold is not indexed, so the projected base is the above-$1M slice measured in tax-year-2023 AGI. Real bracket creep would push more gains across a fixed nominal threshold, which understates the base growth on a row that already over-predicts."
-        ],
-        "holdout_status": "generic_reference"
       }
     },
     {
