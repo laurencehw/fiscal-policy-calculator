@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from fiscal_model.data.capital_gains import CapitalGainsBaseline, LTCG_RATE_BRACKETS
+from fiscal_model.data.capital_gains import LTCG_RATE_BRACKETS, CapitalGainsBaseline
 from fiscal_model.policies import CapitalGainsPolicy, PolicyType
 from fiscal_model.scoring import FiscalPolicyScorer
 from fiscal_model.validation.core import validate_policy
