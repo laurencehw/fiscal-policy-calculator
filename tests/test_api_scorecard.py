@@ -28,7 +28,7 @@ def test_scorecard_endpoint_returns_consolidated_payload(client):
     for key in (
         "total_entries", "within_5pct", "within_10pct", "within_15pct",
         "within_20pct", "direction_match", "poor",
-        "mean_abs_percent_difference", "median_abs_percent_difference",
+        "by_tier",
         "calibrated_entries", "generic_entries", "holdout_entries", "validation_note",
         "ratings_breakdown", "by_category", "entries", "issues",
     ):
@@ -123,9 +123,31 @@ def test_scorecard_aggregate_arithmetic_matches_entries(client):
     assert payload["poor"] == sum(1 for e in payload["entries"] if e["rating"] == "Poor")
     assert payload["direction_match"] == sum(1 for e in payload["entries"] if e["direction_match"])
 
-    if abs_diffs:
-        expected_mean = sum(abs_diffs) / len(abs_diffs)
-        assert payload["mean_abs_percent_difference"] == pytest.approx(expected_mean)
+    # No mean over every entry: the tiers answer different questions.
+    assert "mean_abs_percent_difference" not in payload
+    assert "median_abs_percent_difference" not in payload
+
+
+def test_scorecard_reports_each_tier_and_the_tiers_partition_the_entries(client):
+    payload = client.get("/validation/scorecard").json()
+    tiers = payload["by_tier"]
+    assert set(tiers) == {"out_of_sample", "fitted", "reconstruction", "retired"}
+    assert sum(block["n"] for block in tiers.values()) == payload["total_entries"]
+    assert tiers["out_of_sample"]["n"] == payload["generic_entries"]
+
+    generic = [
+        e["abs_percent_difference"] for e in payload["entries"] if e["category"] == "Generic"
+    ]
+    assert tiers["out_of_sample"]["mean_abs_percent_difference"] == pytest.approx(
+        sum(generic) / len(generic)
+    )
+    # The fitted tier is tight by construction and the reconstructions are not;
+    # a pooled figure would sit between the two and describe neither.
+    assert (
+        tiers["fitted"]["mean_abs_percent_difference"]
+        < tiers["out_of_sample"]["mean_abs_percent_difference"]
+        < tiers["reconstruction"]["mean_abs_percent_difference"]
+    )
 
 
 def test_scorecard_endpoint_issues_match_material_entry_problems(client):

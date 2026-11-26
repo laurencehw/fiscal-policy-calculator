@@ -482,6 +482,79 @@ def test_credibility_for_a_generic_run_carries_the_class_band_and_no_row():
     assert credibility.evidence_type == "out_of_sample_class_distribution"
 
 
+def _corporate(rate_change: float):
+    from fiscal_model.corporate import CorporateTaxPolicy
+    from fiscal_model.policies import PolicyType
+
+    return CorporateTaxPolicy(
+        name="probe",
+        description="probe",
+        policy_type=PolicyType.CORPORATE_TAX,
+        rate_change=rate_change,
+    )
+
+
+def test_the_corporate_band_covers_the_size_its_rows_test_and_no_larger():
+    """The four corporate rows are each +1 point. A +7 point reform, or a cut,
+    is outside what they test and gets no band and a reason that says so."""
+    from fiscal_model.validation.credibility import (
+        band_for_policy,
+        outside_tested_range_reason,
+    )
+
+    band = tier1_class_bands()["corporate"]
+    assert band.tested_rate_changes == (0.01,)
+
+    assert band_for_policy(_corporate(0.01)) is band
+    assert outside_tested_range_reason(_corporate(0.01)) is None
+
+    assert band_for_policy(_corporate(0.07)) is None
+    larger = outside_tested_range_reason(_corporate(0.07))
+    assert "up to 1 points" in larger and "7 points" in larger
+
+    assert band_for_policy(_corporate(-0.06)) is None
+    assert "no row tests a rate cut" in outside_tested_range_reason(_corporate(-0.06))
+
+
+def test_the_tested_range_is_read_from_the_rows_not_chosen():
+    """Every rate class's range is the set of rate changes on its own records."""
+    from fiscal_model.validation.cbo_scores import KNOWN_SCORES
+
+    for band in tier1_class_bands().values():
+        expected = tuple(
+            sorted(
+                {
+                    float(KNOWN_SCORES[pid].rate_change)
+                    for pid in band.policy_ids
+                    if getattr(KNOWN_SCORES[pid], "rate_change", None)
+                }
+            )
+        )
+        assert band.tested_rate_changes == expected
+    assert tier1_class_bands()["discretionary_spending"].tested_rate_changes == ()
+
+
+def test_a_reform_outside_the_tested_range_says_so_on_the_result():
+    credibility = get_credibility_for_result(point_estimate=1200.0, policy=_corporate(-0.06))
+    assert credibility.evidence_type == "no_out_of_sample_benchmark"
+    assert credibility.uncertainty_low is None and credibility.outer_high is None
+    assert "no row tests a rate cut" in credibility.no_band_reason
+    assert "reform of this size and direction" in credibility.caption
+    assert "a policy of this kind" not in credibility.caption
+    assert any("has not been measured" in text for text in credibility.limitations)
+    assert not any(
+        "No pre-registered out-of-sample row scores a policy of this class" in text
+        for text in credibility.limitations
+    )
+
+
+def test_a_bill_reading_never_gets_a_band():
+    from fiscal_model.validation.credibility import band_for_bill_reading
+
+    for policy_type in ("corporate_tax", "payroll_tax", "income_tax", None):
+        assert band_for_bill_reading(policy_type) is None
+
+
 def test_credibility_for_a_fitted_preset_prints_the_row_beside_the_absent_band():
     """TCJA: the most-quoted number in the app, and the tier it sits in.
 

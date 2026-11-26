@@ -183,6 +183,11 @@ def build_payload(
         out_of_sample["corporate_credit_factor"] = oos.get("corporate_credit_factor")
     designs = {reform_design(entry["policy_id"]) for entry in oos_entries}
     out_of_sample["distinct_designs"] = len(designs)
+    # The same tier with one weight per design, copied from the report (which
+    # the CI gate ``--max-design-mean-error`` reads).
+    by_design = oos.get("by_design")
+    if by_design is not None:
+        out_of_sample["by_design"] = _summary(by_design)
     out_of_sample["tax_cuts"] = sum(
         1
         for entry in oos_entries

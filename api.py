@@ -826,8 +826,24 @@ class ScorecardCategorySummary(BaseModel):
     ratings: dict[str, int] = Field(default_factory=dict)
 
 
+class ScorecardTierSummary(BaseModel):
+    """Accuracy over one evidence tier. A retired row's error is against a
+    withdrawn target, so the ``retired`` block measures nothing; it is listed
+    so the rows are not silently dropped."""
+
+    n: int
+    mean_abs_percent_difference: float
+    median_abs_percent_difference: float
+    within_15pct: int
+
+
 class ScorecardResponse(BaseModel):
-    """Consolidated revenue-level validation scorecard."""
+    """Consolidated revenue-level validation scorecard.
+
+    There is deliberately no mean or median over all entries: the tiers answer
+    different questions (a prediction, a fit, a reconstruction, a withdrawn
+    target), and one figure across them describes none. Read ``by_tier``.
+    """
 
     total_entries: int
     within_5pct: int
@@ -836,8 +852,7 @@ class ScorecardResponse(BaseModel):
     within_20pct: int
     direction_match: int
     poor: int
-    mean_abs_percent_difference: float
-    median_abs_percent_difference: float
+    by_tier: dict[str, ScorecardTierSummary] = Field(default_factory=dict)
     calibrated_entries: int
     generic_entries: int
     holdout_entries: int
@@ -1360,7 +1375,10 @@ def validation_scorecard():
         holdout_entries,
         holdout_status_for_entry,
     )
-    from fiscal_model.validation.scorecard import cached_default_scorecard
+    from fiscal_model.validation.scorecard import (
+        cached_default_scorecard,
+        tier_summaries,
+    )
 
     # Cached for the process lifetime — the underlying validation data
     # is code-resident, so recomputing on every request would only burn
@@ -1386,8 +1404,10 @@ def validation_scorecard():
         within_20pct=summary.within_20pct,
         direction_match=summary.direction_match,
         poor=summary.poor,
-        mean_abs_percent_difference=summary.mean_abs_percent_difference,
-        median_abs_percent_difference=summary.median_abs_percent_difference,
+        by_tier={
+            tier: ScorecardTierSummary(**block)
+            for tier, block in tier_summaries(summary.entries).items()
+        },
         calibrated_entries=sum(1 for entry in summary.entries if entry.category != "Generic"),
         generic_entries=sum(1 for entry in summary.entries if entry.category == "Generic"),
         holdout_entries=len(holdouts),

@@ -166,6 +166,12 @@ class EmpiricalBand:
     rows_inside_mean_band: int
     worst_policy_id: str
     policy_ids: tuple[str, ...]
+    #: The non-zero ``rate_change`` each of the class's rows scores, signed, as
+    #: its benchmark record states it. Empty for a class whose rows are not rate
+    #: changes (spending paths, a deduction cap). The band describes reforms of
+    #: these sizes and says nothing about one several times larger, or of the
+    #: other sign: see :func:`outside_tested_range_reason`.
+    tested_rate_changes: tuple[float, ...] = ()
 
     @property
     def is_single_row(self) -> bool:
@@ -196,6 +202,7 @@ def tier1_class_bands() -> dict[str, EmpiricalBand]:
     :func:`~fiscal_model.validation.policy_classes.classify_policy`.
     """
     from fiscal_model.validation import cached_default_scorecard
+    from fiscal_model.validation.cbo_scores import KNOWN_SCORES
     from fiscal_model.validation.scorecard import GENERIC_CATEGORY
 
     summary = cached_default_scorecard()
@@ -232,8 +239,20 @@ def tier1_class_bands() -> dict[str, EmpiricalBand]:
             rows_inside_mean_band=sum(1 for err in errs if err <= mean),
             worst_policy_id=rows[-1][1],
             policy_ids=tuple(policy_id for _, policy_id in rows),
+            tested_rate_changes=_tested_rate_changes(
+                [policy_id for _, policy_id in rows], KNOWN_SCORES
+            ),
         )
     return out
+
+
+def _tested_rate_changes(policy_ids: list[str], scores: Any) -> tuple[float, ...]:
+    rates = set()
+    for policy_id in policy_ids:
+        rate = getattr(scores.get(policy_id), "rate_change", None)
+        if rate:
+            rates.add(float(rate))
+    return tuple(sorted(rates))
 
 
 def reset_confidence_cache() -> None:
@@ -256,17 +275,81 @@ def band_for_policy_class(policy_class: str | None) -> EmpiricalBand | None:
 def band_for_policy_type(policy_type: str | None) -> EmpiricalBand | None:
     """The band implied by a raw ``policy_type`` string, or ``None``.
 
-    For the bill tracker, which has an extractor's type label and no policy
-    object. Returns ``None`` for every type with no unambiguous Tier 1 class —
-    which is most of them, and is the honest answer for a demo-grade extraction.
+    A lookup by type label alone, with no policy object and so no check of the
+    reform's size or sign. **Not for the bill tracker**: a band there would put
+    the scoring engine's error on a number whose main uncertainty is the
+    automated reading of the bill, which no row measures
+    (:func:`band_for_bill_reading`).
     """
     if not policy_type:
         return None
     return band_for_policy_class(POLICY_TYPE_TO_TIER1_CLASS.get(policy_type))
 
 
+def band_for_bill_reading(policy_type: str | None) -> None:
+    """A bill-tracker reading carries no band, whatever its provision type.
+
+    The class bands measure the scoring engine on reforms a person specified.
+    A tracker figure is the engine applied to a language model's reading of
+    bill text, and the reading is the larger and unmeasured source of error:
+    on the night of the 23 Nov 2026 review it put a clergy housing bill at
+    -$14.2 trillion. Returning ``None`` here, rather than deleting the call,
+    keeps the decision in one named place.
+    """
+    return None
+
+
+def _points(rate: float) -> str:
+    return f"{abs(rate) * 100:g}"
+
+
+def outside_tested_range_reason(policy: Any) -> str | None:
+    """Why a policy's class band does not apply to it, or ``None`` if it does.
+
+    A class band is the error on that class's pre-registered rows, and those
+    rows are small rate rises: the four corporate rows are each +1 point. A
+    reform of the other sign, or larger than the largest row, is outside what
+    the rows test. The corporate preset at 15% misses its published score by
+    far more than the four +1-point rows miss theirs, which is the case this
+    rule exists for (outside review, 23 Nov 2026).
+
+    Only a policy carrying a plain non-zero ``rate_change`` is checked, against
+    the rows of its own class that do too. No threshold is chosen here: the
+    range is the rows' own.
+    """
+    band = band_for_policy_class(classify_policy_object(policy))
+    if band is None or not band.tested_rate_changes:
+        return None
+    rate = getattr(policy, "rate_change", None)
+    if not isinstance(rate, (int, float)) or isinstance(rate, bool) or not rate:
+        return None
+    same_sign = [t for t in band.tested_rate_changes if (t > 0) == (rate > 0)]
+    rows = f"the {band.n} pre-registered {band.class_label} rows"
+    if not same_sign:
+        direction = "cut" if rate < 0 else "increase"
+        tested = "increases" if rate < 0 else "cuts"
+        return (
+            f"{rows} are all rate {tested}; no row tests a rate {direction}, so "
+            "the class's error does not carry over to this one"
+        )
+    limit = max(abs(t) for t in same_sign)
+    if abs(rate) > limit + 1e-9:
+        return (
+            f"{rows} test changes of up to {_points(limit)} points; this one is "
+            f"{_points(rate)} points, outside the range their error describes"
+        )
+    return None
+
+
 def band_for_policy(policy: Any) -> EmpiricalBand | None:
-    """The band for a live policy object, or ``None`` when its class has no row."""
+    """The band for a live policy object, or ``None``.
+
+    ``None`` when the policy's class has no pre-registered row, and also when
+    the class has rows but this reform is outside the range they test
+    (:func:`outside_tested_range_reason`).
+    """
+    if outside_tested_range_reason(policy) is not None:
+        return None
     return band_for_policy_class(classify_policy_object(policy))
 
 
@@ -288,6 +371,7 @@ def format_band_caption(
     *,
     point_estimate: float | None = None,
     reason: str = "",
+    outside_range: bool = False,
 ) -> str:
     """One or two sentences: what the band is, and what it is not.
 
@@ -298,6 +382,13 @@ def format_band_caption(
         base = "No out-of-sample band"
         if reason:
             base += f": {reason}"
+        if outside_range:
+            return (
+                base
+                + ". The 44 pre-registered Tier 1 rows are the only tier that "
+                "measures this model's accuracy, and none of them scores a "
+                "reform of this size and direction."
+            )
         return (
             base
             + ". The 44 pre-registered Tier 1 rows are the only tier that "
@@ -686,12 +777,21 @@ def get_credibility_for_result(
         return None
 
     band = band_for_policy(policy)
-    reason = "" if band is not None else no_tier1_class_reason(policy)
+    reason = ""
+    if band is None:
+        reason = outside_tested_range_reason(policy) or no_tier1_class_reason(policy)
+    outside_range = band is None and classify_policy_object(policy) is not None
     category = category_for_result(policy_name=policy_name, policy=policy)
     own = own_row_for(policy_name)
 
     limitations = list(_ALL_RESULTS_LIMITATIONS)
-    if band is None:
+    if outside_range:
+        limitations.append(
+            "The pre-registered out-of-sample rows of this class test smaller "
+            "changes or changes of the other sign, so this model's accuracy on "
+            "a reform of this size has not been measured."
+        )
+    elif band is None:
         limitations.append(
             "No pre-registered out-of-sample row scores a policy of this class, "
             "so this model's accuracy on one has not been measured."
@@ -739,7 +839,12 @@ def get_credibility_for_result(
         own_row_window=None if own is None else own.window,
         holdout_status=_category_holdout_status(category),
         limitations=limitations,
-        caption=format_band_caption(band, point_estimate=point_estimate, reason=reason),
+        caption=format_band_caption(
+            band,
+            point_estimate=point_estimate,
+            reason=reason,
+            outside_range=outside_range,
+        ),
     )
 
 
@@ -757,6 +862,7 @@ __all__ = [
     "EmpiricalBand",
     "OwnRow",
     "ResultCredibility",
+    "band_for_bill_reading",
     "band_for_policy",
     "band_for_policy_class",
     "band_for_policy_type",
@@ -764,6 +870,7 @@ __all__ = [
     "credibility_to_dict",
     "format_band_caption",
     "get_credibility_for_result",
+    "outside_tested_range_reason",
     "own_row_for",
     "reset_confidence_cache",
     "tier1_class_bands",
