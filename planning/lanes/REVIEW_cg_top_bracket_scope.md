@@ -120,6 +120,13 @@ with `cold_holdout.py --json`, `run_loo.py --donor-matrix --json`,
 
 None of the falsification conditions fired.
 
+**Not predicted, and recorded.** `tests/test_preregistration.py::test_a_named_window_is_the_decade_the_case_is_actually_scored_on`
+asserted that the Treasury row scores nearer its target on its own FY2022
+decade than on the default later one. With this fix the FY2022 decade reads
+-$291.0B (31.0 off) and the later decade -$346.1B (24.1 off), so that half of
+the test was an accuracy claim this lane ended. The half that tests the window
+itself (the source's decade scores a smaller magnitude) still holds and stays.
+
 Surfaces: `current_evidence.json` is regenerated. The live headline sentences in
 README, CLAUDE.md, docs/VALIDATION.md and docs/METHODOLOGY.md, CLAUDE.md's
 class table and error-mass line are updated. The CI floor is re-derived by the
