@@ -631,6 +631,41 @@ class TestScorePackage:
         result = scorer.score_package(package, dynamic=True)
         assert result.dynamic_effects is not None
 
+    def test_package_dynamic_carries_every_path_and_the_interaction_factor(
+        self, scorer, income_tax_increase, spending_policy
+    ):
+        """Every dynamic path is the components' sum, scaled by the factor.
+
+        The labour, capital, investment and interest-rate paths used to come
+        back as zeros, and the feedback ignored ``interaction_factor`` while
+        the conventional total applied it (outside review, 23 Nov 2026).
+        """
+        policies = [income_tax_increase, spending_policy]
+        parts = [scorer.score_policy(policy, dynamic=True) for policy in policies]
+        fields = (
+            "gdp_level_change",
+            "gdp_percent_change",
+            "employment_change",
+            "hours_worked_change",
+            "labor_force_change",
+            "capital_stock_change",
+            "investment_change",
+            "interest_rate_change",
+            "revenue_feedback",
+        )
+        for factor in (1.0, 0.5):
+            package = PolicyPackage(
+                name="Dynamic Package",
+                description="",
+                policies=policies,
+                interaction_factor=factor,
+            )
+            effects = scorer.score_package(package, dynamic=True).dynamic_effects
+            for name in fields:
+                expected = factor * sum(getattr(r.dynamic_effects, name) for r in parts)
+                np.testing.assert_allclose(getattr(effects, name), expected, err_msg=name)
+        assert np.any(parts[0].dynamic_effects.interest_rate_change != 0)
+
 
 # =============================================================================
 # BEHAVIORAL OFFSET
