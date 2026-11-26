@@ -6,8 +6,32 @@
   "within_20pct": 64,
   "direction_match": 99,
   "poor": 35,
-  "mean_abs_percent_difference": 27.784743407678587,
-  "median_abs_percent_difference": 11.365118239348519,
+  "by_tier": {
+    "out_of_sample": {
+      "n": 44,
+      "mean_abs_percent_difference": 10.580843924070702,
+      "median_abs_percent_difference": 8.2930152103744,
+      "within_15pct": 34
+    },
+    "fitted": {
+      "n": 14,
+      "mean_abs_percent_difference": 1.4406827762329095,
+      "median_abs_percent_difference": 0.024200631872286927,
+      "within_15pct": 14
+    },
+    "reconstruction": {
+      "n": 39,
+      "mean_abs_percent_difference": 37.70579477675205,
+      "median_abs_percent_difference": 28.397925218701808,
+      "within_15pct": 12
+    },
+    "retired": {
+      "n": 2,
+      "mean_abs_percent_difference": 397.17390935387994,
+      "median_abs_percent_difference": 397.17390935387994,
+      "within_15pct": 0
+    }
+  },
   "calibrated_entries": 55,
   "generic_entries": 44,
   "holdout_entries": 10,
@@ -89,7 +113,7 @@
     },
     "AMT": {
       "n": 3,
-      "mean_abs_percent_difference": 22.394798611678407,
+      "mean_abs_percent_difference": 22.322750395785363,
       "within_15pct": 2,
       "ratings": {
         "Poor": 1,
@@ -98,7 +122,7 @@
     },
     "PTC": {
       "n": 2,
-      "mean_abs_percent_difference": 14.028779537132358,
+      "mean_abs_percent_difference": 14.092306444612731,
       "within_15pct": 1,
       "ratings": {
         "Excellent": 1,
@@ -831,10 +855,10 @@
       "benchmark_kind": "Published benchmark",
       "benchmark_date": "2024-11",
       "benchmark_url": "https://www.congress.gov/crs_external_products/R/HTML/R48286.web.html",
-      "model_10yr_billions": 450.88142185442916,
-      "difference_billions": -906.2185781455707,
-      "percent_difference": -66.77610921417514,
-      "abs_percent_difference": 66.77610921417514,
+      "model_10yr_billions": 450.5304569407997,
+      "difference_billions": -906.5695430592002,
+      "percent_difference": -66.80197060343382,
+      "abs_percent_difference": 66.80197060343382,
       "rating": "Poor",
       "direction_match": true,
       "known_limitations": [
@@ -871,10 +895,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2024",
       "benchmark_url": null,
-      "model_10yr_billions": 450.88142185442916,
-      "difference_billions": 0.8814218544291634,
-      "percent_difference": 0.19587152320648077,
-      "abs_percent_difference": 0.19587152320648077,
+      "model_10yr_billions": 450.5304569407997,
+      "difference_billions": 0.5304569407996951,
+      "percent_difference": 0.11787932017771002,
+      "abs_percent_difference": 0.11787932017771002,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [],
@@ -907,10 +931,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2022-08",
       "benchmark_url": "https://www.jct.gov/getattachment/efcca154-9fc1-4e72-83c0-d78b9e7372eb/x-18-22.pdf",
-      "model_10yr_billions": 219.53268678516207,
-      "difference_billions": -0.46731321483792954,
-      "percent_difference": -0.21241509765360433,
-      "abs_percent_difference": 0.21241509765360433,
+      "model_10yr_billions": 220.10648278023803,
+      "difference_billions": 0.10648278023802504,
+      "percent_difference": 0.04840126374455683,
+      "abs_percent_difference": 0.04840126374455683,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [],
@@ -943,10 +967,10 @@
       "benchmark_kind": "Official budget score",
       "benchmark_date": "2025-09",
       "benchmark_url": "https://www.cbo.gov/system/files/2025-09/61734-Health.pdf",
-      "model_10yr_billions": 365.7415788978747,
-      "difference_billions": 15.741578897874717,
-      "percent_difference": 4.497593970821348,
-      "abs_percent_difference": 4.497593970821348,
+      "model_10yr_billions": 366.18626725023734,
+      "difference_billions": 16.186267250237336,
+      "percent_difference": 4.624647785782096,
+      "abs_percent_difference": 4.624647785782096,
       "rating": "Excellent",
       "direction_match": true,
       "known_limitations": [
@@ -4142,7 +4166,7 @@
       "details": {
         "reason": "documented_or_generic_poor",
         "direction_match": true,
-        "abs_percent_difference": 66.77610921417514,
+        "abs_percent_difference": 66.80197060343382,
         "known_limitations": [
           "Poor against the corrected target by construction, and the gap is the point of correcting it: the fitted annual scores $450.5B against a published $1,357.1B (-66.8%). Retuning the constant to close that is forbidden — it would re-fit the module to the number it is being tested on.",
           "The module's structural (derived) path scores $855.3B, -37.0% against the same row, so the unfitted machinery is about 1.8x closer to the document than the fitted constant. See planning/lanes/PROVENANCE_amt_insulin.md.",

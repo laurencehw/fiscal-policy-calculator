@@ -48,6 +48,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from fiscal_model.validation.current_evidence import reform_design  # noqa: E402
 from fiscal_model.validation.policy_classes import (  # noqa: E402, F401
     POLICY_CLASS_LABELS,
     UNCLASSIFIED_CLASS,  # re-exported: tests/test_cold_holdout.py imports it here
@@ -208,6 +209,41 @@ def build_report() -> dict:
             }
         return out
 
+    def _designs(entries) -> dict:
+        """Tier 1 with one weight per reform design.
+
+        CBO prices the same option in several *Options* editions and at one and
+        two points, and those rows miss by about the same share, so the 44 rows
+        are fewer independent tests than they look. Each design's error is the
+        mean of its rows; the tier figure is the mean over designs. Reported
+        beside the row-weighted summary, never instead of it.
+        """
+        buckets: dict[str, list[float]] = {}
+        for entry in entries:
+            buckets.setdefault(reform_design(entry.policy_id), []).append(
+                round(entry.abs_percent_difference, 1)
+            )
+        per_design = {
+            design: sum(errs) / len(errs) for design, errs in buckets.items()
+        }
+        errs = sorted(per_design.values())
+        if not errs:
+            return {"n": 0, "mean_abs_error": 0.0, "median_abs_error": 0.0,
+                    "within_15pct": 0, "within_25pct": 0, "designs": {}}
+        mid = len(errs) // 2
+        median = errs[mid] if len(errs) % 2 else (errs[mid - 1] + errs[mid]) / 2
+        return {
+            "n": len(errs),
+            "mean_abs_error": round(sum(errs) / len(errs), 1),
+            "median_abs_error": round(median, 1),
+            "within_15pct": sum(1 for e in errs if e <= 15.0),
+            "within_25pct": sum(1 for e in errs if e <= 25.0),
+            "designs": {
+                design: {"rows": len(buckets[design]), "mean_abs_error": round(err, 1)}
+                for design, err in sorted(per_design.items())
+            },
+        }
+
     # The corporate class is calibrated to two houses outside the scorecard
     # (``planning/lanes/BET2_corporate_credit_factor.md``): Tax Foundation and
     # PWBM set the marginal credit factor, the four JCT rows are held out. That
@@ -240,6 +276,7 @@ def build_report() -> dict:
             "summary_without_corporate_credit_factor": _agg(uncal_without),
             "corporate_credit_factor": round(factor, 4),
             "classes": _classes(uncal),
+            "by_design": _designs(uncal),
             "entries": [_entry_dict(e) for e in sorted(uncal, key=lambda x: x.abs_percent_difference)],
         },
         "calibrated_reference": {
@@ -355,6 +392,15 @@ def _print_human(report: dict) -> None:
             f"transfer test, not an independent one. Without that factor:\n"
             f"  mean abs error {w['mean_abs_error']}%, {w['within_15pct']}/{w['n']} "
             f"within 15%, {w['within_25pct']}/{w['n']} within 25%."
+        )
+    d = oos.get("by_design")
+    if d and d["n"]:
+        print(
+            f"  One weight per reform design ({d['n']} designs, since CBO reprices "
+            f"the same option across\n  editions and at 1 and 2 points): mean abs "
+            f"error {d['mean_abs_error']}%, median {d['median_abs_error']}%,\n"
+            f"  {d['within_15pct']}/{d['n']} within 15%, "
+            f"{d['within_25pct']}/{d['n']} within 25%."
         )
     print()
     print(f"  {'Policy':<34}{'Official':>10}{'Model':>10}{'Err':>7}  Source")
@@ -518,6 +564,14 @@ def main(argv: list[str] | None = None) -> int:
         "25%% of their official target (CI guardrail).",
     )
     parser.add_argument(
+        "--max-design-mean-error",
+        type=float,
+        default=None,
+        help="Exit non-zero if the out-of-sample mean abs error with one weight "
+        "per reform design exceeds this percent (CI guardrail). The row-weighted "
+        "mean counts an option once per Options edition that prices it.",
+    )
+    parser.add_argument(
         "--max-class-mean-error",
         nargs="+",
         metavar="CLASS=PERCENT",
@@ -562,6 +616,17 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"\nFAIL: only {within_25}/{summary['n']} out-of-sample cases are within "
                 f"25% of their official target; floor is {args.min_within_25pct}",
+                file=sys.stderr,
+            )
+            failed = True
+
+    if args.max_design_mean_error is not None:
+        by_design = report["out_of_sample"]["by_design"]
+        if by_design["mean_abs_error"] > args.max_design_mean_error:
+            print(
+                f"\nFAIL: out-of-sample mean abs error over {by_design['n']} reform "
+                f"designs is {by_design['mean_abs_error']}%, above threshold "
+                f"{args.max_design_mean_error}%",
                 file=sys.stderr,
             )
             failed = True
