@@ -70,4 +70,25 @@ Only `score_policy(dynamic=True)` can move. Nothing a user sees moves.
 
 ## Outturn
 
-(appended after the code commit)
+Run 2026-11-26, before and after the edit on the same tree, with
+`score_policy(dynamic=True)` on five probe policies, `cold_holdout.py --json`,
+and `POST /score/preset` with `dynamic: true` for all 53 presets.
+
+| Prediction | Outturn |
+|---|---|
+| A corporate rate rise lowers feedback; a cut raises it | +1pt: feedback -$19.7B -> -$47.9B; +7pt: -$130.0B -> -$327.4B; -6pt: +$126.4B -> +$295.5B |
+| +1pt corporate dynamic total moves by $5-40B | -$125.2B -> -$97.0B, a move of $28.2B |
+| Transfer GDP path scales by exactly 0.92 | 0.920 in all ten years |
+| Income-tax dynamic path identical | identical (-$139.4B, feedback -$82.8B) |
+| `cold_holdout.py --json` byte-identical | identical |
+| Every preset's API dynamic figures identical | identical, 53 of 53 |
+
+None of the falsification conditions fired.
+
+The +7pt and -6pt corporate moves are large ($197B and $169B on the dynamic
+total). That is this model's capital elasticity (0.25) and its
+`-rate_change × 0.5` mapping from statutory rate to after-tax return, neither
+of which is sourced (R9's finding 2). No surface reports `EconomicModel`, so
+nothing a user sees moves. The site's dynamic view carries its own sourced
+corporate channel since lane SUPPLY.
+

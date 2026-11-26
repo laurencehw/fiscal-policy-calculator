@@ -402,6 +402,16 @@ class EconomicModel:
                                         self.params['tax_multiplier'] *
                                         decay * phase)
 
+        # Capital effects (long-run). ``capital`` is the fractional change in the
+        # capital stock; it reaches output through the capital share below
+        # (lane REVIEW-10: until 2026-11-26 it was reported and never used).
+        capital = np.zeros(n_years)
+        if policy.policy_type in [PolicyType.CORPORATE_TAX, PolicyType.CAPITAL_GAINS_TAX]:
+            # Corporate/capital gains tax affects investment
+            after_tax_return_change = -policy.rate_change * 0.5
+            for i in range(n_years):
+                capital[i] = after_tax_return_change * self.params['capital_elasticity'] * (i + 1) / 5
+
         # Total GDP effect
         gdp_level = np.zeros(n_years)
         gdp_pct = np.zeros(n_years)
@@ -412,7 +422,12 @@ class EconomicModel:
             weight_demand = max(0.2, 1 - 0.1 * i)  # Decay demand importance
             weight_supply = 1 - weight_demand
 
-            supply_gdp = labor_effect[i] * self.baseline.nominal_gdp[i]
+            # Labour and capital, each to first order: dln Y = (1 - alpha) dln L
+            # is already folded into ``labor_effect``; dln Y = alpha dln K adds
+            # the capital term with the repository's capital share.
+            supply_gdp = (
+                labor_effect[i] + self.params['capital_share'] * capital[i]
+            ) * self.baseline.nominal_gdp[i]
             demand_gdp = demand_effect[i]
 
             gdp_level[i] = weight_demand * demand_gdp + weight_supply * supply_gdp
@@ -421,14 +436,6 @@ class EconomicModel:
         # Employment effects
         employment = gdp_pct / 100 * JOBS_PER_GDP_PERCENT  # Rough: 1% GDP = 1.5M jobs
         hours = labor_effect * 100  # Convert to percent
-
-        # Capital effects (long-run)
-        capital = np.zeros(n_years)
-        if policy.policy_type in [PolicyType.CORPORATE_TAX, PolicyType.CAPITAL_GAINS_TAX]:
-            # Corporate/capital gains tax affects investment
-            after_tax_return_change = -policy.rate_change * 0.5
-            for i in range(n_years):
-                capital[i] = after_tax_return_change * self.params['capital_elasticity'] * (i + 1) / 5
 
         investment = capital * self.baseline.nominal_gdp * 0.18  # Investment ~18% of GDP
 
@@ -513,8 +520,10 @@ class EconomicModel:
         """Calculate effects of transfer policy changes."""
         n_years = len(self.years)
 
-        # Transfers have lower multipliers than direct spending
-        transfer_multiplier = 0.8
+        # Transfers have lower multipliers than direct spending. The
+        # condition-adjusted value (base 0.8 times the slack, ZLB and debt
+        # adjustments), not the base: lane REVIEW-10.
+        transfer_multiplier = self.params['transfer_multiplier']
 
         gdp_level = np.zeros(n_years)
         for i in range(n_years):

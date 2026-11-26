@@ -316,7 +316,9 @@ class FiscalPolicyScorer:
         deficit_after_behavioral = static_deficit + total_behavioral
 
         if dynamic:
-            combined_dynamic = self._aggregate_dynamic_effects(results)
+            combined_dynamic = self._aggregate_dynamic_effects(
+                results, interaction_factor=package.interaction_factor
+            )
             final_deficit = deficit_after_behavioral - combined_dynamic.revenue_feedback
         else:
             combined_dynamic = None
@@ -672,32 +674,47 @@ class FiscalPolicyScorer:
 
         return cost
 
-    def _aggregate_dynamic_effects(self, results: list[ScoringResult]) -> DynamicEffects:
-        """Aggregate dynamic effects from multiple policies."""
+    def _aggregate_dynamic_effects(
+        self,
+        results: list[ScoringResult],
+        interaction_factor: float = 1.0,
+    ) -> DynamicEffects:
+        """Sum the components' dynamic effects into the package's.
+
+        Every path is summed, and every path is scaled by the package's
+        ``interaction_factor``. The feedback is a response to the conventional
+        effect, which the factor already scales; leaving it unscaled gave a
+        package at a factor of 0.5 half the conventional score with the whole
+        of the feedback. The labour, capital, investment and interest-rate
+        paths used to be returned as zeros whatever the components carried
+        (outside review, 23 Nov 2026). Summing treats the components' effects
+        as additive, which is the same first-order assumption the conventional
+        total makes.
+        """
         n_years = len(self.baseline.years)
-        gdp_level = np.zeros(n_years)
-        gdp_pct = np.zeros(n_years)
-        employment = np.zeros(n_years)
-        revenue_fb = np.zeros(n_years)
+        fields = (
+            "gdp_level_change",
+            "gdp_percent_change",
+            "employment_change",
+            "hours_worked_change",
+            "labor_force_change",
+            "capital_stock_change",
+            "investment_change",
+            "interest_rate_change",
+            "revenue_feedback",
+        )
+        totals = {name: np.zeros(n_years) for name in fields}
 
         for result in results:
-            if result.dynamic_effects:
-                gdp_level += result.dynamic_effects.gdp_level_change
-                gdp_pct += result.dynamic_effects.gdp_percent_change
-                employment += result.dynamic_effects.employment_change
-                revenue_fb += result.dynamic_effects.revenue_feedback
+            effects = result.dynamic_effects
+            if not effects:
+                continue
+            for name in fields:
+                totals[name] += np.asarray(getattr(effects, name), dtype=float)
 
         return DynamicEffects(
             years=self.baseline.years.copy(),
-            gdp_level_change=gdp_level,
-            gdp_percent_change=gdp_pct,
-            employment_change=employment,
-            hours_worked_change=np.zeros(n_years),
-            labor_force_change=np.zeros(n_years),
-            capital_stock_change=np.zeros(n_years),
-            investment_change=np.zeros(n_years),
-            interest_rate_change=np.zeros(n_years),
-            revenue_feedback=revenue_fb,
+            **{name: path * interaction_factor for name, path in totals.items()},
         )
 
     def _package_uncertainty_spread(

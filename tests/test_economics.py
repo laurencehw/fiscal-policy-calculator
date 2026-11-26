@@ -396,3 +396,51 @@ class TestInterestRateEffects:
         model_recession.calculate_effects(spending_policy, budget_effect)
         # Crowding out param is lower at ZLB, so interest rate change is smaller
         assert model_recession.params['crowding_out'] < model_normal.params['crowding_out']
+
+
+# ---------------------------------------------------------------------------
+# Lane REVIEW-10: the capital path reaches output; transfers read their own
+# condition-adjusted multiplier.
+# ---------------------------------------------------------------------------
+
+
+def test_a_corporate_rate_rise_lowers_output_through_the_capital_stock():
+    from fiscal_model import FiscalPolicyScorer, PolicyType
+    from fiscal_model.corporate import CorporateTaxPolicy
+
+    scorer = FiscalPolicyScorer()
+    rise = CorporateTaxPolicy(
+        name="c", description="c", policy_type=PolicyType.CORPORATE_TAX, rate_change=0.01
+    )
+    effects = scorer.score_policy(rise, dynamic=True).dynamic_effects
+    assert np.all(effects.capital_stock_change[1:] < 0)
+    # Output after the first year is below what demand alone gives: the capital
+    # term is the only supply channel a corporate rate has in this model.
+    model = scorer.economic_model
+    capital = effects.capital_stock_change / 100
+    alpha = model.params["capital_share"]
+    assert alpha == pytest.approx(0.35)
+    assert np.all(effects.gdp_level_change[1:] < 0)
+    assert np.any(np.abs(alpha * capital * model.baseline.nominal_gdp) > 0)
+
+
+def test_transfers_use_the_condition_adjusted_multiplier():
+    from fiscal_model import FiscalPolicyScorer, PolicyType
+    from fiscal_model.policies import TransferPolicy
+
+    scorer = FiscalPolicyScorer()
+    policy = TransferPolicy(
+        name="t",
+        description="t",
+        policy_type=PolicyType.SOCIAL_SECURITY,
+        annual_cost_change_billions=50.0,
+    )
+    model = scorer.economic_model
+    effects = scorer.score_policy(policy, dynamic=True).dynamic_effects
+    ratio = model.params["transfer_multiplier"] / model.params["transfer_multiplier_base"]
+    model.params["transfer_multiplier"] = model.params["transfer_multiplier_base"]
+    try:
+        base = scorer.score_policy(policy, dynamic=True).dynamic_effects
+    finally:
+        model.params["transfer_multiplier"] = model.params["transfer_multiplier_base"] * ratio
+    np.testing.assert_allclose(effects.gdp_level_change, base.gdp_level_change * ratio)
