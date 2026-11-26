@@ -20,6 +20,18 @@ from fastapi.testclient import TestClient
 import api as api_module
 
 
+@pytest.fixture(autouse=True)
+def _fresh_rate_limit():
+    """Each test here posts several scores, and the API's per-minute limiter is
+    process-wide: without a reset, this file used up the budget of the API
+    tests that run after it once the capital-gains cases were added."""
+    from fiscal_model.api_security import reset_limiter
+
+    reset_limiter()
+    yield
+    reset_limiter()
+
+
 def _client() -> TestClient:
     return TestClient(api_module.app)
 
