@@ -64,3 +64,21 @@ test("eti round-trips when non-default, validates bounds, and passes to engine",
   assert.deepEqual(valid, { kind: "income", rate: 1, who: 0, duration: 10, dynamic: false, eti: 0 });
 });
 
+test("capital gains is a kind with a threshold and no ETI", () => {
+  const input = { kind: "capital_gains" as const, rate: 2, who: 1_000_000, duration: 10, dynamic: false };
+  assert.equal(toQuery(input), "type=capital_gains&rate=2&who=top1m&duration=10&dynamic=0&run=1");
+  assert.deepEqual(fromQuery(new URLSearchParams(toQuery(input))).input, input);
+  assert.equal(fromQuery(new URLSearchParams("type=capital_gains&eti=0.5")).input.eti, undefined);
+  assert.deepEqual(validate({ kind: "capital_gains", rate: 2, who: 0, duration: 10 }), {
+    kind: "capital_gains",
+    rate: 2,
+    who: 0,
+    duration: 10,
+    dynamic: false,
+  });
+  const body = engineRequest(input);
+  assert.equal(body.policy_type, "capital_gains_tax");
+  assert.equal(body.income_threshold, 1_000_000);
+  assert.equal(body.rate_change, 0.02);
+});
+
