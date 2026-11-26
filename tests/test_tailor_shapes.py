@@ -26,7 +26,7 @@ ADJUST_TS = ROOT / "web" / "lib" / "adjust.ts"
 TAILOR_TS = ROOT / "web" / "lib" / "tailor.ts"
 
 _SHAPE = re.compile(
-    r'"(?P<id>[a-z0-9-]+)":\s*\{\s*kind:\s*"(?P<kind>income|corporate)",\s*'
+    r'"(?P<id>[a-z0-9-]+)":\s*\{\s*kind:\s*"(?P<kind>income|capital_gains|corporate)",\s*'
     r"rate:\s*(?P<rate>-?[\d.]+),\s*who:\s*(?P<who>[\d_]+),\s*"
     r"duration:\s*(?P<duration>\d+),\s*dynamic:\s*(?:true|false),\s*"
     r"tenYear:\s*(?P<ten>-?[\d.]+)\s*\}"
@@ -54,7 +54,11 @@ def _engine_request(shape: dict) -> dict:
         "income_threshold": 0 if corporate else int(shape["who"].replace("_", "")),
         "duration_years": int(shape["duration"]),
         "dynamic": True,
-        "policy_type": "corporate_tax" if corporate else "income_tax",
+        "policy_type": {
+            "income": "income_tax",
+            "capital_gains": "capital_gains_tax",
+            "corporate": "corporate_tax",
+        }[shape["kind"]],
     }
 
 
@@ -66,7 +70,7 @@ def test_the_request_shape_here_is_the_one_tailor_sends():
         'income_threshold: input.kind === "corporate" ? 0 : input.who',
         "duration_years: input.duration",
         "dynamic: true",
-        'policy_type: input.kind === "corporate" ? "corporate_tax" : "income_tax"',
+        'policy_type: { income: "income_tax", capital_gains: "capital_gains_tax", corporate: "corporate_tax" }[input.kind]',
     ):
         assert fragment in text, fragment
 

@@ -84,7 +84,7 @@ PRESET_ID_BY_LABEL: dict[str, str] = {
     "Top Rate to 39.6% (Biden FY2025)": "top-rate-39-6",
     "Progressive Millionaire Tax": "millionaire-surtax-5pp",
     "Middle Class Tax Cut": "middle-class-rate-cut-2pp",
-    "Flat Tax Reform": "across-the-board-rate-cut-5pp",
+    "Across-the-Board Rate Cut (5pp)": "across-the-board-rate-cut-5pp",
     "Warren Ultra-Millionaire Surtax": "ultra-millionaire-surtax-3pp",
     "Top Rate to 45%": "top-rate-45",
     "High-Earner Medicare Surcharge 2pp": "medicare-surcharge-2pp",
@@ -213,6 +213,9 @@ LEGACY_LABEL_ALIASES: dict[str, str] = {
     # first-time reader ask why the whole FY2025 budget moved the deficit by
     # only ~$310B. The preset is one provision of it, the top rate back to 39.6%.
     "Biden 2025 Proposal": "Top Rate to 39.6% (Biden FY2025)",
+    # 2026-11-26, outside review of 23 Nov: a 5-point cut in every bracket keeps
+    # the progressive schedule, so "Flat Tax Reform" misdescribed it.
+    "Flat Tax Reform": "Across-the-Board Rate Cut (5pp)",
     # 2026-11-17, bet 3: the enhanced credits lapsed after 2025, so on the
     # FY2026-2035 window the proposal is a restoration, not an extension.
     "🏥 Extend ACA Enhanced PTCs ($335B)": "🏥 Restore ACA Enhanced PTCs ($350B)",

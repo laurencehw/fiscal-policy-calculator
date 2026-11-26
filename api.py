@@ -63,6 +63,7 @@ from fiscal_model.exceptions import (
 from fiscal_model.health import check_health
 from fiscal_model.policies import (
     DEFAULT_ORDINARY_INCOME_BASE,
+    CapitalGainsPolicy,
     PolicyType,
     SpendingPolicy,
     TaxPolicy,
@@ -376,7 +377,10 @@ class ScorePolicyRequest(BaseModel):
         description=(
             "'income_tax' (individual rate change above ``income_threshold``) "
             "or 'corporate_tax' (a statutory corporate rate change, scored by "
-            "the corporate module; ``income_threshold`` must be 0). "
+            "the corporate module; ``income_threshold`` must be 0), or "
+            "'capital_gains_tax' (a change to the rates on long-term gains and "
+            "qualified dividends above ``income_threshold``, scored by the "
+            "capital-gains module with its own realization response). "
             "'payroll_tax' is rejected: a payroll change is a cap, donut or "
             "program-rate design with no single rate-and-threshold mapping."
         ),
@@ -888,6 +892,7 @@ class ScorecardResponse(BaseModel):
 SUPPORTED_CUSTOM_POLICY_TYPES = {
     PolicyType.INCOME_TAX,
     PolicyType.CORPORATE_TAX,
+    PolicyType.CAPITAL_GAINS_TAX,
 }
 
 #: Known types ``/score`` refuses, with the reason. A payroll change is a wage
@@ -964,6 +969,26 @@ def _build_custom_policy(request: ScorePolicyRequest, policy_type: PolicyType) -
             policy_type=policy_type,
             rate_change=request.rate_change,
             corporate_elasticity=request.elasticity,
+            start_year=APP_DEFAULT_START_YEAR,
+            duration_years=request.duration_years,
+            sunset=sunset,
+        )
+    if policy_type == PolicyType.CAPITAL_GAINS_TAX:
+        # The rate on long-term gains and qualified dividends, built exactly as
+        # the seven pre-registered capital-gains rows are
+        # (validation.core.create_capital_gains_policy_from_score): 0.0 leaves
+        # the baseline rate and the realizations base to the SOI
+        # auto-population at the threshold, and the realization response is
+        # the module's frozen Dowd-McClelland-Muthitacharoen pair. The
+        # ``elasticity`` field is the ETI and does not apply.
+        return CapitalGainsPolicy(
+            name=request.name,
+            description=request.description,
+            policy_type=policy_type,
+            rate_change=request.rate_change,
+            affected_income_threshold=request.income_threshold,
+            baseline_capital_gains_rate=0.0,
+            baseline_realizations_billions=0.0,
             start_year=APP_DEFAULT_START_YEAR,
             duration_years=request.duration_years,
             sunset=sunset,

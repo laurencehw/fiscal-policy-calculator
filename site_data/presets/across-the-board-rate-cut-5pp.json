@@ -1,7 +1,7 @@
 {
   "id": "across-the-board-rate-cut-5pp",
   "conventional": {
-    "policy_name": "Flat Tax Reform",
+    "policy_name": "Across-the-Board Rate Cut (5pp)",
     "policy_description": "Lower all rates by 5pp (illustrative)",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",
@@ -143,7 +143,7 @@
     "error_message": null
   },
   "dynamic": {
-    "policy_name": "Flat Tax Reform",
+    "policy_name": "Across-the-Board Rate Cut (5pp)",
     "policy_description": "Lower all rates by 5pp (illustrative)",
     "baseline_vintage": "February 2026",
     "budget_window": "FY2026-2035",

@@ -296,6 +296,7 @@ export function PackageBuilder({
         onUndo={undo}
         onClear={clear}
         secondTotal={secondTotal}
+        calculatorCovers={Boolean(calc) && calc!.excluded.length === 0}
         interactions={notes}
       />
     </div>

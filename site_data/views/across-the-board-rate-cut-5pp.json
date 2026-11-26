@@ -69,13 +69,13 @@
             "floor": 170000.0,
             "ceiling": null,
             "returns_millions": 18.346013,
-            "avg_tax_change": -15049.89601737858,
-            "pct_of_income": -4.457908590877221,
-            "share_of_total": 0.5346532701595911,
+            "avg_tax_change": -15049.896017378584,
+            "pct_of_income": -4.457908590877222,
+            "share_of_total": 0.5346532701595912,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 99.12087721325014,
             "baseline_etr": 0.20325767188944574,
-            "new_etr": 0.16773962719745014
+            "new_etr": 0.16773962719745011
           }
         ]
       },
@@ -123,7 +123,7 @@
             "share_of_total": 0.032476017197063035,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 93.57829449509777,
-            "baseline_etr": 0.0005939159222174332,
+            "baseline_etr": 0.0005939159222174335,
             "new_etr": -0.02122476123194651
           },
           {
@@ -214,8 +214,8 @@
             "share_of_total": 0.42899671280118007,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 98.90541303064909,
-            "baseline_etr": 0.2190487472497876,
-            "new_etr": 0.18454810328053328
+            "baseline_etr": 0.21904874724978754,
+            "new_etr": 0.18454810328053325
           }
         ]
       },
@@ -315,8 +315,8 @@
             "share_of_total": 0.09150838056889983,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 99.30937135867896,
-            "baseline_etr": 0.07697238877605633,
-            "new_etr": 0.04239300813433487
+            "baseline_etr": 0.07697238877605632,
+            "new_etr": 0.04239300813433486
           },
           {
             "name": "$100K-$200K",
@@ -350,12 +350,12 @@
             "ceiling": 1000000.0,
             "returns_millions": 1.77972,
             "avg_tax_change": -28622.748407785966,
-            "pct_of_income": -5.564644841217902,
-            "share_of_total": 0.09864158364484395,
+            "pct_of_income": -5.564644841217904,
+            "share_of_total": 0.09864158364484397,
             "pct_with_increase": 0.0,
             "pct_with_decrease": 98.6433384785735,
             "baseline_etr": 0.23390735133763504,
-            "new_etr": 0.19127701628489516
+            "new_etr": 0.19127701628489513
           },
           {
             "name": "$1M and over",
@@ -490,18 +490,18 @@
       },
       {
         "model": "TPC-Microsim Pilot",
-        "ten_year_billions": 5413.359897592556,
+        "ten_year_billions": 5413.359897592558,
         "annual_billions": [
-          541.3359897592557,
-          541.3359897592557,
-          541.3359897592557,
-          541.3359897592557,
-          541.3359897592557,
-          541.3359897592557,
-          541.3359897592557,
-          541.3359897592557,
-          541.3359897592557,
-          541.3359897592557
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558,
+          541.3359897592558
         ],
         "methodology": "Single-year CPS-style microsimulation with flat-horizon annualization and quintile distribution output.",
         "confidence": "pilot",

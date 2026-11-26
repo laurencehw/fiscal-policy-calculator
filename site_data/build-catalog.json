@@ -614,8 +614,8 @@
     "label": "📋 Cap Employer Health Exclusion (-$450B)",
     "score": -450.0,
     "area": "Tax expenditures",
-    "source": "JCT",
-    "source_date": "2024",
+    "source": "CBO Budget Options (2008), nearest match",
+    "source_date": "2008-12",
     "exclusive_groups": [],
     "subsumes": [],
     "tags": {
@@ -749,8 +749,8 @@
     "label": "📋 Cap Charitable Deduction (-$200B)",
     "score": -200.0,
     "area": "Tax expenditures",
-    "source": "Treasury",
-    "source_date": "2024",
+    "source": "Obama/Biden proposal",
+    "source_date": "2016-02",
     "exclusive_groups": [],
     "subsumes": [],
     "tags": {

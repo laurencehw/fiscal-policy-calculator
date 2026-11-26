@@ -267,9 +267,17 @@ CBO_SCORE_MAP = {
     # Tax Expenditures
     "📋 Cap Employer Health Exclusion (-$450B)": {
         "official_score": -450.0,
-        "source": "JCT",
-        "source_date": "2024",
-        "notes": "Cap exclusion at 28% rate or ~\\$25K",
+        # Not a 2024 JCT score. No agency has priced a $50,000 cap; the figure
+        # matches JCT's $452.1B for CBO's December 2008 Budget Options Option 9,
+        # a cap of $17,280 a year (family) on FY2009-2018
+        # (target_revisions.EXAMINED_NOT_REVISED["cap_employer_health"]).
+        "source": "CBO Budget Options (2008), nearest match",
+        "source_date": "2008-12",
+        "notes": (
+            "Cap the exclusion at \\$50K. The figure matches CBO's 2008 Option 9, "
+            "a far tighter \\$17,280 family cap on FY2009-2018; no agency has "
+            "scored a \\$50K cap"
+        ),
     },
     "📋 Eliminate Mortgage Deduction (-$368B)": {
         # H9 target revision (eliminate_mortgage.v2), a **range**
@@ -404,9 +412,18 @@ CBO_SCORE_MAP = {
     },
     "📋 Cap Charitable Deduction (-$200B)": {
         "official_score": -200.0,
-        "source": "Treasury",
-        "source_date": "2024",
-        "notes": "Limit charitable deduction to 28% rate",
+        # The FY2017 Green Book's 28% limitation, which reaches all itemized
+        # deductions and five exclusions, not charitable giving alone; no
+        # charitable-only rate cap has an official score
+        # (target_revisions.EXAMINED_NOT_REVISED["cap_charitable"]). Dated to
+        # that document, as the benchmark record and the Methods page are.
+        "source": "Obama/Biden proposal",
+        "source_date": "2016-02",
+        "notes": (
+            "Limit charitable deduction to 28% rate. The 28% limitation it "
+            "traces to covers all itemized deductions; no charitable-only "
+            "official score exists"
+        ),
     },
     "📋 Eliminate Step-Up Basis (-$500B)": {
         "official_score": -500.0,
@@ -1009,7 +1026,7 @@ PRESET_POLICIES = {
         "description": "2pp cut for households earning \\$50K+",
         "is_tcja": False,
     },
-    "Flat Tax Reform": {
+    "Across-the-Board Rate Cut (5pp)": {
         "rate_change": -5.0,
         "threshold": 0,
         "description": "Lower all rates by 5pp (illustrative)",
