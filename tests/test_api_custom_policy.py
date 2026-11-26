@@ -20,6 +20,18 @@ from fastapi.testclient import TestClient
 import api as api_module
 
 
+@pytest.fixture(autouse=True)
+def _fresh_rate_limit():
+    """Each test here posts several scores, and the API's per-minute limiter is
+    process-wide: without a reset, this file used up the budget of the API
+    tests that run after it once the capital-gains cases were added."""
+    from fiscal_model.api_security import reset_limiter
+
+    reset_limiter()
+    yield
+    reset_limiter()
+
+
 def _client() -> TestClient:
     return TestClient(api_module.app)
 
@@ -94,6 +106,44 @@ def test_payroll_tax_is_rejected_not_scored_on_the_wrong_base():
     assert "not supported" in detail
 
 
+def test_capital_gains_tax_is_scored_as_the_benchmark_rows_are():
+    """Built as ``create_capital_gains_policy_from_score`` builds the seven
+    pre-registered capital-gains rows, so +2 points for everyone is CBO
+    Option 47's design and carries that class's band."""
+    from fiscal_model.baseline import APP_DEFAULT_START_YEAR
+    from fiscal_model.policies import CapitalGainsPolicy, PolicyType
+    from fiscal_model.scoring import FiscalPolicyScorer
+
+    response = _score(policy_type="capital_gains_tax", rate_change=0.02)
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    scorer = FiscalPolicyScorer(start_year=APP_DEFAULT_START_YEAR, use_real_data=True)
+    direct = scorer.score_policy(
+        CapitalGainsPolicy(
+            name="direct",
+            description="direct",
+            policy_type=PolicyType.CAPITAL_GAINS_TAX,
+            rate_change=0.02,
+            affected_income_threshold=0,
+            baseline_capital_gains_rate=0.0,
+            baseline_realizations_billions=0.0,
+            start_year=APP_DEFAULT_START_YEAR,
+        ),
+        dynamic=False,
+    )
+    assert payload["ten_year_deficit_impact"] == pytest.approx(
+        float(direct.final_deficit_effect.sum())
+    )
+    assert payload["ten_year_deficit_impact"] < 0
+    assert payload["credibility"]["policy_class"] == "capital_gains"
+
+
+def test_a_capital_gains_cut_below_zero_says_which_rate():
+    response = _score(policy_type="capital_gains_tax", rate_change=-0.05)
+    assert response.status_code == 400
+    assert "cannot go below zero" in response.json()["detail"]
+
+
 # ---------------------------------------------------------------------------
 # 2. duration_years changes the score
 # ---------------------------------------------------------------------------
@@ -104,8 +154,9 @@ def test_payroll_tax_is_rejected_not_scored_on_the_wrong_base():
     [
         {"policy_type": "income_tax", "income_threshold": 400000},
         {"policy_type": "corporate_tax", "income_threshold": 0},
+        {"policy_type": "capital_gains_tax", "income_threshold": 0},
     ],
-    ids=["income_tax", "corporate_tax"],
+    ids=["income_tax", "corporate_tax", "capital_gains_tax"],
 )
 def test_duration_years_changes_the_total_monotonically(extra):
     totals = {}
@@ -128,7 +179,13 @@ def test_duration_years_changes_the_total_monotonically(extra):
 
     # A revenue raiser's deficit effect gets more negative the longer it runs.
     assert totals[1] > totals[5] > totals[10]
-    assert totals[1] < 0
+    if extra["policy_type"] == "capital_gains_tax":
+        # A one-year rise in the gains rate is a deficit increase: the
+        # transitory elasticity is a retiming response, so holders defer sales
+        # past a rate they know is temporary. That is the module working.
+        assert totals[10] < 0
+    else:
+        assert totals[1] < 0
 
 
 def test_a_duration_at_or_beyond_the_window_is_the_default_score():

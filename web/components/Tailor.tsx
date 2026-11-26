@@ -153,7 +153,8 @@ export function Tailor({
     setInput((cur) => {
       const next = { ...cur, ...patch };
       if (next.kind === "corporate") next.who = 0;
-      else if (patch.kind === "income" && cur.kind === "corporate") next.who = DEFAULT_INPUT.who;
+      else if (patch.kind && patch.kind !== "corporate" && cur.kind === "corporate") next.who = DEFAULT_INPUT.who;
+      if (next.kind !== "income") delete next.eti;
       return next;
     });
 
@@ -185,6 +186,15 @@ export function Tailor({
                 Individual income tax
               </label>
               <label>
+                <input
+                  type="radio"
+                  name="kind"
+                  checked={input.kind === "capital_gains"}
+                  onChange={() => set({ kind: "capital_gains" })}
+                />{" "}
+                Capital gains and dividends
+              </label>
+              <label>
                 <input type="radio" name="kind" checked={input.kind === "corporate"} onChange={() => set({ kind: "corporate" })} />{" "}
                 Corporate income tax
               </label>
@@ -210,7 +220,7 @@ export function Tailor({
                 ))}
               </div>
             </div>
-            {input.kind === "income" ? (
+            {input.kind !== "corporate" ? (
               <label className="field">
                 <span>Who pays it</span>
                 <select value={input.who} onChange={(e) => set({ who: Number(e.target.value) })}>
