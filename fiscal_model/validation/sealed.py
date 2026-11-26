@@ -141,6 +141,8 @@ def _tf_row(
         read_from=url,
         read_on="2026-11-26",
         entered_date=LOCK_DATE,
+        # Switched on in the commit after 68a6bfb, which entered the rows.
+        scoring_enabled=True,
         limitations=(
             "Tax Foundation's window is calendar 2027-2036; the model scores "
             "fiscal 2027-2036.",
