@@ -1922,8 +1922,11 @@ BENCHMARK_SOURCES: tuple[BenchmarkSource, ...] = (
         provenance=SECONDHAND,
         document="",
         publisher="Congressional Budget Office",
-        date="2024",
-        window="FY2025-2034",
+        # The figure's most likely origin, per the search below: Budget
+        # Options Volume 1 (December 2008), Option 9. It was dated 2024 until
+        # the outside review of 23 Nov 2026 pointed out the mismatch.
+        date="2008-12",
+        window="FY2009-2018",
         searched=(
             "No CBO, JCT or Treasury score of a **$50,000 dollar cap** on the "
             "employer health exclusion exists, because no published option is "

@@ -1,9 +1,13 @@
 // Tailor's inputs, shared by the form, its ?query, and the /api/score route.
 // The link format is the Streamlit app's /tailor contract
 // (fiscal_model/ui/share_links.py), limited to what the engine's /score scores:
-// an individual rate change above a threshold, or a corporate rate change.
+// an individual rate change above a threshold, a change to the rates on capital
+// gains and qualified dividends above a threshold, or a corporate rate change.
 
-export type TailorKind = "income" | "corporate";
+export type TailorKind = "income" | "capital_gains" | "corporate";
+
+const KINDS: TailorKind[] = ["income", "capital_gains", "corporate"];
+const isKind = (v: unknown): v is TailorKind => typeof v === "string" && (KINDS as string[]).includes(v);
 
 export type TailorInput = {
   kind: TailorKind;
@@ -65,7 +69,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 export function fromQuery(params: URLSearchParams): { input: TailorInput; run: boolean } {
   const input: TailorInput = { ...DEFAULT_INPUT };
   const type = params.get("type")?.trim().toLowerCase();
-  if (type === "income" || type === "corporate") input.kind = type;
+  if (isKind(type)) input.kind = type;
   const rate = number(params.get("rate"));
   if (rate !== null) input.rate = clamp(rate, RATE_MIN, RATE_MAX);
   const who = parseWho(params.get("who"));
@@ -79,10 +83,8 @@ export function fromQuery(params: URLSearchParams): { input: TailorInput; run: b
     const clamped = Math.round(clamp(eti, ETI_MIN, ETI_MAX) * 100) / 100;
     if (Math.abs(clamped - DEFAULT_ETI) > 1e-6) input.eti = clamped;
   }
-  if (input.kind === "corporate") {
-    input.who = 0;
-    delete input.eti;
-  }
+  if (input.kind === "corporate") input.who = 0;
+  if (input.kind !== "income") delete input.eti;
   const run = ["1", "true", "yes", "on"].includes((params.get("run") ?? "").trim().toLowerCase());
   return { input, run };
 }
@@ -90,9 +92,9 @@ export function fromQuery(params: URLSearchParams): { input: TailorInput; run: b
 /** The link for an input, in the app's spelling, so it opens the same run in either. */
 export function toQuery(input: TailorInput): string {
   const parts = [`type=${input.kind}`, `rate=${input.rate}`];
-  if (input.kind === "income") {
+  if (input.kind !== "corporate") {
     parts.push(`who=${WHO_CHOICES.find((c) => c.dollars === input.who)?.token ?? String(input.who)}`);
-    if (input.eti !== undefined && Math.abs(input.eti - DEFAULT_ETI) > 1e-6) {
+    if (input.kind === "income" && input.eti !== undefined && Math.abs(input.eti - DEFAULT_ETI) > 1e-6) {
       parts.push(`eti=${input.eti}`);
     }
   }
@@ -104,7 +106,7 @@ export function toQuery(input: TailorInput): string {
 export function validate(body: unknown): TailorInput | string {
   if (!body || typeof body !== "object") return "Expected a JSON object.";
   const b = body as Record<string, unknown>;
-  if (b.kind !== "income" && b.kind !== "corporate") return "kind must be income or corporate.";
+  if (!isKind(b.kind)) return "kind must be income, capital_gains or corporate.";
   const nums = { rate: b.rate, who: b.who, duration: b.duration };
   for (const [key, value] of Object.entries(nums)) {
     if (typeof value !== "number" || !Number.isFinite(value)) return `${key} must be a number.`;
@@ -117,7 +119,8 @@ export function validate(body: unknown): TailorInput | string {
   if (who < 0 || who > WHO_MAX) return "who must be between 0 and 10,000,000.";
   if (b.kind === "corporate" && who !== 0) return "A corporate rate change has no income threshold.";
   if (!Number.isInteger(duration) || duration < 1 || duration > 10) return "duration must be 1 to 10 years.";
-  const out: TailorInput = { kind: b.kind, rate, who, duration, dynamic: b.dynamic === true };
+  const kind: TailorKind = b.kind;
+  const out: TailorInput = { kind, rate, who, duration, dynamic: b.dynamic === true };
   if (b.eti !== undefined) {
     if (typeof b.eti !== "number" || !Number.isFinite(b.eti)) return "eti must be a number.";
     if (b.eti < ETI_MIN || b.eti > ETI_MAX) return `eti must be between ${ETI_MIN} and ${ETI_MAX}.`;
@@ -135,6 +138,9 @@ export function describe(input: TailorInput): string {
   if (input.kind === "corporate") return `Corporate rate ${pts}`;
   const who = WHO_CHOICES.find((c) => c.dollars === input.who);
   const above = input.who === 0 ? "on all taxable income" : `above $${input.who.toLocaleString("en-US")}`;
+  if (input.kind === "capital_gains") {
+    return `Capital gains and dividends rate ${pts} ${input.who === 0 ? "for everyone" : `above $${input.who.toLocaleString("en-US")}`}`;
+  }
   return `Income tax ${pts} ${who && input.who === 0 ? "for everyone" : above}`;
 }
 
@@ -148,6 +154,6 @@ export function engineRequest(input: TailorInput): Record<string, unknown> {
     elasticity: input.kind === "income" ? (input.eti ?? DEFAULT_ETI) : DEFAULT_ETI,
     duration_years: input.duration,
     dynamic: true,
-    policy_type: input.kind === "corporate" ? "corporate_tax" : "income_tax",
+    policy_type: { income: "income_tax", capital_gains: "capital_gains_tax", corporate: "corporate_tax" }[input.kind],
   };
 }

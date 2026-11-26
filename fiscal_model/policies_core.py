@@ -1666,7 +1666,10 @@ class CapitalGainsPolicy(TaxPolicy):
             tau1 = self._reform_rate(bracket)
             if not (0 <= tau0 < 1) or not (0 <= tau1 < 1):
                 raise ValueError(
-                    "Capital gains rates must be in [0, 1) for CapitalGainsPolicy"
+                    "Capital gains rates must be in [0, 1) for CapitalGainsPolicy: "
+                    f"this change takes a bracket's effective rate from {tau0:.1%} "
+                    f"to {tau1:.1%}. A cut cannot go below zero in any bracket "
+                    "it reaches."
                 )
             total += (tau1 - tau0) * bracket.realizations_billions * factor
         return total
@@ -1702,7 +1705,10 @@ class CapitalGainsPolicy(TaxPolicy):
             tau1 = self._reform_rate(bracket)
             if not (0 <= tau0 < 1) or not (0 <= tau1 < 1):
                 raise ValueError(
-                    "Capital gains rates must be in [0, 1) for CapitalGainsPolicy"
+                    "Capital gains rates must be in [0, 1) for CapitalGainsPolicy: "
+                    f"this change takes a bracket's effective rate from {tau0:.1%} "
+                    f"to {tau1:.1%}. A cut cannot go below zero in any bracket "
+                    "it reaches."
                 )
             r0 = bracket.realizations_billions * factor
             r1 = r0 * self._realizations_ratio(bracket, years_since_start) * stock

@@ -372,8 +372,8 @@
       "name": "📋 Cap Employer Health Exclusion (-$450B)",
       "description": "Cap tax exclusion for employer health insurance at \\$50K. Raises ~\\$450B over 10 years.",
       "cbo_score": -450.0,
-      "cbo_source": "JCT",
-      "cbo_date": "2024",
+      "cbo_source": "CBO Budget Options (2008), nearest match",
+      "cbo_date": "2008-12",
       "cbo_published": true,
       "status": null
     },
@@ -433,8 +433,8 @@
       "name": "📋 Cap Charitable Deduction (-$200B)",
       "description": "Limit charitable deduction value to 28% rate. Raises ~\\$200B over 10 years.",
       "cbo_score": -200.0,
-      "cbo_source": "Treasury",
-      "cbo_date": "2024",
+      "cbo_source": "Obama/Biden proposal",
+      "cbo_date": "2016-02",
       "cbo_published": true,
       "status": null
     },
@@ -477,7 +477,7 @@
     },
     {
       "id": "across-the-board-rate-cut-5pp",
-      "name": "Flat Tax Reform",
+      "name": "Across-the-Board Rate Cut (5pp)",
       "description": "Lower all rates by 5pp (illustrative)",
       "cbo_score": null,
       "cbo_source": null,

@@ -1,0 +1,9 @@
+{
+  "source": "IRS Statistics of Income, Historic Table 2 (Individual Income Tax Returns by State and Size of Adjusted Gross Income), tax year 2022",
+  "url": "https://www.irs.gov/pub/irs-soi/22in55cmcsv.csv",
+  "downloaded": "2026-11-26",
+  "sha256_of_download": "f72f83339c36af889cf0ba98acdfab8e3d18051f88cb181f46db2ddc4ae498bb",
+  "bytes_of_download": 749827,
+  "extract": "Columns N1, A00100, N18460, A18425, A18450, A18500, A18800, A18460 by STATE and AGI_STUB 1-10; amounts in thousands of dollars as published. salt_amount = A18425 + A18450 + A18500 + A18800 (state and local income or general sales taxes, real estate taxes, personal property taxes, before the limitation); salt_limited_amount = A18460 (limited state and local taxes, the amount deductible under the $10,000 cap of IRC 164(b)(6)); salt_returns = N18460.",
+  "agi_stubs": "1 under $1; 2 $1-$10,000; 3 $10,000-$25,000; 4 $25,000-$50,000; 5 $50,000-$75,000; 6 $75,000-$100,000; 7 $100,000-$200,000; 8 $200,000-$500,000; 9 $500,000-$1,000,000; 10 $1,000,000 or more (SOI documentation guide for the 2022 state data)"
+}

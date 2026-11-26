@@ -128,9 +128,9 @@
       "own_row_tier_label": "Calibrated reference",
       "own_row_abs_pct_error": 0.1091887369844547,
       "own_row_official_billions": -450.0,
-      "own_row_caption": "Calibrated to reproduce -$450B (CBO) — agreement is by construction, not an independent test.",
+      "own_row_caption": "Calibrated to reproduce -$450B (CBO Budget Options (2008)) — agreement is by construction, not an independent test.",
       "own_row_model_billions": -449.50865068356995,
-      "own_row_window": "FY2025-2034",
+      "own_row_window": "FY2009-2018",
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
@@ -275,9 +275,9 @@
       "own_row_tier_label": "Calibrated reference",
       "own_row_abs_pct_error": 0.1091887369844547,
       "own_row_official_billions": -450.0,
-      "own_row_caption": "Calibrated to reproduce -$450B (CBO) — agreement is by construction, not an independent test.",
+      "own_row_caption": "Calibrated to reproduce -$450B (CBO Budget Options (2008)) — agreement is by construction, not an independent test.",
       "own_row_model_billions": -449.50865068356995,
-      "own_row_window": "FY2025-2034",
+      "own_row_window": "FY2009-2018",
       "holdout_status": "post_lock_holdout_available",
       "limitations": [
         "holdout labels follow the locked post-2026-05-02 regression protocol; they are not retroactive historical out-of-sample claims.",
