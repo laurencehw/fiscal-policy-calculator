@@ -92,10 +92,10 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.49277461432402886,
-        "avg_deduction_change": 119045.97658847396,
-        "federal_revenue_change_billions": -20.31254745679313,
-        "effective_rate_change_ppts": -1.706880165786085
+        "affected_filers_millions": 0.49277461432403036,
+        "avg_deduction_change": 119045.97658847374,
+        "federal_revenue_change_billions": -20.312547456793148,
+        "effective_rate_change_ppts": -1.7068801657860868
       },
       "salt_cap_lift_reverted": {
         "affected_filers_millions": 1.9670175609480025,
@@ -191,10 +191,10 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.09166345276633231,
-        "avg_deduction_change": 35804.84858083348,
-        "federal_revenue_change_billions": -1.1698897470968812,
-        "effective_rate_change_ppts": -0.530566646575984
+        "affected_filers_millions": 0.09166345276633249,
+        "avg_deduction_change": 35804.84858083341,
+        "federal_revenue_change_billions": -1.1698897470968814,
+        "effective_rate_change_ppts": -0.5305666465759841
       },
       "salt_cap_lift_reverted": {
         "affected_filers_millions": 0.45170479343688574,
@@ -389,10 +389,10 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.19458833861334668,
-        "avg_deduction_change": 182653.7923722197,
-        "federal_revenue_change_billions": -12.595434408201218,
-        "effective_rate_change_ppts": -2.9317603070931564
+        "affected_filers_millions": 0.1945883386133467,
+        "avg_deduction_change": 182653.79237221973,
+        "federal_revenue_change_billions": -12.595434408201221,
+        "effective_rate_change_ppts": -2.9317603070931573
       },
       "salt_cap_lift_reverted": {
         "affected_filers_millions": 0.7261982030419969,
@@ -488,13 +488,13 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.0485965955809272,
-        "avg_deduction_change": 71422.37465096204,
-        "federal_revenue_change_billions": -1.221421183644467,
+        "affected_filers_millions": 0.04859659558092722,
+        "avg_deduction_change": 71422.37465096203,
+        "federal_revenue_change_billions": -1.2214211836444673,
         "effective_rate_change_ppts": -1.2332143669611102
       },
       "salt_cap_lift_reverted": {
-        "affected_filers_millions": 0.23338505235025908,
+        "affected_filers_millions": 0.23338505235025914,
         "avg_deduction_change": 22472.18897347766,
         "federal_revenue_change_billions": -1.6102071999999998,
         "effective_rate_change_ppts": -1.62575422746412
@@ -587,9 +587,9 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.06663183360615388,
-        "avg_deduction_change": 85303.93593347249,
-        "federal_revenue_change_billions": -2.0039151100003236,
+        "affected_filers_millions": 0.06663183360615389,
+        "avg_deduction_change": 85303.93593347244,
+        "federal_revenue_change_billions": -2.003915110000323,
         "effective_rate_change_ppts": -1.5268079276138866
       },
       "salt_cap_lift_reverted": {
@@ -686,9 +686,9 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.031669109746359496,
-        "avg_deduction_change": 76166.6706133925,
-        "federal_revenue_change_billions": -0.8496622155189072,
+        "affected_filers_millions": 0.03166910974635957,
+        "avg_deduction_change": 76166.67061339233,
+        "federal_revenue_change_billions": -0.8496622155189073,
         "effective_rate_change_ppts": -1.177022656545262
       },
       "salt_cap_lift_reverted": {
@@ -785,8 +785,8 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.04814349006457062,
-        "avg_deduction_change": 76593.62430697265,
+        "affected_filers_millions": 0.04814349006457065,
+        "avg_deduction_change": 76593.62430697258,
         "federal_revenue_change_billions": -1.3019481305183669,
         "effective_rate_change_ppts": -0.9113041071087914
       },
@@ -884,10 +884,10 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.04007612457944878,
-        "avg_deduction_change": 74851.07116646331,
-        "federal_revenue_change_billions": -1.058486286541584,
-        "effective_rate_change_ppts": -0.9063696474261353
+        "affected_filers_millions": 0.040076124579448806,
+        "avg_deduction_change": 74851.07116646324,
+        "federal_revenue_change_billions": -1.0584862865415838,
+        "effective_rate_change_ppts": -0.9063696474261352
       },
       "salt_cap_lift_reverted": {
         "affected_filers_millions": 0.19614843170802287,
@@ -983,14 +983,14 @@
         }
       ],
       "salt_cap_lift": {
-        "affected_filers_millions": 0.026757124011608083,
-        "avg_deduction_change": 68384.9979736563,
+        "affected_filers_millions": 0.02675712401160792,
+        "avg_deduction_change": 68384.99797365672,
         "federal_revenue_change_billions": -0.6475585125369847,
         "effective_rate_change_ppts": -0.8893526338703387
       },
       "salt_cap_lift_reverted": {
-        "affected_filers_millions": 0.14830039454522811,
-        "avg_deduction_change": 19391.28354188545,
+        "affected_filers_millions": 0.1483003945452278,
+        "avg_deduction_change": 19391.283541885485,
         "federal_revenue_change_billions": -0.87624921,
         "effective_rate_change_ppts": -1.20343494487812
       }
